@@ -1,0 +1,59 @@
+# Assay registry for the functional-standard atlas.
+#
+# Rules (see AGENTS.md):
+#   - URNs must be verified against the MaveDB API by the fetch script, never
+#     copied from memory.
+#   - tier: core7 = the seven hereditary-cancer SGE sets from the companion
+#     benchmark; expansion = new assays for the atlas (missense / regulatory /
+#     indel coverage).
+
+assays:
+  - gene: BRCA1
+    urn: urn:mavedb:00000097-0-2
+    tier: core7
+    variant_classes: [missense, splice]
+    notes: Findlay et al. 2018 SGE; ClinVar circularity flag applies.
+
+  - gene: BRCA2
+    urn: urn:mavedb:00001225-a-1
+    tier: core7
+    variant_classes: [missense, splice]
+
+  - gene: BARD1
+    urn: urn:mavedb:00001250-a-2
+    tier: core7
+    variant_classes: [missense, splice]
+
+  - gene: PALB2
+    urn: urn:mavedb:00001259-a-2
+    tier: core7
+    variant_classes: [missense, splice]
+
+  - gene: RAD51C
+    urn: urn:mavedb:00000673-0-1
+    tier: core7
+    variant_classes: [missense, splice]
+
+  - gene: VHL
+    urn: urn:mavedb:00000675-0-1
+    tier: core7
+    variant_classes: [missense, splice]
+    notes: Buckley et al. 2024.
+
+  - gene: BAP1
+    urn: urn:mavedb:00000662-0-1
+    tier: core7
+    variant_classes: [missense, splice]
+    notes: Waters et al. 2024.
+
+  # --- expansion tier (Study 1 scope growth) -------------------------------
+  # TODO(agents/humans): candidates to source from MaveDB search —
+  #   TP53, PTEN, MSH2, LDLR, KCNQ1, SCN5A (SGE/MAVE);
+  #   saturation-mutagenesis MPRA sets for regulatory variants.
+  # Each new entry MUST be added here first, then pulled with `make fetch`.
+  - gene: TP53
+    urn: null
+    tier: expansion
+    variant_classes: [splice]
+    notes: Funk et al. 2025 splice SGE used as held-out external validation
+      in the companion BiB manuscript; resolve URN via MaveDB API search.
