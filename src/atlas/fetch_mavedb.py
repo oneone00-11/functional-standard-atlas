@@ -62,7 +62,6 @@ def fetch_score_set(urn: str, out_dir: Path, gene: str | None = None) -> dict:
             urn=urn,
             gene=gene or "",
             title=title,
-            relpath=str(fp.relative_to(out_dir)),
         )
 
     n_scores = sum(1 for _ in open(scores_path, "rb")) - 1

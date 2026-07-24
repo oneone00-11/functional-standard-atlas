@@ -38,6 +38,10 @@ def register_file(manifest_path: str | Path, file_path: str | Path, **meta) -> d
     """
     manifest_path = Path(manifest_path)
     file_path = Path(file_path)
+    try:
+        key = str(file_path.relative_to(manifest_path.parent))
+    except ValueError:
+        key = file_path.name
     manifest = load_manifest(manifest_path)
     entry = {
         "sha256": sha256_file(file_path),
@@ -45,7 +49,7 @@ def register_file(manifest_path: str | Path, file_path: str | Path, **meta) -> d
         "registered_at": datetime.now(timezone.utc).isoformat(),
         **meta,
     }
-    manifest.setdefault("files", {})[file_path.name] = entry
+    manifest.setdefault("files", {})[key] = entry
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )

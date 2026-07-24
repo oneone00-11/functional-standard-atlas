@@ -55,9 +55,10 @@ assays:
     urn: null
     tier: expansion
     variant_classes: [splice]
-    notes: Funk et al. 2025 splice SGE used as held-out external validation
+    notes: >
+      Funk et al. 2025 splice SGE used as held-out external validation
       in the companion BiB manuscript. MaveDB search API checked 2026-07-24
-      (queries: TP53, Funk, splice) returned no deposit -- data likely lives in
+      (queries TP53, Funk, splice) returned no deposit -- data likely lives in
       the paper's supplementary material. Preferred source: reuse the
       provenance-documented TP53 scores from the companion repo
       oneone00-11/variant-fm-benchmark and record provenance in NOTES.md.

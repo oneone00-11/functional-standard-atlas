@@ -41,3 +41,19 @@ def test_verify_detects_missing_file(tmp_path):
 
     data.unlink()
     assert verify_manifest(manifest_path) == ["MISSING: scores.csv"]
+
+
+def test_register_files_in_subdirectories_do_not_collide(tmp_path):
+    """Regression: same-named files in different subdirs must stay separate."""
+    for sub in ("set_a", "set_b"):
+        d = tmp_path / sub
+        d.mkdir()
+        (d / "scores.csv").write_bytes(f"data-{sub}".encode())
+
+    manifest_path = tmp_path / "MANIFEST.json"
+    register_file(manifest_path, tmp_path / "set_a" / "scores.csv")
+    register_file(manifest_path, tmp_path / "set_b" / "scores.csv")
+
+    manifest = json.loads(manifest_path.read_text())
+    assert set(manifest["files"]) == {"set_a/scores.csv", "set_b/scores.csv"}
+    assert verify_manifest(manifest_path) == []
