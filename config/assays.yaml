@@ -35,7 +35,7 @@ assays:
     variant_classes: [missense, splice]
 
   - gene: VHL
-    urn: urn:mavedb:00000675-0-1
+    urn: urn:mavedb:00000675-a-1
     tier: core7
     variant_classes: [missense, splice]
     notes: Buckley et al. 2024.
@@ -56,4 +56,8 @@ assays:
     tier: expansion
     variant_classes: [splice]
     notes: Funk et al. 2025 splice SGE used as held-out external validation
-      in the companion BiB manuscript; resolve URN via MaveDB API search.
+      in the companion BiB manuscript. MaveDB search API checked 2026-07-24
+      (queries: TP53, Funk, splice) returned no deposit -- data likely lives in
+      the paper's supplementary material. Preferred source: reuse the
+      provenance-documented TP53 scores from the companion repo
+      oneone00-11/variant-fm-benchmark and record provenance in NOTES.md.

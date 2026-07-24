@@ -1,15 +1,18 @@
-PYTHON ?= PYTHONPATH=src python3
+# Prefer the project virtualenv when it exists; fall back to system python3.
+PY := $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
+export PYTHONPATH := src
 
 .PHONY: setup fetch test clean
 
 setup:
-	pip install -r requirements.txt
+	python3 -m venv .venv
+	.venv/bin/pip install -r requirements.txt
 
 fetch:
-	$(PYTHON) -m atlas.fetch_mavedb --config config/assays.yaml
+	$(PY) -m atlas.fetch_mavedb --config config/assays.yaml
 
 test:
-	$(PYTHON) -m pytest tests/ -q
+	$(PY) -m pytest tests/ -q
 
 clean:
 	rm -rf results/*
