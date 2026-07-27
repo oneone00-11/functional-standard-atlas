@@ -2,7 +2,7 @@
 PY := $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 export PYTHONPATH := src
 
-.PHONY: setup fetch test clean
+.PHONY: setup fetch freeze test clean
 
 setup:
 	python3 -m venv .venv
@@ -10,6 +10,9 @@ setup:
 
 fetch:
 	$(PY) -m atlas.fetch_mavedb --config config/assays.yaml
+
+freeze:
+	$(PY) -m atlas.mapping
 
 test:
 	$(PY) -m pytest tests/ -q

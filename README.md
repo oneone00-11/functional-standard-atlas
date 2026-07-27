@@ -38,6 +38,7 @@ results/                  # generated tables/figures (gitignored, script-produce
 ```bash
 make setup     # install pinned dependencies
 make fetch     # download all registered assays + build hash manifest
+make freeze    # map to GRCh38 (Mutalyzer + Ensembl) + build frozen matrix
 make test      # run the guardrail tests
 ```
 
