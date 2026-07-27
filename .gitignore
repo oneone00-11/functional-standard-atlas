@@ -6,4 +6,5 @@ data/raw/
 data/frozen/
 results/
 models/*/cache/
+models/*/run_log.json
 !.gitkeep
