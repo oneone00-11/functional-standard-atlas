@@ -32,10 +32,14 @@ import pandas as pd
 MODEL_NAME = "alphagenome"
 MODEL_DIR = Path(__file__).resolve().parent
 PACKAGE_VERSION = "0.7.0"  # alphagenome client, pinned in requirements.txt
-DEFAULT_WIDTH = 2**15  # 32 kb variant-centred interval, per scoring tutorial
+DEFAULT_WIDTH = 2**14  # 16 kb variant-centred interval; 2^15 is NOT supported
+# by the API (supported: 16384, 131072, 524288, 1048576 — verified 2026-07-26)
 
 OUTPUT_TYPE_CANDIDATES = ("output_type", "requested_output", "output")
-SCORE_COL_CANDIDATES = ("score", "value", "effect")
+# Client 0.7.0 tidy_scores exposes raw_score/quantile_score. The merged score
+# sums maxima across output types, which is only meaningful on the
+# scale-normalised quantile_score; raw_score is a last-resort fallback.
+SCORE_COL_CANDIDATES = ("score", "value", "effect", "quantile_score", "raw_score")
 
 
 # ---------------------------------------------------------------- score math
@@ -165,7 +169,9 @@ def main(argv: list[str] | None = None) -> int:
         model = build_client()
         scorers = []
         for key in ("SPLICE_SITES", "SPLICE_SITE_USAGE", "SPLICE_JUNCTIONS"):
-            scorers.extend(variant_scorers.RECOMMENDED_VARIANT_SCORERS[key])
+            value = variant_scorers.RECOMMENDED_VARIANT_SCORERS[key]
+            # 0.7.0 returns a single scorer per key; older versions a list.
+            scorers.extend(value if isinstance(value, (list, tuple)) else [value])
 
     scores: dict[int, float] = {}
     n_from_cache = 0
@@ -199,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
     run_log = {
         "model": "AlphaGenome (DeepMind API)",
         "client_package": f"alphagenome=={PACKAGE_VERSION}",
-        "score_definition": "max(SPLICE_SITES) + max(SPLICE_SITE_USAGE) + max(SPLICE_JUNCTIONS)/5",
+        "score_definition": "max(SPLICE_SITES) + max(SPLICE_SITE_USAGE) + max(SPLICE_JUNCTIONS)/5 on quantile_score",
         "width": args.width,
         "mock": args.mock,
         "scored": len(out),
