@@ -1,0 +1,10 @@
+{
+  "model": "gnomAD v4 AF baseline (global)",
+  "dataset": "gnomad_r4",
+  "api": "https://gnomad.broadinstitute.org/api",
+  "score_definition": "gnomad_af_global = -AF (flipped: larger = more damaging); variants absent from gnomAD left unscored",
+  "mock": true,
+  "scored": 3,
+  "not_in_gnomad": 0,
+  "run_at": "2026-07-28T15:36:09.394424+00:00"
+}

@@ -99,7 +99,7 @@ def per_gene_spearman(df: pd.DataFrame, model: str, min_n: int = 30) -> pd.DataF
         sub = sub.dropna(subset=[model, "functional_pathogenicity"])
         n = len(sub)
         if n < min_n:
-            rows.append({"gene": gene, "n": n, "rho": np.nan, "note": "below min_n"})
+            rows.append({"gene": gene, "n": n, "rho": np.nan, "z": np.nan, "var": np.nan, "note": "below min_n"})
             continue
         rho = float(sub[model].corr(sub["functional_pathogenicity"], method="spearman"))
         z, var = fisher_z(rho, n)
