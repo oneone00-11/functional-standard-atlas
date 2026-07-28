@@ -35,9 +35,11 @@ def concordance(old: pd.DataFrame, old_col: str, new: pd.DataFrame, new_col: str
     )
     if merged.empty:
         raise ValueError("no shared variants between old and new score files")
+    old_name = f"{old_col}_old" if old_col == new_col else old_col
+    new_name = f"{new_col}_new" if old_col == new_col else new_col
 
     def _rho(sub: pd.DataFrame) -> float:
-        return float(sub[old_col].corr(sub[new_col], method="spearman"))
+        return float(sub[old_name].corr(sub[new_name], method="spearman"))
 
     per_gene = {g: _rho(s) for g, s in merged.groupby("gene") if len(s) >= 30}
     return {
@@ -71,7 +73,9 @@ def main(argv: list[str] | None = None) -> int:
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(5, 5))
-    ax.scatter(merged[args.old_col], merged[args.new_col], s=3, alpha=0.3, c="#2F4B5C")
+    xcol = f"{args.old_col}_old" if args.old_col == args.new_col else args.old_col
+    ycol = f"{args.new_col}_new" if args.old_col == args.new_col else args.new_col
+    ax.scatter(merged[xcol], merged[ycol], s=3, alpha=0.3, c="#2F4B5C")
     ax.set_xlabel(f"old: {args.old_col}")
     ax.set_ylabel(f"new: {args.new_col}")
     ax.set_title(f"score concordance (Spearman ρ = {res['overall_rho']:.3f}, n = {res['n_shared']})")
