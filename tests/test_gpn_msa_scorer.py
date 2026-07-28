@@ -11,7 +11,12 @@ REPO = Path(__file__).resolve().parents[1]
 SCORER = REPO / "models" / "gpn_msa" / "score.py"
 
 sys.path.insert(0, str(SCORER.parent))
-from score import byte_ranges_for, read_tbi, reg2bins  # noqa: E402
+import importlib.util  # noqa: E402
+
+_spec = importlib.util.spec_from_file_location("gpn_msa_score", SCORER)
+_mod = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_mod)
+byte_ranges_for, read_tbi, reg2bins = _mod.byte_ranges_for, _mod.read_tbi, _mod.reg2bins
 
 
 def toy_variants(tmp_path):
