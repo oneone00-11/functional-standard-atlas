@@ -1,4 +1,4 @@
-"""Tests for atlas.evaluate: region classifier, Fisher-z, DL pooling, end-to-end."""
+"""Tests for atlas.evaluate: offset buckets, Fisher-z, DL pooling, end-to-end."""
 
 import math
 
@@ -6,16 +6,20 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from atlas.evaluate import classify_region, dl_pool, evaluate, fisher_z, per_gene_spearman
+from atlas.evaluate import classify_region, dl_pool, evaluate, fisher_z, per_gene_spearman, splice_offset
 
 
 # ------------------------------------------------------------- region rules
 @pytest.mark.parametrize(
     "hgvs,expected",
     [
-        ("c.5278-12C>G", "splice_region"),
-        ("c.5467+20C>A", "splice_region"),
-        ("c.594+2T>C", "splice_region"),
+        ("c.594+2T>C", "splice_1_2"),
+        ("c.5278-1G>A", "splice_1_2"),
+        ("c.5467+5G>A", "splice_3_10"),
+        ("c.100-10A>G", "splice_3_10"),
+        ("c.5278-12C>G", "splice_11_50"),
+        ("c.5467+20C>A", "splice_11_50"),
+        ("c.5467+60G>A", "splice_deep"),
         ("c.5565A>T", "coding_or_utr"),
         ("c.-9G>C", "coding_or_utr"),
         ("c.*3G>A", "coding_or_utr"),
@@ -23,6 +27,13 @@ from atlas.evaluate import classify_region, dl_pool, evaluate, fisher_z, per_gen
 )
 def test_classify_region(hgvs, expected):
     assert classify_region(hgvs) == expected
+
+
+def test_splice_offset_values():
+    assert splice_offset("c.5467+20C>A") == 20
+    assert splice_offset("c.5278-12C>G") == 12
+    assert math.isnan(splice_offset("c.5565A>T"))
+    assert math.isnan(splice_offset(None))
 
 
 # ------------------------------------------------------------------ fisher z
