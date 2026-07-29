@@ -27,6 +27,7 @@ RESULTS = REPO / "results"
 
 MODELS = [
     ("alphagenome", "AlphaGenome"),
+    ("spliceai_ds", "SpliceAI*"),
     ("cadd", "CADD"),
     ("alphamissense", "AlphaMissense*"),
     ("gpn_msa", "GPN-MSA"),
@@ -89,7 +90,7 @@ def main() -> None:
     ax.set_title("Model performance by variant region — functional-standard-atlas core7")
     fig.text(
         0.01, 0.01,
-        "* AlphaMissense scores missense SNVs only; “—” = model does not score that stratum.\n"
+        "* AlphaMissense scores missense SNVs only; SpliceAI scores SNVs only (indels not scored); “—” = model does not score that stratum.\n"
         "Pooled across 7 genes (DerSimonian–Laird, Fisher-z); cells use pooled_rho from results/eval_*.json.",
         fontsize=7.5, color="#555555",
     )
