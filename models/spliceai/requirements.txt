@@ -1,0 +1,7 @@
+spliceai==1.3.1
+tensorflow==2.19.1
+setuptools==79.0.1
+pyfaidx==0.9.0.4
+pysam==0.24.0
+pandas==3.0.5
+pyarrow==21.0.0

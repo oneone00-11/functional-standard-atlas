@@ -8,3 +8,4 @@ results/
 models/*/cache/
 models/*/run_log.json
 !.gitkeep
+data/refs/
