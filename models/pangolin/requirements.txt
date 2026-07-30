@@ -2,11 +2,12 @@
 # Install:
 #   python3 -m venv models/pangolin/.venv
 #   models/pangolin/.venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu
-#   models/pangolin/.venv/bin/pip install gffutils pyfastx pandas pyarrow \
-#       "git+https://github.com/tkzeng/Pangolin.git" pyvcf3
-# (pyvcf3 is needed only for `import vcf` at pangolin startup; CSV mode never
+#   models/pangolin/.venv/bin/pip install gffutils pyfastx pandas pyarrow pyvcf3 \
+#       "git+https://github.com/tkzeng/Pangolin.git@5cf94b8db938c658391b4305cd7ce33297d44ff7"
+# (Pangolin is pinned to the exact git commit above — AGENTS.md rule 3;
+# pyvcf3 is needed only for `import vcf` at pangolin startup; CSV mode never
 # touches its writer — see NOTES.md.)
-pangolin==1.0.2
+pangolin @ git+https://github.com/tkzeng/Pangolin.git@5cf94b8db938c658391b4305cd7ce33297d44ff7
 torch==2.13.0
 gffutils==0.14
 pyfastx==2.3.1
