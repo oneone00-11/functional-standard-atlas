@@ -1,0 +1,16 @@
+# Models are scored in their own venv: models/pangolin/.venv
+# Install:
+#   python3 -m venv models/pangolin/.venv
+#   models/pangolin/.venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   models/pangolin/.venv/bin/pip install gffutils pyfastx pandas pyarrow \
+#       "git+https://github.com/tkzeng/Pangolin.git" pyvcf3
+# (pyvcf3 is needed only for `import vcf` at pangolin startup; CSV mode never
+# touches its writer — see NOTES.md.)
+pangolin==1.0.2
+torch==2.13.0
+gffutils==0.14
+pyfastx==2.3.1
+PyVCF3==1.0.4
+pandas==3.0.5
+pyarrow==25.0.0
+numpy==2.5.1
