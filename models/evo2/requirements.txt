@@ -1,0 +1,14 @@
+# GPU environment — created ON the rented pod / cluster (see cluster/RUNBOOK_GPU.md).
+# Official Evo 2 "light install" (7B only, no Transformer Engine / FP8):
+#   conda create -n evo2 python=3.12 -y && conda activate evo2
+#   pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+#   pip install flash-attn==2.8.0.post2 --no-build-isolation   # torch MUST be installed first
+#   pip install evo2 pyfaidx pandas pyarrow tqdm
+# After the run, `pip freeze` and replace with exact versions (AGENTS.md rule 3).
+torch==2.7.1        # cu128 wheel
+flash-attn==2.8.0.post2
+evo2                # exact version pinned post-run
+pyfaidx
+pandas
+pyarrow
+tqdm
