@@ -28,6 +28,7 @@ RESULTS = REPO / "results"
 MODELS = [
     ("alphagenome", "AlphaGenome"),
     ("spliceai_ds", "SpliceAI*"),
+    ("pangolin_score", "Pangolin*"),
     ("cadd", "CADD"),
     ("alphamissense", "AlphaMissense*"),
     ("gpn_msa", "GPN-MSA"),

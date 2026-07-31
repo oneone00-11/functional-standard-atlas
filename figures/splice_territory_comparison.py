@@ -25,7 +25,7 @@ RESULTS = REPO / "results"
 MODELS = [  # (eval key, label, color, marker)
     ("alphagenome", "AlphaGenome", "#C0392B", "o"),
     ("spliceai_ds", "SpliceAI", "#2471A3", "s"),
-    ("pangolin", "Pangolin", "#1E8449", "^"),
+    ("pangolin_score", "Pangolin", "#1E8449", "^"),
 ]
 BINS = [
     ("splice_1_2", "±1–2 bp"),

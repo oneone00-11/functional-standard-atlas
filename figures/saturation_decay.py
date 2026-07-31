@@ -35,7 +35,7 @@ BIN_LABELS = ["±1–2 bp", "3–10 bp", "11–50 bp", ">50 bp"]
 MODELS = [  # (eval key, label, color, lw)
     ("alphagenome", "AlphaGenome", "#C0392B", 2.2),
     ("spliceai_ds", "SpliceAI", "#2471A3", 2.2),
-    ("pangolin", "Pangolin", "#1E8449", 2.2),
+    ("pangolin_score", "Pangolin", "#1E8449", 2.2),
     ("cadd", "CADD", "#7D3C98", 1.2),
     ("gpn_msa", "GPN-MSA", "#B9770E", 1.2),
     ("phylop100way", "phyloP-100way", "#707B7C", 1.2),

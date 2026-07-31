@@ -32,6 +32,7 @@ SCORE_FILES = {
     "gnomad_af_global": "gnomad_af_global_scores.parquet",
     "gnomad_af_popmax": "gnomad_af_popmax_scores.parquet",
     "spliceai_ds": "spliceai_ds_scores.parquet",
+    "pangolin_score": "pangolin_scores.parquet",
 }
 
 BASE_COLS = ["variant_id", "gene", "urn", "chrom", "pos", "ref", "alt",
