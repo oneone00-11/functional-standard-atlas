@@ -32,6 +32,7 @@ MODELS = [
     ("cadd", "CADD"),
     ("alphamissense", "AlphaMissense*"),
     ("gpn_msa", "GPN-MSA"),
+    ("nucleotide_transformer", "NT-v2-500M"),
     ("phylop100way", "phyloP-100way"),
     ("phastcons100way", "phastCons-100way"),
     ("gnomad_af_global", "gnomAD AF (global)"),

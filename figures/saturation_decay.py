@@ -38,6 +38,7 @@ MODELS = [  # (eval key, label, color, lw)
     ("pangolin_score", "Pangolin", "#1E8449", 2.2),
     ("cadd", "CADD", "#7D3C98", 1.2),
     ("gpn_msa", "GPN-MSA", "#B9770E", 1.2),
+    ("nucleotide_transformer", "NT-v2-500M", "#16A085", 1.2),
     ("phylop100way", "phyloP-100way", "#707B7C", 1.2),
     ("phastcons100way", "phastCons-100way", "#A6ACAF", 1.2),
     ("gnomad_af_global", "gnomAD AF (global)", "#D4AC0D", 1.0),

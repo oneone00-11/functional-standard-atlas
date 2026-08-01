@@ -27,6 +27,7 @@ SCORE_FILES = {
     "cadd": "cadd_scores.parquet",
     "alphamissense": "alphamissense_scores.parquet",
     "gpn_msa": "gpn_msa_scores.parquet",
+    "nucleotide_transformer": "nt_scores.parquet",
     "phylop100way": "phylop100way_scores.parquet",
     "phastcons100way": "phastcons100way_scores.parquet",
     "gnomad_af_global": "gnomad_af_global_scores.parquet",
