@@ -26,6 +26,8 @@ MODELS = [  # (eval key, label, color, marker)
     ("alphagenome", "AlphaGenome", "#C0392B", "o"),
     ("spliceai_ds", "SpliceAI", "#2471A3", "s"),
     ("pangolin_score", "Pangolin", "#1E8449", "^"),
+    ("evo2", "Evo2-7B", "#D35400", "D"),
+    ("nucleotide_transformer", "NT-v2-500M", "#16A085", "v"),
 ]
 BINS = [
     ("splice_1_2", "±1–2 bp"),
