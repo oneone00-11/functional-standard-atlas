@@ -6,9 +6,13 @@
 #   conda create -n nt python=3.12 -y && conda activate nt
 #   pip install torch --index-url https://download.pytorch.org/whl/cu128
 #   pip install transformers pyfaidx pandas pyarrow tqdm
-torch        # CUDA build (cu128 wheel), exact version pinned post-run
-transformers # exact version pinned post-run
-pyfaidx
-pandas
-pyarrow
-tqdm
+# Exact versions used for the 46,392-SNV run on RunPod A6000 (2026-08-01,
+# frozen via `pip freeze` post-run per AGENTS.md rule 3; full dump in
+# pipfreeze_runpod.txt).
+torch==2.11.0+cu128
+transformers==4.46.3
+pyfaidx==0.9.0.4
+pandas==3.0.5
+pyarrow==25.0.0
+tqdm==4.70.0
+numpy==2.5.1
