@@ -26,6 +26,7 @@ SCORE_FILES = {
     "alphagenome": "alphagenome_scores.parquet",
     "cadd": "cadd_scores.parquet",
     "alphamissense": "alphamissense_scores.parquet",
+    "evo2": "evo2_scores.parquet",
     "gpn_msa": "gpn_msa_scores.parquet",
     "nucleotide_transformer": "nt_scores.parquet",
     "phylop100way": "phylop100way_scores.parquet",

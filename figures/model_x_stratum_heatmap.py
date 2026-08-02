@@ -31,6 +31,7 @@ MODELS = [
     ("pangolin_score", "Pangolin*"),
     ("cadd", "CADD"),
     ("alphamissense", "AlphaMissense*"),
+    ("evo2", "Evo2-7B"),
     ("gpn_msa", "GPN-MSA"),
     ("nucleotide_transformer", "NT-v2-500M"),
     ("phylop100way", "phyloP-100way"),
