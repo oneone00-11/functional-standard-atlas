@@ -105,13 +105,16 @@ def fig_territory_corrected() -> None:
     grp = att.groupby(["model", "stratum"])["realisation"]
     real = grp.median().where(grp.count() >= 2).unstack()
     real = real.reindex(MODEL_ORDER).reindex(columns=STRATUM_ORDER)
-    ceil = (rel[rel["status"] == "validated"]
-            .sort_values("method", ascending=False)
-            .drop_duplicates(["gene", "stratum"])
-            .groupby("stratum")["ceiling"].median().reindex(STRATUM_ORDER))
+    ceil_g = (rel[rel["status"] == "validated"]
+              .sort_values("method", ascending=False)
+              .drop_duplicates(["gene", "stratum"])
+              .groupby("stratum")["ceiling"])
+    ceil = ceil_g.median().reindex(STRATUM_ORDER)
+    ceil_lo = ceil_g.min().reindex(STRATUM_ORDER)
+    ceil_hi = ceil_g.max().reindex(STRATUM_ORDER)
     genes_per_stratum = (att.groupby("stratum")["gene"].nunique().reindex(STRATUM_ORDER))
 
-    fig, axes = plt.subplots(1, 2, figsize=(15.2, 5.4),
+    fig, axes = plt.subplots(1, 2, figsize=(15.2, 5.8),
                              gridspec_kw={"width_ratios": [1, 1], "wspace": 0.28})
     rows = [LABEL[m] for m in MODEL_ORDER]
 
@@ -121,8 +124,17 @@ def fig_territory_corrected() -> None:
     axes[0].set_title("A  Pooled Spearman ρ — as measured\n"
                       "7 genes, 64,178 variants", loc="left", fontsize=10)
 
-    cols_b = [f"{STRATUM_LABEL[s]}\nceiling {ceil[s]:.2f}" if np.isfinite(ceil.get(s, np.nan))
-              else f"{STRATUM_LABEL[s]}\n(no error model)" for s in STRATUM_ORDER]
+    # the ceiling is a median over the contributing genes; where they disagree
+    # materially the range is shown, because the realisation inherits that spread
+    cols_b = []
+    for s in STRATUM_ORDER:
+        if not np.isfinite(ceil.get(s, np.nan)):
+            cols_b.append(f"{STRATUM_LABEL[s]}\n(no error model)")
+        elif (ceil_hi[s] - ceil_lo[s]) >= 0.10:
+            cols_b.append(f"{STRATUM_LABEL[s]}\nceiling {ceil[s]:.2f}\n({ceil_lo[s]:.2f}\u2013{ceil_hi[s]:.2f})")
+        else:
+            cols_b.append(f"{STRATUM_LABEL[s]}\nceiling {ceil[s]:.2f}")
+    cols_b = cols_b
     norm_b = TwoSlopeNorm(vmin=-0.6, vcenter=0.0, vmax=0.6)
     _heat(axes[1], real.to_numpy(float), rows, cols_b, norm_b, plt.get_cmap("PuOr_r"))
     axes[1].set_title("B  Realisation: ρ as a fraction of the attenuation ceiling\n"
@@ -132,7 +144,7 @@ def fig_territory_corrected() -> None:
                              plt.cm.ScalarMappable(norm=norm_b, cmap="PuOr_r"))):
         fig.colorbar(cb, ax=ax, fraction=0.026, pad=0.02)
 
-    fig.text(0.5, -0.08,
+    fig.text(0.5, -0.20,
              "Panel B is the same grid as panel A after dividing by what the assay can "
              "actually measure in that stratum. Ceiling = √(assay reliability), from "
              "replicate scores (BRCA1) or CI-validated per-variant standard errors "
@@ -140,7 +152,11 @@ def fig_territory_corrected() -> None:
              "Cells are shown only where at least two of those genes contribute; the "
              ">50 bp column is therefore blank, its ceiling of 0.30 resting on BARD1 "
              "alone — that stratum is close to unmeasurable rather than merely hard.\n"
-             "Note that the apparent collapse at ±1–2 in panel A largely disappears in "
+             "Where the three genes disagree by 0.10 or more the ceiling range is given "
+             "under the median, and the realisations in that column inherit the spread: at "
+             "\u00b11\u20132 the best broad-scope realisation is 0.42 using the median "
+             "ceiling but spans 0.31\u20130.42 across the three genes.\n"
+             "The apparent collapse at ±1–2 in panel A is nonetheless largely absent in "
              "panel B: the drop is in the measurement, not in the predictors.",
              ha="center", fontsize=8, color="#444444")
     save(fig, "fig_territory_corrected")

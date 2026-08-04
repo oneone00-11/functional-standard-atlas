@@ -166,15 +166,24 @@ def build_note() -> str:
     # ---- S5 -------------------------------------------------------------
     A("\n## S5. Measurement reliability and the attenuation ceiling\n")
     A("`results/reliability_v1.tsv`, `results/attenuation_v1.tsv` (Table S5)\n")
-    A("\nReliability per gene × stratum, from replicate scores (BRCA1, Spearman–Brown on "
-      "the replicate correlation; the deposited score is exactly the replicate mean) or "
-      "from CI-validated per-variant standard errors (BARD1, PALB2; "
-      "`1 − mean(SE²)/var(score)`). The attenuation ceiling is √reliability.\n")
+    A("\nThe table below reports the **attenuation ceiling** (= √reliability) per gene × "
+      "stratum, not the reliability itself. Reliability is estimated from replicate scores "
+      "(BRCA1, Spearman–Brown on the replicate correlation; the deposited score is exactly "
+      "the replicate mean) or from CI-validated per-variant standard errors (BARD1, PALB2; "
+      "`1 − mean(SE²)/var(score)`). To recover a reliability, square the tabulated value: "
+      "the coding/UTR median ceiling of 0.897 corresponds to a reliability of 0.805, and the "
+      "splice ±1–2 median ceiling of 0.772 to a reliability of 0.596.\n")
+    A("\nThe between-gene spread is small in most strata but large at splice ±1–2 and "
+      "splice 11–50 bp, where the three genes disagree by more than 0.20. Realisations in "
+      "those two strata should be read as ranges, not point estimates; the main text quotes "
+      "the median-ceiling value and states the range.\n")
     v = (rel[rel["status"] == "validated"]
          .sort_values("method", ascending=False)
          .drop_duplicates(["gene", "stratum"]))
     piv = v.pivot(index="stratum", columns="gene", values="ceiling")
     piv = piv.reindex([s for s in STRAT if s in piv.index])
+    piv["Spread"] = piv.max(axis=1) - piv.min(axis=1)
+    piv["Median"] = piv.drop(columns=["Spread"]).median(axis=1)
     piv.index = [STRAT[s] for s in piv.index]
     piv.insert(0, "Stratum", piv.index)
     A("\n" + md_table(piv.reset_index(drop=True)) + "\n")
