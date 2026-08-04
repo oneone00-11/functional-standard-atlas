@@ -23,7 +23,7 @@ from atlas.evaluate import classify_region
 REPO = Path(__file__).resolve().parents[1]
 RESULTS = REPO / "results"
 FROZEN = REPO / "data" / "frozen" / "frozen-matrix-v1.parquet"
-MATRIX = RESULTS / "score_matrix_atlas_v1.parquet"
+MATRIX = RESULTS / "score_matrix_atlas_v2.parquet"
 
 BINS = [
     ("coding_or_utr", "Coding / UTR", "#2471A3"),

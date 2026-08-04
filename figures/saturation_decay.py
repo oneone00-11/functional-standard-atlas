@@ -6,7 +6,7 @@ the atlas score matrix — at splice ±1–2 the readout is near-deterministic
 Panel B: pooled Spearman ρ per offset bin for every scored model — all lines
 converge to ~0 beyond 10 bp (offset decay).
 
-Reads only results/score_matrix_atlas_v1.parquet + results/eval_*.json
+Reads only results/score_matrix_atlas_v2.parquet + results/eval_*.json
 (AGENTS.md rule 5); missing eval files are skipped with a note.
 
 Usage (PYTHONPATH=src):  python figures/saturation_decay.py
@@ -48,7 +48,7 @@ MODELS = [  # (eval key, label, color, lw)
 
 
 def panel_a(ax: plt.Axes) -> None:
-    mat = pd.read_parquet(RESULTS / "score_matrix_atlas_v1.parquet",
+    mat = pd.read_parquet(RESULTS / "score_matrix_atlas_v2.parquet",
                           columns=["gene", "hgvs_c", "functional_pathogenicity"])
     mat = mat.dropna(subset=["functional_pathogenicity"])
     mat["bin"] = mat["hgvs_c"].map(classify_region)

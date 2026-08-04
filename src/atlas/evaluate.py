@@ -32,8 +32,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Intronic offset notation: c.5278-12C>G (offset 12), c.5467+20C>A (offset 20)
-_OFFSET = re.compile(r"c\.\*?\d+[+-](\d+)")
+# Intronic offset notation: c.5278-12C>G (offset 12), c.5467+20C>A (offset 20).
+# The position itself may be UTR-relative, so an intron inside the 5'UTR reads
+# c.-19-1G>T and one inside the 3'UTR reads c.*104+5A>G; both are intronic and
+# both must be caught. (An earlier form of this pattern allowed only the `*`
+# prefix and so mis-filed 9 canonical BRCA1 5'UTR-intronic variants as coding.)
+_OFFSET = re.compile(r"^c\.[-*]?\d+[+-](\d+)")
 
 
 def splice_offset(hgvs_c: str) -> float:

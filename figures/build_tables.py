@@ -2,7 +2,7 @@
 
 Numbers come only from pipeline files (AGENTS.md rule 5):
   - data/frozen/frozen-matrix-v1.parquet  (per-assay variant counts, regions)
-  - results/score_matrix_atlas_v1.summary.json  (per-model coverage)
+  - results/score_matrix_atlas_v2.summary.json  (per-model coverage)
 Descriptive strings (versions, definitions) mirror models/*/NOTES.md — if a
 NOTES.md changes, update the string here too.
 
@@ -83,7 +83,7 @@ MODELS = [
 
 
 def table2() -> pd.DataFrame:
-    summary = json.loads((RESULTS / "score_matrix_atlas_v1.summary.json").read_text())
+    summary = json.loads((RESULTS / "score_matrix_atlas_v2.summary.json").read_text())
     cov = summary["coverage"]
     n_total = summary["n_variants"]
     rows = []
