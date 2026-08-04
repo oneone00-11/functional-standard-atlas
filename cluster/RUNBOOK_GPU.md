@@ -98,7 +98,7 @@ python -c "from pyfaidx import Fasta; f=Fasta('grch38_subset.fa'); print(list(f.
 
 在 **Mac 终端**（不是 pod）执行，把 `<IP>` `<PORT>` 换成你的：
 ```bash
-cd /Users/cliffzhang/Documents/kimi/workspace/functional-standard-atlas
+cd "$REPO_ROOT"   # path to your clone
 rsync -avP -e "ssh -p <PORT> -i ~/.ssh/id_ed25519" \
   data/frozen/frozen-matrix-v1.parquet root@<IP>:/root/atlas/data/frozen/
 rsync -avP -e "ssh -p <PORT> -i ~/.ssh/id_ed25519" \
@@ -181,7 +181,7 @@ python models/evo2/score.py --input data/frozen/frozen-matrix-v1.parquet \
 ## 8. 拉回分数（Mac 端，1 分钟）
 
 ```bash
-cd /Users/cliffzhang/Documents/kimi/workspace/functional-standard-atlas
+cd "$REPO_ROOT"   # path to your clone
 rsync -avP -e "ssh -p <PORT> -i ~/.ssh/id_ed25519" \
   root@<IP>:/root/atlas/results/nt_scores.parquet results/nt_scores.parquet
 rsync -avP -e "ssh -p <PORT> -i ~/.ssh/id_ed25519" \

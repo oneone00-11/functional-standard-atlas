@@ -1,0 +1,58 @@
+cff-version: 1.2.0
+title: >-
+  functional-standard-atlas: an attenuation-corrected, territory-resolved
+  benchmark of variant effect predictors against saturation genome editing
+message: >-
+  If you use this software or the derived data, please cite both the software
+  (this file) and the accompanying paper listed under preferred-citation.
+type: software
+authors:
+  - family-names: Zhang
+    given-names: Ningyi
+    affiliation: Department of Biological Sciences, National University of Singapore
+    email: cliffzhang@u.nus.edu
+repository-code: "REPOSITORY_URL_PLACEHOLDER"
+abstract: >-
+  A frozen functional-standard atlas of 64,178 saturation genome editing
+  variants across seven cancer susceptibility genes, with nineteen variant
+  effect predictors scored under pinned pipelines, per-stratum measurement
+  reliability estimates, and an attenuation-corrected territory map.
+keywords:
+  - variant effect prediction
+  - saturation genome editing
+  - multiplexed assays of variant effect
+  - benchmarking
+  - measurement reliability
+  - attenuation correction
+  - reproducibility
+license: MIT
+license-url: "https://opensource.org/licenses/MIT"
+version: "2.0.0"
+date-released: "2026-08-05"
+identifiers:
+  - type: doi
+    value: "ZENODO_DOI_PLACEHOLDER"
+    description: Concept DOI for all versions of the archived repository
+references:
+  - type: data
+    title: MaveDB
+    notes: >-
+      Source saturation genome editing measurements. Deposits
+      urn:mavedb:00000097-0-2 (BRCA1), 00001225-a-1 (BRCA2), 00001250-a-2
+      (BARD1), 00001259-a-2 (PALB2), 00000662-0-1 (BAP1), 00000673-0-1
+      (RAD51C), 00000675-a-1 (VHL). Derived data released CC BY 4.0; see
+      LICENSE-DATA for per-deposit upstream terms.
+    authors:
+      - name: MaveDB
+    url: "https://www.mavedb.org"
+preferred-citation:
+  type: article
+  title: "MANUSCRIPT_TITLE_PLACEHOLDER"
+  authors:
+    - family-names: Zhang
+      given-names: Ningyi
+  year: 2026
+  journal: "Submitted"
+  notes: >-
+    Update this block with the journal, volume and DOI once the paper is
+    accepted.

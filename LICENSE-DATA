@@ -1,0 +1,64 @@
+Licence for derived data files
+==============================
+
+The derived data produced by this repository — the frozen variant matrices
+(`data/frozen/`), the score matrices and every table under `results/` — are
+released under the Creative Commons Attribution 4.0 International licence
+(CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+
+Cite as described in CITATION.cff.
+
+This file covers derived data only. The source code is licensed separately
+under the MIT License (see LICENSE).
+
+
+Upstream terms that continue to apply
+-------------------------------------
+
+The derived data are computed from third-party sources whose own terms are
+not superseded by this licence. Redistribution here is permitted under those
+terms; attribution obligations pass through to anyone reusing this dataset.
+
+Saturation genome editing measurements (MaveDB deposits):
+
+    Gene     MaveDB URN                    Upstream licence
+    -------  ----------------------------  ----------------
+    BRCA1    urn:mavedb:00000097-0-2       CC0 1.0
+    BRCA2    urn:mavedb:00001225-a-1       CC0 1.0
+    BARD1    urn:mavedb:00001250-a-2       CC0 1.0
+    PALB2    urn:mavedb:00001259-a-2       CC0 1.0
+    BAP1     urn:mavedb:00000662-0-1       CC BY 4.0
+    RAD51C   urn:mavedb:00000673-0-1       CC BY 4.0
+    VHL      urn:mavedb:00000675-a-1       CC BY 4.0
+
+  The three CC BY 4.0 deposits require attribution to their originating
+  publications, which are cited in the manuscript and in CITATION.cff. CC BY 4.0
+  was chosen for the derived data precisely because it is the most restrictive
+  of the upstream licences, so this release is compatible with all seven.
+
+Predictor score columns:
+
+  Each column in the score matrices is derived from a third-party predictor with
+  its own terms; see `models/<name>/NOTES.md` for the source and version of each.
+  Two require specific attention:
+
+  * AlphaGenome. Scored through the official API, whose free tier is licensed for
+    NON-COMMERCIAL use only. The `alphagenome` column, and any figure or table
+    derived from it, therefore carries a restriction that the CC BY 4.0 grant
+    above does not lift. Commercial reuse of that column requires permission from
+    the API provider.
+
+  * CADD. Free for non-commercial use; commercial users must obtain a licence
+    from the University of Washington.
+
+  All other score columns derive from sources that permit redistribution and
+  reuse with attribution.
+
+
+Reference genome and annotation
+-------------------------------
+
+GRCh38 sequence and Ensembl annotation under `data/refs/` are redistributed
+under the terms of their providers (Ensembl: no restriction; UCSC track data:
+free for academic and non-profit use). These files are not included in the
+Zenodo archive; `make fetch` retrieves them from source.
