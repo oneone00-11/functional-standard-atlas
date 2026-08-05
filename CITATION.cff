@@ -11,7 +11,7 @@ authors:
     given-names: Ningyi
     affiliation: Department of Biological Sciences, National University of Singapore
     email: cliffzhang@u.nus.edu
-repository-code: "REPOSITORY_URL_PLACEHOLDER"
+repository-code: "https://github.com/oneone00-11/functional-standard-atlas"
 abstract: >-
   A frozen functional-standard atlas of 64,178 saturation genome editing
   variants across seven cancer susceptibility genes, with nineteen variant
