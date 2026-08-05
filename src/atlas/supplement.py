@@ -137,6 +137,9 @@ def build_note() -> str:
 
     # ---- S4 -------------------------------------------------------------
     A("\n## S4. Auxiliary assay measurements and protein consequence\n")
+    A("Per-gene and pooled correlations for every model \u00d7 stratum cell are in "
+      "Supplemental_Table_S1; per-model forest plots are Supplemental_Fig_S1\u2013S12 and "
+      "the concordance scatters Supplemental_Fig_S13.\n")
     A("`results/assay_aux_v1.parquet`, `results/consequence_v1.parquet`\n")
     A("\nThe frozen atlas keeps one number per variant. The deposits carry more; "
       "`atlas.assay_aux` lifts the additional columns into one table, validating each. "
@@ -165,7 +168,7 @@ def build_note() -> str:
 
     # ---- S5 -------------------------------------------------------------
     A("\n## S5. Measurement reliability and the attenuation ceiling\n")
-    A("`results/reliability_v1.tsv`, `results/attenuation_v1.tsv` (Table S5)\n")
+    A("`results/reliability_v1.tsv`, `results/attenuation_v1.tsv` (Supplemental_Table_S3)\n")
     A("\nThe table below reports the **attenuation ceiling** (= √reliability) per gene × "
       "stratum, not the reliability itself. Reliability is estimated from replicate scores "
       "(BRCA1, Spearman–Brown on the replicate correlation; the deposited score is exactly "
@@ -208,7 +211,7 @@ def build_note() -> str:
 
     # ---- S6 -------------------------------------------------------------
     A("\n## S6. Score quantisation and statistical power\n")
-    A("`results/tie_audit_v1.tsv` (Table S6), `results/power_v1.tsv`\n")
+    A("`results/tie_audit_v1.tsv` (Supplemental_Table_S5; rounded vs full precision in Supplemental_Table_S5b), `results/power_v1.tsv`\n")
     A("\nWhere a score vector contains ties, Spearman ρ is bounded below 1 for arithmetic "
       "reasons. The bound below is exact and attained by construction. The twelve most "
       "tie-limited cells:\n")
@@ -235,7 +238,7 @@ def build_note() -> str:
 
     # ---- S7 -------------------------------------------------------------
     A("\n## S7. Paired comparisons and leave-one-gene-out sensitivity\n")
-    A("`results/head_to_head_v1.tsv` (Table S7), `results/logo_v1.tsv`\n")
+    A("`results/head_to_head_v1.tsv` (Supplemental_Table_S6), `results/logo_v1.tsv`\n")
     A("\nTwo correlations measured on the same variants are dependent, so overlapping "
       "marginal CIs are not a test of their difference. Each ordering claim was tested on "
       "the variants both predictors score, with Steiger's test pooled across genes and a "
@@ -263,7 +266,7 @@ def build_note() -> str:
 
     # ---- S8 -------------------------------------------------------------
     A("\n## S8. Extended strata\n")
-    A("`results/eval_ext_v1.tsv` (Table S4)\n")
+    A("`results/eval_ext_v1.tsv` (Supplemental_Table_S2)\n")
     A("\nPooled ρ over the original eight strata plus ClinVar-absent, SNV, indel and the "
       "protein-consequence classes.\n")
     w = ext.pivot(index="model", columns="stratum", values="pooled_rho")
@@ -283,7 +286,7 @@ def build_note() -> str:
     # ---- S9 -------------------------------------------------------------
     A("\n## S9. Classification, evidence strength, readouts and ensembles\n")
     A("`results/clinical_evidence_v1.tsv`, `results/rna_readout_v1.tsv`, "
-      "`results/ensemble_logo_v1.tsv` (Table S8), `results/model_correlation_*_v1.tsv`\n")
+      "`results/ensemble_logo_v1.tsv` (Supplemental_Table_S7), `results/model_correlation_*_v1.tsv`\n")
     A(f"\n**Labels.** {cej['n_labelled']:,} variants across "
       f"{', '.join(cej['genes'])}: GMM posterior ≥ 0.9 / ≤ 0.1 for BARD1 and PALB2 "
       "(ambiguous middle dropped), the authors' functional class for RAD51C "
@@ -347,7 +350,7 @@ def build_note() -> str:
     sim = pd.read_csv(RESULTS / "attenuation_simulation_v1.tsv", sep="\t")
     simj = json.loads((RESULTS / "attenuation_simulation_v1.json").read_text())
     A("\n## S10. Simulation validation of the attenuation correction\n")
-    A("`results/attenuation_simulation_v1.tsv` (Table S6)\n")
+    A("`results/attenuation_simulation_v1.tsv` (Supplemental_Table_S4)\n")
     A(f"\n{int(simj['trials_per_cell'])} trials per cell over five stratum shapes x six true "
       "rho x six reliabilities (seed "
       f"{simj['seed']}). True scores resample the observed distribution of one gene within "
@@ -378,7 +381,7 @@ def build_note() -> str:
     ds = pd.read_csv(RESULTS / "definition_sweep_performance_v1.tsv", sep="\t")
     dsj = json.loads((RESULTS / "definition_sweep_v1.json").read_text())
     A("\n## S11. AlphaGenome definition sweep\n")
-    A("`results/definition_sweep_performance_v1.tsv` (Table S10), "
+    A("`results/definition_sweep_performance_v1.tsv` (Supplemental_Table_S8), "
       "`results/definition_sweep_concordance_v1.tsv`\n")
     A("\n2,722 variants, sampled stratified by gene and region with splice strata "
       "oversampled, scored under four API-supported window widths. Each response carries "
