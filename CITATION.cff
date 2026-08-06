@@ -47,7 +47,7 @@ references:
     url: "https://www.mavedb.org"
 preferred-citation:
   type: article
-  title: "MANUSCRIPT_TITLE_PLACEHOLDER"
+  title: "Saturation genome editing reveals that predictor failure at canonical splice sites is a limit of the assay, not the models"
   authors:
     - family-names: Zhang
       given-names: Ningyi
