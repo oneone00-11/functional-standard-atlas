@@ -423,6 +423,14 @@ def build_note() -> str:
       "`atlas.reliability`, `atlas.robustness`, `atlas.evaluate_ext`, "
       "`atlas.clinical_evidence`, `atlas.ensemble`, `atlas.supplement`; figures from "
       "`figures/hardening_figures.py`.\n")
+
+    # ---- S13 unnumbered data files --------------------------------------
+    A("\n## S13. Unnumbered data files\n")
+    A("The `tables/` directory also ships eleven analysis-level TSV files that carry no "
+      "Supplemental Table number. They are the machine-readable sources behind the Note "
+      "sections named below, provided for re-use and inspection:\n")
+    for f in EXTRA:
+        A(f"\n- `{f}` — {EXTRA_DESCR[f]}\n")
     return "".join(out)
 
 
@@ -441,6 +449,41 @@ EXTRA = ["reliability_v1.tsv", "reliability_corroboration_v1.tsv", "power_v1.tsv
          "clinical_evidence_v1.tsv", "ensemble_pooled_v1.tsv",
          "model_correlation_all_v1.tsv", "model_correlation_coding_or_utr_v1.tsv",
          "model_correlation_splice_region_v1.tsv"]
+
+EXTRA_DESCR = {
+    "reliability_v1.tsv":
+        "per-gene replicate-based measurement reliability and the implied attenuation "
+        "ceiling for each stratum (source of Note S5 and Table S5)",
+    "reliability_corroboration_v1.tsv":
+        "independent corroboration of the reliability estimates: agreement ρ and implied "
+        "ceiling from held-out assay comparisons, per gene and stratum (Note S5)",
+    "power_v1.tsv":
+        "minimum Spearman ρ detectable at 80% power, per gene and pooled, for every "
+        "model × stratum cell (Note S6)",
+    "logo_v1.tsv":
+        "leave-one-gene-out pooled ρ for every model × stratum cell, with the held-out "
+        "gene identified (Note S7)",
+    "rna_readout_v1.tsv":
+        "per-gene correlations of each predictor with the RNA-level readout and with "
+        "fitness, the cross-readout comparison of Note S9",
+    "definition_sweep_concordance_v1.tsv":
+        "pairwise score concordance between AlphaGenome definitions at each API window "
+        "width (Note S11)",
+    "clinical_evidence_v1.tsv":
+        "AUROC, AUPRC and positive likelihood ratio at 95% specificity per model and "
+        "territory against assay-derived functional labels, with bootstrap intervals "
+        "(Note S9)",
+    "ensemble_pooled_v1.tsv":
+        "pooled ρ of the five predictor-selection strategies per stratum over all seven "
+        "genes; Table S9 reports the leave-one-gene-out median counterpart (Note S9)",
+    "model_correlation_all_v1.tsv":
+        "between-model Spearman correlation matrix over all scored variants",
+    "model_correlation_coding_or_utr_v1.tsv":
+        "between-model Spearman correlation matrix over coding/UTR variants (the Note S9 "
+        "heatmap)",
+    "model_correlation_splice_region_v1.tsv":
+        "between-model Spearman correlation matrix over splice-region variants",
+}
 
 MAIN_FIGS = ["fig_atlas_overview", "fig_territory_corrected", "fig_splice_territory",
              "fig_splice_head_to_head", "fig_rna_readout", "fig_classification",
