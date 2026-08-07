@@ -33,7 +33,7 @@ where each stops.
 
 | Tier | You have | You can | Wall clock | Disk |
 |---|---|---|---|---|
-| 1 | git clone | run the 82 guardrail tests | ~25 s | 20 MB |
+| 1 | git clone | run the 83 guardrail tests | ~25 s | 20 MB |
 | 2 | **+ Zenodo archive** | **regenerate every figure and table in the paper** | **< 1 min** | 60 MB |
 | 3 | + network | rebuild the frozen matrix from MaveDB | ~20 min | 2.2 GB |
 | 4 | + API key + GPU | re-score every predictor from scratch | ~40 h | 6 GB |
@@ -84,7 +84,7 @@ reproducible on CPU with network access.
 make setup     # install pinned dependencies
 make fetch     # download registered assays + reference genome, build hash manifest
 make freeze    # map to GRCh38 (Mutalyzer + Ensembl), build the frozen matrix
-make test      # 82 guardrail tests
+make test      # 83 guardrail tests
 ```
 
 `make fetch` pulls ~2.1 GB of reference sequence, which is why `data/refs/` is

@@ -167,3 +167,23 @@ def test_classify_variant_against_a_synthetic_transcript():
     assert f("c.-1G>A") == "utr5"
     assert f("c.*1A>G") == "utr3"
     assert f("c.4+1G>A") == "intronic"
+
+
+def test_matched_realisation_uses_a_matched_broad_scope_set():
+    """The coding-vs-±1-2 comparison must not silently compare different predictors."""
+    from pathlib import Path
+
+    from atlas.matched_realisation import MISSENSE_ONLY, compare
+
+    results = Path(__file__).resolve().parents[1] / "results"
+    if not (results / "attenuation_v1.tsv").exists():
+        pytest.skip("attenuation_v1.tsv not built")
+    table, prov = compare(results)
+    matched = prov["summary"]["matched_models"]
+
+    assert matched, "no predictor carries an estimate in both strata"
+    assert not set(matched) & set(MISSENSE_ONLY), (
+        "missense-only meta-predictors leaked into a splice-territory comparison")
+    # both metrics must summarise the identical predictor set, or the ratio between
+    # observed and corrected is not a like-for-like statement
+    assert set(table["n_models"]) == {len(matched)}

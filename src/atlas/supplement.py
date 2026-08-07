@@ -416,44 +416,66 @@ def build_note() -> str:
     # ---- S12 ------------------------------------------------------------
     A("\n## S12. Repository and reproduction\n")
     A("One-command reproduction from a clean clone: `make fetch && make test` (fetch, "
-      "freeze and 82 guardrail tests, 25 of them covering the analyses introduced here). "
+      "freeze and 83 guardrail tests, 26 of them covering the analyses introduced here). "
       "Frozen data are immutable under `data/{raw,frozen}/` with SHA-256 manifests; every "
       "figure, table and number in the manuscript is produced by a committed script.\n")
     A("\nAnalysis modules added for this work: `atlas.assay_aux`, `atlas.consequence`, "
       "`atlas.reliability`, `atlas.robustness`, `atlas.evaluate_ext`, "
-      "`atlas.clinical_evidence`, `atlas.ensemble`, `atlas.supplement`; figures from "
+      "`atlas.clinical_evidence`, `atlas.ensemble`, `atlas.matched_realisation`, "
+      "`atlas.supplement`; figures from "
       "`figures/hardening_figures.py`.\n")
 
     # ---- S13 unnumbered data files --------------------------------------
-    A("\n## S13. Unnumbered data files\n")
-    A("The `tables/` directory also ships eleven analysis-level TSV files that carry no "
-      "Supplemental Table number. They are the machine-readable sources behind the Note "
-      "sections named below, provided for re-use and inspection:\n")
+    A("\n## S13. Machine-readable source files\n")
+    A(f"{_NUMWORD.get(len(EXTRA), len(EXTRA))} analysis-level TSV files carry the full "
+      "numeric output behind the Note "
+      "sections named below, at a granularity too fine to typeset — every model \u00d7 "
+      "stratum \u00d7 gene cell rather than the summarised rows shown in the Supplemental "
+      "Tables. They are deliberately not numbered as Supplemental Tables: they are part of "
+      "the archived data deposit (GitHub and Zenodo, `results/`) and are reproduced in the "
+      "supplement's `tables/` directory only for convenience. Nothing in the manuscript "
+      "depends on a reader opening them.\n")
     for f in EXTRA:
         A(f"\n- `{f}` — {EXTRA_DESCR[f]}\n")
     return "".join(out)
 
 
 TABLES = {
-    "Table_S3_per_gene_rho.tsv": "tableS3_per_gene_rho.tsv",
-    "Table_S4_extended_strata.tsv": "eval_ext_v1.tsv",
-    "Table_S5_reliability_attenuation.tsv": "attenuation_v1.tsv",
-    "Table_S6_attenuation_simulation.tsv": "attenuation_simulation_v1.tsv",
-    "Table_S7_tie_audit.tsv": "tie_audit_v1.tsv",
-    "Table_S8_head_to_head.tsv": "head_to_head_v1.tsv",
-    "Table_S9_selection_logo.tsv": "ensemble_logo_v1.tsv",
-    "Table_S10_definition_sweep.tsv": "definition_sweep_performance_v1.tsv",
+    # Genome Research numbering: contiguous from S1, in order of first citation.
+    # This mapping is the single source of truth for the delivered package; an
+    # earlier build used a non-contiguous S3-S10 scheme and the rename was applied
+    # by hand, which let the package drift from the repository.
+    "Supplemental_Table_S1_per_gene_rho.tsv": "tableS3_per_gene_rho.tsv",
+    "Supplemental_Table_S2_extended_strata.tsv": "eval_ext_v1.tsv",
+    "Supplemental_Table_S3_reliability_attenuation.tsv": "attenuation_v1.tsv",
+    "Supplemental_Table_S4_attenuation_simulation.tsv": "attenuation_simulation_v1.tsv",
+    "Supplemental_Table_S5_tie_audit.tsv": "tie_audit_v1.tsv",
+    "Supplemental_Table_S5b_tie_rounded_vs_fullprec.tsv":
+        "tie_audit_rounded_vs_fullprec_v1.tsv",
+    "Supplemental_Table_S6_head_to_head.tsv": "head_to_head_v1.tsv",
+    "Supplemental_Table_S7_selection_logo.tsv": "ensemble_logo_v1.tsv",
+    "Supplemental_Table_S8_definition_sweep.tsv": "definition_sweep_performance_v1.tsv",
+    "Supplemental_Table_S9_model_inventory.tsv": "table2_model_inventory.tsv",
+    "Supplemental_Table_S10_fdr_grid.tsv": "fdr_grid_v1.tsv",
+    "Supplemental_Table_S10b_fdr_pairwise.tsv": "fdr_head_to_head_v1.tsv",
 }
-EXTRA = ["reliability_v1.tsv", "reliability_corroboration_v1.tsv", "power_v1.tsv",
+_NUMWORD = {9: "Nine", 10: "Ten", 11: "Eleven", 12: "Twelve", 13: "Thirteen",
+            14: "Fourteen", 15: "Fifteen"}
+
+EXTRA = ["matched_realisation_v1.tsv", "reliability_v1.tsv", "reliability_corroboration_v1.tsv", "power_v1.tsv",
          "logo_v1.tsv", "rna_readout_v1.tsv", "definition_sweep_concordance_v1.tsv",
          "clinical_evidence_v1.tsv", "ensemble_pooled_v1.tsv",
          "model_correlation_all_v1.tsv", "model_correlation_coding_or_utr_v1.tsv",
          "model_correlation_splice_region_v1.tsv"]
 
 EXTRA_DESCR = {
+    "matched_realisation_v1.tsv":
+        "coding/UTR versus splice ±1-2 on the nine broad-scope predictors that carry an "
+        "estimate in both strata, observed and attenuation-corrected, with the ratio between "
+        "territories under each (Results; Methods)",
     "reliability_v1.tsv":
         "per-gene replicate-based measurement reliability and the implied attenuation "
-        "ceiling for each stratum (source of Note S5 and Table S5)",
+        "ceiling for each stratum (source of Note S5 and Table S3)",
     "reliability_corroboration_v1.tsv":
         "independent corroboration of the reliability estimates: agreement ρ and implied "
         "ceiling from held-out assay comparisons, per gene and stratum (Note S5)",
@@ -475,7 +497,7 @@ EXTRA_DESCR = {
         "(Note S9)",
     "ensemble_pooled_v1.tsv":
         "pooled ρ of the five predictor-selection strategies per stratum over all seven "
-        "genes; Table S9 reports the leave-one-gene-out median counterpart (Note S9)",
+        "genes; Table S7 reports the leave-one-gene-out median counterpart (Note S9)",
     "model_correlation_all_v1.tsv":
         "between-model Spearman correlation matrix over all scored variants",
     "model_correlation_coding_or_utr_v1.tsv":
