@@ -112,7 +112,6 @@ def fig_territory_corrected() -> None:
     ceil = ceil_g.median().reindex(STRATUM_ORDER)
     ceil_lo = ceil_g.min().reindex(STRATUM_ORDER)
     ceil_hi = ceil_g.max().reindex(STRATUM_ORDER)
-    genes_per_stratum = (att.groupby("stratum")["gene"].nunique().reindex(STRATUM_ORDER))
 
     fig, axes = plt.subplots(1, 2, figsize=(15.2, 5.8),
                              gridspec_kw={"width_ratios": [1, 1], "wspace": 0.28})
@@ -144,21 +143,6 @@ def fig_territory_corrected() -> None:
                              plt.cm.ScalarMappable(norm=norm_b, cmap="PuOr_r"))):
         fig.colorbar(cb, ax=ax, fraction=0.026, pad=0.02)
 
-    fig.text(0.5, -0.20,
-             "Panel B is the same grid as panel A after dividing by what the assay can "
-             "actually measure in that stratum. Ceiling = √(assay reliability), from "
-             "replicate scores (BRCA1) or CI-validated per-variant standard errors "
-             "(BARD1, PALB2).\n"
-             "Cells are shown only where at least two of those genes contribute; the "
-             ">50 bp column is therefore blank, its ceiling of 0.30 resting on BARD1 "
-             "alone — that stratum is close to unmeasurable rather than merely hard.\n"
-             "Where the three genes disagree by 0.10 or more the ceiling range is given "
-             "under the median, and the realisations in that column inherit the spread: at "
-             "\u00b11\u20132 the best broad-scope realisation is 0.42 using the median "
-             "ceiling but spans 0.31\u20130.42 across the three genes.\n"
-             "The apparent collapse at ±1–2 in panel A is nonetheless largely absent in "
-             "panel B: the drop is in the measurement, not in the predictors.",
-             ha="center", fontsize=8, color="#444444")
     save(fig, "fig_territory_corrected")
 
 
@@ -199,14 +183,6 @@ def fig_splice_head_to_head() -> None:
 
     np.atleast_1d(axes)[-1].set_xlabel(
         "\u0394 pooled Spearman \u03c1 (model A \u2212 model B), paired on shared variants")
-    fig.text(0.02, -0.02,
-             "Points are \u0394\u03c1 with a gene-cluster bootstrap 95% CI; p from Steiger's test for "
-             "dependent correlations, DerSimonian\u2013Laird pooled over genes. Red = resolvable at "
-             "\u03b1 = 0.05.\n"
-             "Two correlations measured on the same variants are dependent, so overlapping "
-             "marginal CIs are not a test of their difference \u2014 in panel B every marginal "
-             "interval overlaps AlphaMissense's, yet all eight differences resolve.",
-             fontsize=8, color="#444444")
     save(fig, "fig_splice_head_to_head")
 
 
@@ -232,11 +208,20 @@ def fig_classification() -> None:
                  fraction=0.026, pad=0.02)
 
     ax = axes[1]
+    ax.set_yscale("log")
+    ax.set_ylim(1.5, 45)  # the Strong band starts at 18.7; nothing reaches it
     bands = [(2.08, 4.33, "Supporting", "#F4E1C1"), (4.33, 18.7, "Moderate", "#E8C39E"),
              (18.7, 350.0, "Strong", "#D89A6A")]
+    ylo, yhi = ax.get_ylim()
     for lo, hi, name, col in bands:
         ax.axhspan(lo, hi, color=col, alpha=0.45, zorder=0)
-        ax.text(0.995, np.sqrt(lo * hi), name, transform=ax.get_yaxis_transform(),
+        # the Strong band runs far above the axis; label the visible part of each
+        # band, or the name floats outside the plot
+        vis_lo, vis_hi = max(lo, ylo), min(hi, yhi)
+        if vis_hi <= vis_lo:
+            continue
+        ax.text(0.995, np.sqrt(vis_lo * vis_hi), name,
+                transform=ax.get_yaxis_transform(),
                 ha="right", va="center", fontsize=8, color="#7A5230")
 
     sub = ce[ce["stratum"].isin(strata)].copy()
@@ -249,8 +234,6 @@ def fig_classification() -> None:
             continue
         ax.plot([xs[s] for s in d["stratum"]], d["lr_at_spec95_median"],
                 marker=mk, ms=7, lw=1.2, label=LABEL[model])
-    ax.set_yscale("log")
-    ax.set_ylim(1.5, 45)  # the Strong band starts at 18.7; nothing reaches it
     ax.set_xticks(range(len(strata)),
                   [STRATUM_LABEL[s].replace("\n", " ") for s in strata], fontsize=8)
     ax.set_ylabel("Positive likelihood ratio at 95% specificity")
@@ -260,19 +243,11 @@ def fig_classification() -> None:
               bbox_to_anchor=(0.5, -0.12))
     ax.spines[["top", "right"]].set_visible(False)
 
-    fig.text(0.02, -0.06,
-             "Labels: GMM posterior ≥0.9 / ≤0.1 (BARD1, PALB2) or the authors' functional "
-             "class (RAD51C); ambiguous calls dropped. Bands are Tavtigian-point LR "
-             "thresholds at prior 0.10 and are indicative, not a ClinGen calibration.\n"
-             "phastCons and gnomAD AF are absent from panel B: their scores are too "
-             "coarsely quantised for any threshold to reach 95% specificity.",
-             fontsize=8, color="#444444")
     save(fig, "fig_classification")
 
 
 # --------------------------------------------------------------------------
 def fig_rna_readout() -> None:
-    pg = pd.read_csv(RESULTS / "rna_readout_v1.tsv", sep="\t")
     import json
     prov = json.loads((RESULTS / "rna_readout_v1.json").read_text())
     pooled = {e["model"]: e for e in prov["pooled_by_model"]}
@@ -291,9 +266,11 @@ def fig_rna_readout() -> None:
     ax.scatter(fit, y, s=58, color="#2471A3", zorder=3, label="vs cell-fitness readout")
     ax.scatter(rna, y, s=58, color="#C0392B", zorder=3, label="vs RNA-abundance readout")
     ax.axvline(agree, color="#1E8449", lw=1.6, ls="--", zorder=2)
-    ax.text(agree, -0.75, f"the assay's own two readouts agree at ρ = {agree:.3f}",
-            color="#1E8449", fontsize=8, ha="center", va="bottom")
-    n_above = sum(f > agree for f in fit)
+    # annotate the reference line inside the axes: at y = -0.75 the label sat above
+    # the axis top and ran into the panel title
+    ax.text(agree + 0.006, len(models) - 5.5,
+            f"the assay's own two readouts\nagree at ρ = {agree:.3f}",
+            color="#1E8449", fontsize=8, ha="left", va="center")
 
     ax.set_yticks(y, [LABEL[m] for m in models], fontsize=9)
     ax.invert_yaxis()
@@ -302,15 +279,6 @@ def fig_rna_readout() -> None:
     ax.legend(frameon=False, fontsize=8.5, loc="lower right")
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(axis="x", color="#EEEEEE", zorder=0)
-    fig.text(0.02, -0.05,
-             f"BRCA1, VHL, BARD1 and PALB2 publish an RNA-level score alongside the "
-             f"fitness score the atlas freezes ({prov['n_coding']:,} coding variants; the RNA "
-             "readout does not cover splice-region variants).\n"
-             "Every coding-oriented predictor loses most of its signal on the RNA axis "
-             "while the splice-aware models gain, inverting the ranking; and the "
-             f"{n_above} strongest predictors track the fitness readout more closely "
-             "than the assay's own second readout does.",
-             fontsize=8, color="#444444")
     save(fig, "fig_rna_readout")
 
 
@@ -340,13 +308,6 @@ def fig_selection_strategies() -> None:
                  "leave-one-gene-out", loc="left", fontsize=10)
     ax.legend(frameon=False, fontsize=8, ncol=2, loc="upper right")
     ax.spines[["top", "right"]].set_visible(False)
-    fig.text(0.02, -0.06,
-             "For each held-out gene the strategy is fixed using the other six genes only, "
-             "then scored on the held-out gene; bars are medians over the seven folds.\n"
-             "Averaging the three splice-aware models wins every splice stratum. Picking a "
-             "single best model per territory fails at ±1–2, where the winner is unstable "
-             "across genes — the stratum where the paper recommends using no predictor.",
-             fontsize=8, color="#444444")
     save(fig, "fig_selection_strategies")
 
 
@@ -415,19 +376,6 @@ def fig_definition_sweep() -> None:
     ax.legend(frameon=False, fontsize=8, loc="center left")
     ax.spines[["top", "right"]].set_visible(False)
 
-    r = chk["replicate_legacy_definition"]
-    fig.text(0.02, -0.10,
-             "Panel A: 2,722 variants scored under four windows × four aggregations "
-             "(one API call per variant × window supplies every aggregation). Grey bars "
-             "span the 16 combinations.\n"
-             "Panel B: the two published definitions disagree at ρ = "
-             f"{sa['overall']:.3f} overall and as low as {min(v for k, v in sa.items() if k != 'overall'):.3f} "
-             "in one region, yet their pooled ρ against the functional standard differs by "
-             f"at most {chk['max_abs_performance_difference']:.3f} in any stratum.\n"
-             "Replicating the legacy definition under the current client reproduces the "
-             f"legacy column at ρ = {r['rho_vs_legacy_column']:.3f} (n = {r['n']:,}), so the "
-             "client version is not the source of the disagreement.",
-             fontsize=8, color="#444444")
     save(fig, "fig_definition_sweep")
 
 

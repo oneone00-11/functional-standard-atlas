@@ -82,7 +82,7 @@ def main() -> None:
     ax = axes[1]
     data = [frozen.loc[frozen["gene"] == g, "functional_pathogenicity"].dropna()
             for g in genes]
-    bp = ax.boxplot(data, tick_labels=genes, showfliers=False, widths=0.62,
+    ax.boxplot(data, tick_labels=genes, showfliers=False, widths=0.62,
                     medianprops={"color": "#C0392B", "lw": 1.4},
                     boxprops={"color": "#2471A3"},
                     whiskerprops={"color": "#2471A3"},

@@ -91,12 +91,6 @@ def main() -> None:
     cbar = fig.colorbar(im, ax=ax, shrink=0.85)
     cbar.set_label("Pooled Spearman ρ vs functional score (DL meta-analysis)")
     ax.set_title("Model performance by variant region — functional-standard-atlas core7")
-    fig.text(
-        0.01, 0.01,
-        "* AlphaMissense scores missense SNVs only; SpliceAI scores SNVs only (indels not scored); “—” = model does not score that stratum.\n"
-        "Pooled across 7 genes (DerSimonian–Laird, Fisher-z); cells use pooled_rho from results/eval_*.json.",
-        fontsize=7.5, color="#555555",
-    )
     fig.tight_layout(rect=(0, 0.05, 1, 1))
     out = RESULTS / "fig_model_x_stratum_heatmap.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")

@@ -507,9 +507,15 @@ EXTRA_DESCR = {
         "between-model Spearman correlation matrix over splice-region variants",
 }
 
-MAIN_FIGS = ["fig_atlas_overview", "fig_territory_corrected", "fig_splice_territory",
+# The six main-text figures, in manuscript order. fig_splice_territory and
+# fig_selection_strategies were demoted to Supplemental Figures S14 and S15; an
+# earlier eight-figure order survived here after that decision and renumbered
+# every figure from 3 onwards, so it is pinned to the manuscript now.
+MAIN_FIGS = ["fig_atlas_overview", "fig_territory_corrected",
              "fig_splice_head_to_head", "fig_rna_readout", "fig_classification",
-             "fig_selection_strategies", "fig_definition_sweep"]
+             "fig_definition_sweep"]
+DEMOTED_FIGS = {"fig_splice_territory": "Supplemental_Fig_S14",
+                "fig_selection_strategies": "Supplemental_Fig_S15"}
 
 
 def write_docx(md: str, path: Path) -> None:
@@ -593,7 +599,13 @@ def main(argv: list[str] | None = None) -> int:
         for ext in ("png", "pdf"):
             s = RESULTS / f"{stem}.{ext}"
             if s.exists():
-                shutil.copyfile(s, out / "figures" / "main" / f"Figure_{i}_{stem}.{ext}")
+                shutil.copyfile(s, out / "figures" / "main" / f"Figure_{i}.{ext}")
+    (out / "figures" / "supplemental").mkdir(parents=True, exist_ok=True)
+    for stem, dest in DEMOTED_FIGS.items():
+        for ext in ("png", "pdf"):
+            s = RESULTS / f"{stem}.{ext}"
+            if s.exists():
+                shutil.copyfile(s, out / "figures" / "supplemental" / f"{dest}.{ext}")
 
     print(f"wrote {out}")
     print(f"  Supplementary_Note.md / .docx  ({len(md.split()):,} words)")
