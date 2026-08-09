@@ -56,19 +56,29 @@ TEXT_SUFFIXES = {".py", ".md", ".txt", ".yaml", ".yml", ".cff", ".toml",
 SELF = "tests/test_release_hygiene.py"  # the denylist necessarily contains every term
 
 
-def _tracked() -> list[str]:
-    out = subprocess.run(["git", "ls-files"], cwd=REPO,
-                         capture_output=True, text=True, check=True).stdout
-    return [ln for ln in out.splitlines() if ln.strip() and ln.strip() != SELF]
+def _tracked() -> list[str] | None:
+    """Tracked paths, or None when this is not a git checkout (e.g. the Zenodo
+    archive, which ships the same tree without .git)."""
+    try:
+        r = subprocess.run(["git", "ls-files"], cwd=REPO,
+                           capture_output=True, text=True)
+    except OSError:
+        return None
+    if r.returncode != 0 or not r.stdout.strip():
+        return None
+    return [ln for ln in r.stdout.splitlines() if ln.strip() and ln.strip() != SELF]
 
 
 def _allowed(path: str, term: str) -> bool:
     return any(term == t and (pre == "" or path.startswith(pre)) for pre, t in ALLOW)
 
 
-def _hits() -> list[str]:
+def _hits() -> list[str] | None:
+    tracked = _tracked()
+    if tracked is None:
+        return None
     found = []
-    for rel in _tracked():
+    for rel in tracked:
         p = REPO / rel
         for term in FORBIDDEN:
             if term.lower() in rel.lower() and not _allowed(rel, term):
@@ -89,6 +99,8 @@ def _hits() -> list[str]:
 
 def test_no_submission_process_material_is_tracked():
     hits = _hits()
+    if hits is None:
+        pytest.skip("not a git checkout; the gate applies to the repository")
     assert not hits, (
         "internal submission-process material is tracked and would ship in the "
         "public archive:\n  " + "\n  ".join(hits))
