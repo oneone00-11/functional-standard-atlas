@@ -43,10 +43,10 @@ where each stops.
 
 ```bash
 make setup                                     # pinned dependencies, ~2 min
-PYTHONPATH=src python figures/hardening_figures.py     # Figs 2, 4, 5, 6, 7, 8
-PYTHONPATH=src python figures/atlas_overview.py        # Fig 1
-PYTHONPATH=src python figures/splice_territory_comparison.py
-PYTHONPATH=src python figures/reproducibility.py
+PYTHONPATH=src python figures/atlas_overview.py            # Fig 1
+PYTHONPATH=src python figures/hardening_figures.py         # Figs 2-6, Supplemental Fig S15
+PYTHONPATH=src python figures/splice_territory_comparison.py   # Supplemental Fig S14
+PYTHONPATH=src python figures/reproducibility.py           # Supplemental Fig S13
 ```
 
 Each script takes under three seconds and writes PNG + PDF into `results/`.

@@ -432,10 +432,10 @@ def build_note() -> str:
       "sections named below, at a granularity too fine to typeset — every model \u00d7 "
       "stratum \u00d7 gene cell rather than the summarised rows shown in the Supplemental "
       "Tables. They are deliberately not numbered as Supplemental Tables: they are part of "
-      "the Zenodo data deposit, where they sit under `results/`; `results/` is not tracked in "
-      "the GitHub repository. They are reproduced in the "
-      "supplement's `tables/` directory only for convenience. Nothing in the manuscript "
-      "depends on a reader opening them.\n")
+      "the Zenodo data deposit (concept DOI 10.5281/zenodo.21828448), where they sit under "
+      "`results/`; `results/` is not tracked in the GitHub repository and these files are "
+      "not part of the submission package. Nothing in the manuscript depends on a reader "
+      "opening them.\n")
     for f in EXTRA:
         A(f"\n- `{f}` — {EXTRA_DESCR[f]}\n")
     return "".join(out)
@@ -593,18 +593,19 @@ def main(argv: list[str] | None = None) -> int:
     (out / "figures" / "main").mkdir(parents=True, exist_ok=True)
 
     md = build_note()
-    (out / "Supplementary_Note.md").write_text(md)
-    write_docx(md, out / "Supplementary_Note.docx")
+    (RESULTS / "Supplemental_Note.md").write_text(md)   # source, not an upload
+    write_docx(md, out / "Supplemental_Note.docx")
 
     for dest, src in TABLES.items():
         shutil.copyfile(RESULTS / src, out / "tables" / dest)
-    for src in EXTRA:
-        shutil.copyfile(RESULTS / src, out / "tables" / src)
+    # EXTRA (the machine-readable TSVs) are deliberately NOT copied into the
+    # submission package: their names do not follow the Supplemental_Table_SN
+    # convention, and Note S13 points readers at the Zenodo deposit for them.
     for i, stem in enumerate(MAIN_FIGS, 1):
         for ext in ("png", "pdf"):
             s = RESULTS / f"{stem}.{ext}"
             if s.exists():
-                shutil.copyfile(s, out / "figures" / "main" / f"Figure_{i}.{ext}")
+                shutil.copyfile(s, out / "figures" / "main" / f"Zhang_Fig{i}.{ext}")
     (out / "figures" / "supplemental").mkdir(parents=True, exist_ok=True)
     for stem, dest in DEMOTED_FIGS.items():
         for ext in ("png", "pdf"):
@@ -613,13 +614,16 @@ def main(argv: list[str] | None = None) -> int:
                 shutil.copyfile(s, out / "figures" / "supplemental" / f"{dest}.{ext}")
     # Supplemental_Fig_S1-S13: montage sheets built by figures/assemble_supp_figures.py
     for i in range(1, 14):
-        s = RESULTS / f"supp_fig_S{i:02d}.png"
-        if s.exists():
-            shutil.copyfile(s, out / "figures" / "supplemental" / f"Supplemental_Fig_S{i}.png")
+        for ext in ("png", "pdf"):
+            s = RESULTS / f"supp_fig_S{i:02d}.{ext}"
+            if s.exists():
+                shutil.copyfile(
+                    s, out / "figures" / "supplemental" / f"Supplemental_Fig_S{i}.{ext}")
 
     print(f"wrote {out}")
-    print(f"  Supplementary_Note.md / .docx  ({len(md.split()):,} words)")
-    print(f"  tables/  {len(TABLES) + len(EXTRA)} files")
+    print(f"  Supplemental_Note.docx  ({len(md.split()):,} words)")
+    print(f"  tables/  {len(TABLES)} numbered tables "
+          f"({len(EXTRA)} machine-readable TSVs left to the Zenodo deposit)")
     print(f"  figures/main/  {len(MAIN_FIGS)} figures (PNG + PDF)")
     return 0
 

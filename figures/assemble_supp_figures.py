@@ -89,7 +89,10 @@ def montage(panels: list[tuple[Path, str]], title: str, out: Path) -> None:
         d.text((x + 4, y), label, fill="black", font=lf)
         sheet.paste(im, (x, y + LABEL_H))
     sheet.save(out, dpi=(150, 150))
-    print(f"  {out.name}: {len(thumbs)} panels, {W}x{H}")
+    # PNG is not an accepted review format at Genome Research (GIF, TIFF, EPS,
+    # PDF, JPEG are), so every sheet is written as PDF alongside the PNG.
+    sheet.convert("RGB").save(out.with_suffix(".pdf"), "PDF", resolution=150.0)
+    print(f"  {out.name}: {len(thumbs)} panels, {W}x{H} (+ PDF)")
 
 
 def main() -> None:
