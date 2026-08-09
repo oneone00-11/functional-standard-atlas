@@ -53,10 +53,13 @@ TEXT_SUFFIXES = {".py", ".md", ".txt", ".yaml", ".yml", ".cff", ".toml",
                  ".json", ".tsv", ".csv", ".ini", ""}
 
 
+SELF = "tests/test_release_hygiene.py"  # the denylist necessarily contains every term
+
+
 def _tracked() -> list[str]:
     out = subprocess.run(["git", "ls-files"], cwd=REPO,
                          capture_output=True, text=True, check=True).stdout
-    return [ln for ln in out.splitlines() if ln.strip()]
+    return [ln for ln in out.splitlines() if ln.strip() and ln.strip() != SELF]
 
 
 def _allowed(path: str, term: str) -> bool:
