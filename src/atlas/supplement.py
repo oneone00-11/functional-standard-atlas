@@ -76,7 +76,7 @@ def build_note() -> str:
     A("Companion to: *Saturation genome editing reveals that predictor failure at canonical "
       "splice sites is a limit of the assay rather than the models*\n")
     A("Every statistic below is read from a pipeline output file at build time by "
-      "`atlas.supplement` (project rule 5); the source file is named in each section.\n")
+      "`atlas.supplement`; the source file is named in each section.\n")
     A("\n---\n")
 
     # ---- S1 -------------------------------------------------------------
@@ -442,7 +442,7 @@ def build_note() -> str:
 
 
 TABLES = {
-    # Genome Research numbering: contiguous from S1, in order of first citation.
+    # Journal numbering: contiguous from S1, in order of first citation.
     # This mapping is the single source of truth for the delivered package; an
     # earlier build used a non-contiguous S3-S10 scheme and the rename was applied
     # by hand, which let the package drift from the repository.
@@ -623,7 +623,7 @@ def main(argv: list[str] | None = None) -> int:
     (RESULTS / "Supplemental_Note.md").write_text(md)   # source, not an upload
     write_docx(md, out / "Supplemental_Note.docx")
 
-    # Genome Research does not accept .tsv for review; tables ship as .xlsx with a
+    # .tsv is not an accepted review format; tables ship as .xlsx with a
     # frozen header row. Full precision is kept in the Zenodo deposit's TSVs.
     for dest, src in TABLES.items():
         _write_xlsx(pd.read_csv(RESULTS / src, sep="\t"),

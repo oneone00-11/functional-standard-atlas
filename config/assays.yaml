@@ -1,6 +1,6 @@
 # Assay registry for the functional-standard atlas.
 #
-# Rules (see AGENTS.md):
+# Rules:
 #   - URNs must be verified against the MaveDB API by the fetch script, never
 #     copied from memory.
 #   - tier: core7 = the seven hereditary-cancer SGE sets from the companion
@@ -47,9 +47,6 @@ assays:
     notes: Waters et al. 2024.
 
   # --- expansion tier (Study 1 scope growth) -------------------------------
-  # TODO(agents/humans): candidates to source from MaveDB search —
-  #   TP53, PTEN, MSH2, LDLR, KCNQ1, SCN5A (SGE/MAVE);
-  #   saturation-mutagenesis MPRA sets for regulatory variants.
   # Each new entry MUST be added here first, then pulled with `make fetch`.
   - gene: TP53
     urn: null
@@ -61,4 +58,4 @@ assays:
       (queries TP53, Funk, splice) returned no deposit -- data likely lives in
       the paper's supplementary material. Preferred source: reuse the
       provenance-documented TP53 scores from the companion repo
-      oneone00-11/variant-fm-benchmark and record provenance in NOTES.md.
+      the companion benchmark repository and record provenance in NOTES.md.
