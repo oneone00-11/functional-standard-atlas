@@ -3,7 +3,7 @@
 Companion to: *No model everywhere: territory-resolved benchmarking of twelve
 variant effect predictors against 64,178 saturation genome editing measurements*
 
-All statistics below are read from pipeline output files (AGENTS.md rule 5);
+All statistics below are read from pipeline output files (project rule 5);
 source files are cited per section and are released with the atlas.
 
 ---

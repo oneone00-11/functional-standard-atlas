@@ -108,7 +108,7 @@ results/               all pipeline outputs                    (gitignored; in a
 ## Adding a predictor or an assay
 
 Copy `models/_template/`, or add the MaveDB URN to `config/assays.yaml` and
-re-run `make fetch`. `AGENTS.md` states the rules that keep results trustworthy
+re-run `make fetch`. the project conventions state the rules that keep results trustworthy
 — frozen data are immutable, dependencies are pinned exactly, statistics are
 read from pipeline outputs rather than transcribed, and every figure comes from
 a committed script.

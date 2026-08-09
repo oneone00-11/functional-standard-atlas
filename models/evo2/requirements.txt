@@ -4,9 +4,9 @@
 #   pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
 #   pip install flash-attn==2.8.0.post2 --no-build-isolation   # torch MUST be installed first
 #   pip install evo2 pyfaidx pandas pyarrow tqdm
-# After the run, `pip freeze` and replace with exact versions (AGENTS.md rule 3).
+# After the run, `pip freeze` and replace with exact versions (project rule 3).
 # Exact versions used for the 46,392-SNV run on RunPod A6000 (2026-08-02,
-# frozen via `pip freeze` post-run per AGENTS.md rule 3; full dump in
+# frozen via `pip freeze` post-run per project rule 3; full dump in
 # pipfreeze_runpod.txt).
 torch==2.7.1+cu128
 flash_attn==2.8.0.post2

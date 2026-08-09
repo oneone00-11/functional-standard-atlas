@@ -7,7 +7,7 @@ Panel B: pooled Spearman ρ per offset bin for every scored model — all lines
 converge to ~0 beyond 10 bp (offset decay).
 
 Reads only results/score_matrix_atlas_v2.parquet + results/eval_*.json
-(AGENTS.md rule 5); missing eval files are skipped with a note.
+(project rule 5); missing eval files are skipped with a note.
 
 Usage (PYTHONPATH=src):  python figures/saturation_decay.py
 """

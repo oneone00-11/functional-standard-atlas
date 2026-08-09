@@ -1,7 +1,7 @@
 """Assemble the atlas score matrix: frozen variants × all model score columns.
 
 Left-joins every scored model parquet onto the frozen matrix by variant_id.
-Score files are the single source of truth (AGENTS.md); this script only
+Score files are the single source of truth (project conventions); this script only
 merges, never recomputes.
 
 Usage (PYTHONPATH=src):

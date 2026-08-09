@@ -1,6 +1,6 @@
 """Guardrail tests for the frozen mapping matrix (data/frozen/frozen-matrix-v1.parquet).
 
-Rules honored here (AGENTS.md):
+Rules honored here (project conventions):
   - Expected reference alleles are fetched LIVE from Ensembl REST (GRCh38)
     during the test; no expected coordinate is hardcoded.
   - Tests skip (not fail) when the frozen matrix has not been built yet, so

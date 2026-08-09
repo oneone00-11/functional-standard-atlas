@@ -1,7 +1,7 @@
 """Assemble the Supplementary Note and supplementary tables from pipeline outputs.
 
 Every number in the Note is read from a file under ``results/`` at build time
-(AGENTS.md rule 5), so the Note cannot drift from the analysis. Emits Markdown,
+(project rule 5), so the Note cannot drift from the analysis. Emits Markdown,
 a Word version, and the supplementary tables as TSV.
 
 Usage (PYTHONPATH=src):
@@ -76,7 +76,7 @@ def build_note() -> str:
     A("Companion to: *Saturation genome editing reveals that predictor failure at canonical "
       "splice sites is a limit of the assay rather than the models*\n")
     A("Every statistic below is read from a pipeline output file at build time by "
-      "`atlas.supplement` (AGENTS.md rule 5); the source file is named in each section.\n")
+      "`atlas.supplement` (project rule 5); the source file is named in each section.\n")
     A("\n---\n")
 
     # ---- S1 -------------------------------------------------------------

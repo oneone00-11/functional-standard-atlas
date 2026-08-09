@@ -1,13 +1,13 @@
 # GPU environment — created ON the rented pod / cluster (see cluster/RUNBOOK_GPU.md).
 # After the run, `pip freeze` the env and replace these with the exact
-# versions used (AGENTS.md rule 3); the scored output + this file + NOTES.md
+# versions used (project rule 3); the scored output + this file + NOTES.md
 # must together be sufficient to reproduce.
 # Install:
 #   conda create -n nt python=3.12 -y && conda activate nt
 #   pip install torch --index-url https://download.pytorch.org/whl/cu128
 #   pip install transformers pyfaidx pandas pyarrow tqdm
 # Exact versions used for the 46,392-SNV run on RunPod A6000 (2026-08-01,
-# frozen via `pip freeze` post-run per AGENTS.md rule 3; full dump in
+# frozen via `pip freeze` post-run per project rule 3; full dump in
 # pipfreeze_runpod.txt).
 torch==2.11.0+cu128
 transformers==4.46.3

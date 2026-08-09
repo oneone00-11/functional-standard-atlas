@@ -1,6 +1,6 @@
 """Map MaveDB c. HGVS variants to GRCh38 genomic coordinates and freeze the matrix.
 
-Provenance rules (AGENTS.md): every external identifier is fetched live from the
+Provenance rules (project conventions): every external identifier is fetched live from the
 source API by this script and hash-registered; nothing is written from memory.
 
 Sources used:
@@ -18,7 +18,7 @@ Sources used:
                               dbSNP rsIDs and ClinVar significance come from
                               VEP's colocated variants.
 
-Orientation rule (AGENTS.md "larger = more damaging"):
+Orientation rule (project conventions "larger = more damaging"):
   functional_pathogenicity = -score   (SGE: higher raw score = fitter/normal)
 
 Coordinate conventions in the frozen matrix:

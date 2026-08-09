@@ -1,6 +1,6 @@
 """Table 1 (atlas composition) + Table 2 (model inventory) generators.
 
-Numbers come only from pipeline files (AGENTS.md rule 5):
+Numbers come only from pipeline files (project rule 5):
   - data/frozen/frozen-matrix-v1.parquet  (per-assay variant counts, regions)
   - results/score_matrix_atlas_v2.summary.json  (per-model coverage)
 Descriptive strings (versions, definitions) mirror models/*/NOTES.md — if a

@@ -8,7 +8,7 @@ Two panels:
      definition vs the legacy column: rho from
      results/concordance_nucleotide_transformer.json.
 
-All statistics are read from the concordance JSONs (AGENTS.md rule 5);
+All statistics are read from the concordance JSONs (project rule 5);
 scatter density from the shared-variant joins.
 
 Usage (PYTHONPATH=src):  python figures/reproducibility.py

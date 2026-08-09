@@ -192,7 +192,7 @@ rsync -avP -e "ssh -p <PORT> -i ~/.ssh/id_ed25519" \
 ## 9. 收尾（别忘了，这步省钱 + 合规）
 
 ```bash
-# pod 上：冻结环境版本（论文可复现性，AGENTS.md 规则 3）
+# pod 上：冻结环境版本（论文可复现性，项目规范 3）
 conda activate nt;    pip freeze > /root/atlas/pipfreeze_nt.txt
 conda activate evo2;  pip freeze > /root/atlas/pipfreeze_evo2.txt
 ```

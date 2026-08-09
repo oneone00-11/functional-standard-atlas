@@ -1,7 +1,7 @@
 """Complete the manuscript reference list from Crossref.
 
 Volume, page and DOI fields are fetched from Crossref by title search rather
-than written from memory (AGENTS.md rule 4). A match is accepted only when the
+than written from memory (project rule 4). A match is accepted only when the
 returned title is a near-exact match for the queried one; everything else is
 flagged for manual completion rather than guessed at.
 
