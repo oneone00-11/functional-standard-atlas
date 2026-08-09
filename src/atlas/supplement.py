@@ -432,7 +432,8 @@ def build_note() -> str:
       "sections named below, at a granularity too fine to typeset — every model \u00d7 "
       "stratum \u00d7 gene cell rather than the summarised rows shown in the Supplemental "
       "Tables. They are deliberately not numbered as Supplemental Tables: they are part of "
-      "the archived data deposit (GitHub and Zenodo, `results/`) and are reproduced in the "
+      "the Zenodo data deposit, where they sit under `results/`; `results/` is not tracked in "
+      "the GitHub repository. They are reproduced in the "
       "supplement's `tables/` directory only for convenience. Nothing in the manuscript "
       "depends on a reader opening them.\n")
     for f in EXTRA:
