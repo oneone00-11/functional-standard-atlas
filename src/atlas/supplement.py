@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -71,10 +72,9 @@ def build_note() -> str:
 
     out: list[str] = []
     A = out.append
-    A("# Supplementary Note — functional-standard-atlas\n")
-    A("Companion to: *Benchmarks must report what the assay can measure: "
-      "attenuation-corrected, territory-resolved evaluation of nineteen variant effect "
-      "predictors against 64,178 saturation genome editing measurements*\n")
+    A("# Supplemental Note — functional-standard-atlas\n")
+    A("Companion to: *Saturation genome editing reveals that predictor failure at canonical "
+      "splice sites is a limit of the assay rather than the models*\n")
     A("Every statistic below is read from a pipeline output file at build time by "
       "`atlas.supplement` (AGENTS.md rule 5); the source file is named in each section.\n")
     A("\n---\n")
@@ -523,6 +523,32 @@ DEMOTED_FIGS = {"fig_splice_territory": "Supplemental_Fig_S14",
                 "fig_selection_strategies": "Supplemental_Fig_S15"}
 
 
+
+
+def _insert_toc(md: str) -> str:
+    """Prepend a Table of Contents; GR asks for one in the supplemental PDF."""
+    heads = re.findall(r"^## (S\d+\w*\. .+)$", md, re.M)
+    if not heads:
+        return md
+    toc = "\n## Contents\n\n" + "".join(f"- {h}\n" for h in heads) + "\n"
+    # place it after the document title line, before the first section
+    first = md.index("\n## ")
+    return md[:first] + toc + md[first:]
+
+
+def _write_xlsx(df: pd.DataFrame, path: Path, decimals: int = 4) -> None:
+    """One sheet, header row frozen, floats rounded for legibility."""
+    with pd.ExcelWriter(path, engine="openpyxl") as xl:
+        df.round(decimals).to_excel(xl, index=False, sheet_name="data")
+        ws = xl.sheets["data"]
+        ws.freeze_panes = "A2"
+        for col in ws.iter_cols(min_row=1, max_row=1):
+            col[0].font = col[0].font.copy(bold=True)
+        for column in ws.columns:
+            width = max(len(str(c.value)) if c.value is not None else 0 for c in column)
+            ws.column_dimensions[column[0].column_letter].width = min(max(width + 2, 10), 42)
+
+
 def write_docx(md: str, path: Path) -> None:
     import docx
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -593,11 +619,15 @@ def main(argv: list[str] | None = None) -> int:
     (out / "figures" / "main").mkdir(parents=True, exist_ok=True)
 
     md = build_note()
+    md = _insert_toc(md)
     (RESULTS / "Supplemental_Note.md").write_text(md)   # source, not an upload
     write_docx(md, out / "Supplemental_Note.docx")
 
+    # Genome Research does not accept .tsv for review; tables ship as .xlsx with a
+    # frozen header row. Full precision is kept in the Zenodo deposit's TSVs.
     for dest, src in TABLES.items():
-        shutil.copyfile(RESULTS / src, out / "tables" / dest)
+        _write_xlsx(pd.read_csv(RESULTS / src, sep="\t"),
+                    out / "tables" / (Path(dest).stem + ".xlsx"))
     # EXTRA (the machine-readable TSVs) are deliberately NOT copied into the
     # submission package: their names do not follow the Supplemental_Table_SN
     # convention, and Note S13 points readers at the Zenodo deposit for them.

@@ -11,6 +11,7 @@ authors:
     given-names: Ningyi
     affiliation: Department of Biological Sciences, National University of Singapore
     email: cliffzhang@u.nus.edu
+    orcid: "https://orcid.org/0009-0004-3020-4044"
 repository-code: "https://github.com/oneone00-11/functional-standard-atlas"
 abstract: >-
   A frozen functional-standard atlas of 64,178 saturation genome editing
@@ -47,7 +48,7 @@ references:
     url: "https://www.mavedb.org"
 preferred-citation:
   type: article
-  title: "Saturation genome editing reveals that predictor failure at canonical splice sites is a limit of the assay, not the models"
+  title: "Saturation genome editing reveals that predictor failure at canonical splice sites is a limit of the assay rather than the models"
   authors:
     - family-names: Zhang
       given-names: Ningyi
