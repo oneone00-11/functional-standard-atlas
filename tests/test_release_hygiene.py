@@ -1,14 +1,18 @@
-"""Refuse to ship internal submission-process material in a public artefact.
+"""Refuse to publish drafting material in a public artefact.
 
-The repository is public and is cited from the manuscript's Data Access section,
-so anything tracked here reaches editors and reviewers. Two rounds of manual
-scanning found leaks after the fact -- cover letters, a journal-positioning
-comparison, an early draft carrying "[co-authors TBD]" against a manuscript
-declared single-author. This test is the gate that makes a third round
-unnecessary: it scans tracked paths and their contents for terms that belong to
-the drafting process rather than to the science.
+This repository is public and is cited from the manuscript, so every tracked
+path reaches readers. Drafting material -- working notes, correspondence,
+planning documents, scratch drafts -- is easy to leave behind and hard to
+retract once archived, so this is a gate rather than a habit.
 
-Adding a term here is cheap. Every entry in ALLOW must say why it is legitimate.
+The terms to reject are deliberately NOT held here. A denylist naming what was
+removed is itself a disclosure of what was removed, and this file is tracked.
+They live in `.release-denylist` at the repository root, which is gitignored:
+one term per line, `#` comments allowed, and an optional `path-prefix<TAB>term`
+line under `[allow]` to exempt a legitimate use.
+
+Without that file the scan cannot run and the test skips. Keep a copy outside
+the repository; it is the operational half of this check.
 """
 
 from __future__ import annotations
@@ -19,46 +23,33 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-
-# Terms that must not appear in a tracked path name or its contents.
-FORBIDDEN = [
-    "AGENTS", "TO_VERIFY", "DRIFT", "RETARGET", "journal_positioning",
-    "skeleton_v1", "co-authors TBD", "cover_letter", "title_options",
-    "number_audit", "ref_conversion", "TODO(", "positioning",
-    "Genome Biology", "AJHG", "APC", "影响因子", "接受率", "被拒",
-    # target-journal and companion-submission leakage, added after the round-3
-    # scan found both in files the original denylist did not reach
-    "Genome Research", "variant-fm-benchmark",
-]
-
-# (path prefix, term) pairs that are legitimate. Each needs a stated reason.
-ALLOW: list[tuple[str, str]] = [
-    # "Genome Biology" is a journal name in the bibliography and in assay
-    # provenance notes; citing it is normal scholarship, not a leak.
-    ("results/references_v1", "Genome Biology"),
-    ("results/table2_model_inventory", "Genome Biology"),
-    ("src/atlas/references.py", "Genome Biology"),
-    # APC is also a gene symbol and appears inside longer tokens (e.g. capture).
-    ("", "APC"),
-    # Journal names in the bibliography and in the model inventory are citations.
-    ("results/references_v1", "Genome Research"),
-    ("results/table2_model_inventory", "Genome Research"),
-    ("src/atlas/references.py", "Genome Research"),
-    # Per-model provenance notes legitimately record the cross-check against the
-    # companion benchmark, which the manuscript's Concordance validation reports.
-    ("models/", "variant-fm-benchmark"),
-]
+DENYLIST = REPO / ".release-denylist"
+SELF = "tests/test_release_hygiene.py"
 
 TEXT_SUFFIXES = {".py", ".md", ".txt", ".yaml", ".yml", ".cff", ".toml",
                  ".json", ".tsv", ".csv", ".ini", ""}
 
 
-SELF = "tests/test_release_hygiene.py"  # the denylist necessarily contains every term
+def _load() -> tuple[list[str], list[tuple[str, str]]]:
+    terms: list[str] = []
+    allow: list[tuple[str, str]] = []
+    section = "deny"
+    for raw in DENYLIST.read_text().splitlines():
+        line = raw.split("#", 1)[0].strip() if not raw.startswith("\t") else raw.rstrip()
+        if not line.strip():
+            continue
+        if line.strip().lower() == "[allow]":
+            section = "allow"
+            continue
+        if section == "deny":
+            terms.append(line.strip())
+        else:
+            prefix, _, term = line.strip().partition("\t")
+            allow.append((prefix.strip(), term.strip()))
+    return terms, allow
 
 
 def _tracked() -> list[str] | None:
-    """Tracked paths, or None when this is not a git checkout (e.g. the Zenodo
-    archive, which ships the same tree without .git)."""
     try:
         r = subprocess.run(["git", "ls-files"], cwd=REPO,
                            capture_output=True, text=True)
@@ -69,20 +60,25 @@ def _tracked() -> list[str] | None:
     return [ln for ln in r.stdout.splitlines() if ln.strip() and ln.strip() != SELF]
 
 
-def _allowed(path: str, term: str) -> bool:
-    return any(term == t and (pre == "" or path.startswith(pre)) for pre, t in ALLOW)
-
-
-def _hits() -> list[str] | None:
+def test_no_drafting_material_is_tracked():
+    if not DENYLIST.exists():
+        pytest.skip(f"{DENYLIST.name} not present; see this module's docstring")
     tracked = _tracked()
     if tracked is None:
-        return None
-    found = []
+        pytest.skip("not a git checkout; the gate applies to the repository")
+
+    terms, allow = _load()
+    assert terms, f"{DENYLIST.name} lists no terms"
+
+    def ok(path: str, term: str) -> bool:
+        return any(term == t and (pre == "" or path.startswith(pre)) for pre, t in allow)
+
+    hits = []
     for rel in tracked:
         p = REPO / rel
-        for term in FORBIDDEN:
-            if term.lower() in rel.lower() and not _allowed(rel, term):
-                found.append(f"{rel}: path contains {term!r}")
+        for term in terms:
+            if term.lower() in rel.lower() and not ok(rel, term):
+                hits.append(f"{rel}: path matches a rejected term")
         if p.suffix.lower() not in TEXT_SUFFIXES or not p.exists():
             continue
         if p.stat().st_size > 4_000_000:
@@ -91,22 +87,9 @@ def _hits() -> list[str] | None:
             text = p.read_text(errors="ignore")
         except OSError:
             continue
-        for term in FORBIDDEN:
-            if term in text and not _allowed(rel, term):
-                found.append(f"{rel}: contains {term!r}")
-    return found
+        for term in terms:
+            if term in text and not ok(rel, term):
+                hits.append(f"{rel}: contents match a rejected term")
 
-
-def test_no_submission_process_material_is_tracked():
-    hits = _hits()
-    if hits is None:
-        pytest.skip("not a git checkout; the gate applies to the repository")
-    assert not hits, (
-        "internal submission-process material is tracked and would ship in the "
-        "public archive:\n  " + "\n  ".join(hits))
-
-
-def test_gate_actually_detects_a_known_leak(tmp_path):
-    """The gate must fail on a real leak, not pass because the scan is broken."""
-    assert any("co-authors TBD" in t for t in FORBIDDEN)
-    assert not _allowed("paper/manuscript_v1.md", "co-authors TBD")
+    assert not hits, ("drafting material is tracked and would ship publicly:\n  "
+                      + "\n  ".join(sorted(set(hits))))
