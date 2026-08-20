@@ -73,8 +73,7 @@ def build_note() -> str:
     out: list[str] = []
     A = out.append
     A("# Supplemental Note — functional-standard-atlas\n")
-    A("Companion to: *Saturation genome editing reveals that predictor failure at canonical "
-      "splice sites is a limit of the assay rather than the models*\n")
+    A("Companion to: *Measurement reliability bounds functional benchmarks and relocates where variant effect prediction fails*\n")
     A("Every statistic below is read from a pipeline output file at build time by "
       "`atlas.supplement`; the source file is named in each section.\n")
     A("\n---\n")
@@ -267,8 +266,10 @@ def build_note() -> str:
     # ---- S8 -------------------------------------------------------------
     A("\n## S8. Extended strata\n")
     A("`results/eval_ext_v1.tsv` (Supplemental_Table_S2)\n")
-    A("\nPooled ρ over the original eight strata plus ClinVar-absent, SNV, indel and the "
-      "protein-consequence classes.\n")
+    A("\nPooled ρ over the original eight strata plus ClinVar-absent, SNV, indel, UTR, "
+      "non-truncating coding SNV and the protein-consequence classes (missense, "
+      "synonymous, nonsense) — sixteen in all. The ten non-splice strata are shown below; "
+      "the complete grid is Supplemental_Table_S2.\n")
     w = ext.pivot(index="model", columns="stratum", values="pooled_rho")
     keep = ["all", "clinvar_recorded", "clinvar_absent", "coding_or_utr", "missense",
             "synonymous", "nonsense", "utr", "snv", "indel"]
@@ -351,8 +352,13 @@ def build_note() -> str:
     simj = json.loads((RESULTS / "attenuation_simulation_v1.json").read_text())
     A("\n## S10. Simulation validation of the attenuation correction\n")
     A("`results/attenuation_simulation_v1.tsv` (Supplemental_Table_S4)\n")
-    A(f"\n{int(simj['trials_per_cell'])} trials per cell over five stratum shapes x six true "
-      "rho x six reliabilities (seed "
+    _tpg = int(simj["trials_per_cell"])          # 150; per gene, not per cell
+    _lo, _hi = int(sim["trials"].min()), int(sim["trials"].max())
+    A(f"\n{_tpg} trials per gene in each cell, over five stratum shapes x six true "
+      "rho x six reliabilities; between "
+      f"{_lo // _tpg} and {_hi // _tpg} genes contribute depending on the stratum, so a "
+      f"cell carries {_lo:,} to {_hi:,} trials and the grid {int(sim['trials'].sum()):,} "
+      "in total (seed "
       f"{simj['seed']}). True scores resample the observed distribution of one gene within "
       "one stratum — per gene, because the seven assays report on incompatible scales, so a "
       "pooled marginal would calibrate the injected noise against the scale differences "
@@ -381,6 +387,10 @@ def build_note() -> str:
     ds = pd.read_csv(RESULTS / "definition_sweep_performance_v1.tsv", sep="\t")
     dsj = json.loads((RESULTS / "definition_sweep_v1.json").read_text())
     A("\n## S11. AlphaGenome definition sweep\n")
+    A("This section carries the full definition sweep, demoted from the main text: the "
+      "sixteen window \u00d7 aggregation combinations, the client-version control, and the "
+      "endpoint comparison between the two published score columns. The figure is "
+      "Supplemental_Fig_S16 and the grid is Supplemental_Table_S8.\n")
     A("`results/definition_sweep_performance_v1.tsv` (Supplemental_Table_S8), "
       "`results/definition_sweep_concordance_v1.tsv`\n")
     A("\n2,722 variants, sampled stratified by gene and region with splice strata "
@@ -438,6 +448,29 @@ def build_note() -> str:
       "opening them.\n")
     for f in EXTRA:
         A(f"\n- `{f}` — {EXTRA_DESCR[f]}\n")
+
+    # ---- S14 MaveDB survey ------------------------------------------------
+    surv = RESULTS / "mavedb_survey_v1.tsv"
+    if surv.exists():
+        sv = pd.read_csv(surv, sep="\t")
+        n = len(sv)
+        cnt = sv["permits"].value_counts()
+        usable = int(cnt.get("replicates", 0) + cnt.get("errors", 0))
+        A("\n## S14. What MaveDB deposits permit\n")
+        A("`results/mavedb_survey_v1.tsv`\n")
+        A(f"\nEvery published MaveDB score set ({n:,}) was enumerated through the public API "
+          "and its score table retrieved, then classified by whether it carries replicate "
+          "columns whose mean reproduces the deposited score, or a per-variant error estimate. "
+          f"{usable:,} of {n:,} ({usable / n:.0%}) permit a reliability estimate on that "
+          "test.\n")
+        tab = (cnt.rename_axis("permits").reset_index(name="score sets")
+                  .assign(**{"% of published": lambda t: (t["score sets"] / n * 100).round(1)}))
+        A("\n" + md_table(tab) + "\n")
+        A("\nThe test is looser than the reconciliation the primary analysis applies, so these "
+          "are upper bounds on what is usable; deposits whose replicate columns do not "
+          "reproduce the score are listed as `replicates_unverified` and are not counted. The "
+          "per-deposit table, including the column names matched in each case, is the TSV "
+          "named above.\n")
     return "".join(out)
 
 
@@ -461,15 +494,39 @@ TABLES = {
     "Supplemental_Table_S10b_fdr_pairwise.tsv": "fdr_head_to_head_v1.tsv",
 }
 _NUMWORD = {9: "Nine", 10: "Ten", 11: "Eleven", 12: "Twelve", 13: "Thirteen",
-            14: "Fourteen", 15: "Fifteen"}
+            14: "Fourteen", 15: "Fifteen", 16: "Sixteen", 17: "Seventeen",
+            18: "Eighteen", 19: "Nineteen", 20: "Twenty"}
 
-EXTRA = ["matched_realisation_v1.tsv", "reliability_v1.tsv", "reliability_corroboration_v1.tsv", "power_v1.tsv",
+EXTRA = ["mavedb_survey_v1.tsv", "mavedb_survey_audit_v1.tsv", "mavedb_ceilings_v1.tsv",
+         "mavedb_estimator_comparison_v1.tsv", "protease_agreement_v1.tsv",
+         "mavedb_metadata_v1.tsv",
+         "matched_realisation_v1.tsv", "reliability_v1.tsv", "reliability_corroboration_v1.tsv", "power_v1.tsv",
          "logo_v1.tsv", "rna_readout_v1.tsv", "definition_sweep_concordance_v1.tsv",
          "clinical_evidence_v1.tsv", "ensemble_pooled_v1.tsv",
          "model_correlation_all_v1.tsv", "model_correlation_coding_or_utr_v1.tsv",
          "model_correlation_splice_region_v1.tsv", "predictor_resources_v1.tsv"]
 
 EXTRA_DESCR = {
+    "mavedb_survey_v1.tsv":
+        "every published MaveDB score set, with the replicate and error columns found in its "
+        "score table, the replicate subset (if any) whose mean reproduces the deposited score, "
+        "and the resulting classification (Note S14; Methods)",
+    "mavedb_survey_audit_v1.tsv":
+        "the sampled deposits whose full score-table header was inspected to check the "
+        "column-name classification in both directions, with every column seen (Methods)",
+    "mavedb_ceilings_v1.tsv":
+        "per-deposit reliability and attenuation ceiling for every surveyed deposit that "
+        "permits one, with the estimator used, the reference-class stratum and the status "
+        "classification (Fig. 6; Methods)",
+    "mavedb_estimator_comparison_v1.tsv":
+        "deposits publishing both reconcilable replicates and an error column, with the "
+        "reliability each estimator gives and the difference between them",
+    "protease_agreement_v1.tsv":
+        "trypsin-versus-chymotrypsin agreement per designed protein, the Spearman-Brown "
+        "reliability it implies, and the ceiling the deposited fitting interval implies",
+    "mavedb_metadata_v1.tsv":
+        "deposit metadata used for the correlates in Supplemental_Fig_S17: publication and "
+        "creation dates, variant counts and target genes",
     "matched_realisation_v1.tsv":
         "coding/UTR versus splice ±1-2 on the nine broad-scope predictors that carry an "
         "estimate in both strata, observed and attenuation-corrected, with the ratio between "
@@ -516,11 +573,14 @@ EXTRA_DESCR = {
 # fig_selection_strategies were demoted to Supplemental Figures S14 and S15; an
 # earlier eight-figure order survived here after that decision and renumbered
 # every figure from 3 onwards, so it is pinned to the manuscript now.
+# Five main figures. fig_definition_sweep was demoted to Supplemental_Fig_S16
+# when the definition sweep moved out of the main text.
 MAIN_FIGS = ["fig_atlas_overview", "fig_territory_corrected",
              "fig_splice_head_to_head", "fig_rna_readout", "fig_classification",
-             "fig_definition_sweep"]
+             "fig_mavedb_ceilings"]
 DEMOTED_FIGS = {"fig_splice_territory": "Supplemental_Fig_S14",
-                "fig_selection_strategies": "Supplemental_Fig_S15"}
+                "fig_selection_strategies": "Supplemental_Fig_S15",
+                "fig_definition_sweep": "Supplemental_Fig_S16"}
 
 
 

@@ -28,8 +28,8 @@ keywords:
   - reproducibility
 license: MIT
 license-url: "https://opensource.org/licenses/MIT"
-version: "2.2.1"
-date-released: "2026-08-09"
+version: "2.3.0"
+date-released: "2026-08-21"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.21828448"
@@ -48,7 +48,7 @@ references:
     url: "https://www.mavedb.org"
 preferred-citation:
   type: article
-  title: "Saturation genome editing reveals that predictor failure at canonical splice sites is a limit of the assay rather than the models"
+  title: "Measurement reliability bounds functional benchmarks and relocates where variant effect prediction fails"
   authors:
     - family-names: Zhang
       given-names: Ningyi
