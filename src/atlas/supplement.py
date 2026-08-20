@@ -124,7 +124,7 @@ def build_note() -> str:
     # ---- S3 -------------------------------------------------------------
     A("\n## S3. GPU scoring runs\n")
     A("Both foundation models were scored on a rented NVIDIA A6000 (48 GB) under tmux with "
-      "append-only TSV score caches for crash resumability (`cluster/RUNBOOK_GPU.md`; "
+      "append-only TSV score caches for crash resumability ("
       "environments pinned in `models/{nt,evo2}/requirements.txt` with full `pip freeze` "
       "archives).\n")
     A("- **NT-v2-500M**: masked 6-mer LLR, 6,000-bp window, transformers 4.46.3 / "

@@ -35,7 +35,7 @@ finding (definition sensitivity) feeds the paper's reproducibility narrative.
 ## Environment & run
 
 - GPU required (CUDA). Env `nt` built on the rented pod — see
-  `cluster/RUNBOOK_GPU.md` for the exact build; `requirements.txt` pins are
+  `requirements.txt` for the exact build; its pins are
   frozen from the pod after the run (rule 3).
 - Reference: `data/refs/grch38_subset.fa` + `.fai` (shared; rebuilt on the pod).
 - Resumable: `cache/nt_scores_cache.tsv` keyed by variant_id, checkpointed
@@ -44,7 +44,7 @@ finding (definition sensitivity) feeds the paper's reproducibility narrative.
   46,392 SNVs ≈ 0.5–1.5 h.
 - Full run: `<env>/bin/python models/nt/score.py --input
   data/frozen/frozen-matrix-v1.parquet --output results/nt_scores.parquet`
-  (on the pod, inside tmux — see RUNBOOK).
+  (on the pod, inside tmux).
 
 ## After the run
 

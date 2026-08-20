@@ -12,7 +12,7 @@ score = LL(REF 8192-bp window) − LL(ALT 8192-bp window)   # Evo2.score_sequenc
 **HIGHER = alt allele more disfavoured = MORE pathogenic.** There is NO
 legacy evo2 column to mirror (the companion matrix's `evo2` column is all
 NA) — this definition is new, introduced by the atlas, and recorded here as
-the standard. No concordance ρ=1.0 gate; instead the smoke test (RUNBOOK
+the standard. No concordance ρ=1.0 gate; instead the smoke test (GPU setup
 step 6) sanity-checks that known pathogenic splice variants score high.
 
 ## Parameters
@@ -31,7 +31,7 @@ step 6) sanity-checks that known pathogenic splice variants score high.
 - `torch==2.7.1` (cu128) → `flash-attn==2.8.0.post2 --no-build-isolation`
   (torch first!) → `evo2`. Exact pins frozen post-run (rule 3).
 - Weights via HuggingFace `arcinstitute/evo2_7b` — download on the pod
-  BEFORE scoring (compute-side internet not guaranteed; RUNBOOK step 5).
+  BEFORE scoring (compute-side internet not guaranteed).
 
 ## Run
 

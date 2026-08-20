@@ -4,7 +4,7 @@ Contract (see models/_template/README.md):
     <gpu env>/bin/python score.py --input <variants.parquet> --output scores.parquet
 
 Requires a CUDA GPU with the official evo2 stack (torch + flash-attn + evo2,
-see requirements.txt / cluster/RUNBOOK_GPU.md); --mock works anywhere.
+see requirements.txt); --mock works anywhere.
 
 Score column: `evo2` = LL(REF window) − LL(ALT window), where LL is the
 model's autoregressive sequence log-likelihood from

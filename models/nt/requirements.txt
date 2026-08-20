@@ -1,4 +1,4 @@
-# GPU environment — created ON the rented pod / cluster (see cluster/RUNBOOK_GPU.md).
+# GPU environment — created ON the rented pod / cluster.
 # After the run, `pip freeze` the env and replace these with the exact
 # versions used (project rule 3); the scored output + this file + NOTES.md
 # must together be sufficient to reproduce.
