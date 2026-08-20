@@ -1,7 +1,8 @@
 """Do the predictors carry complementary information, and is a territory-aware
 choice worth making?
 
-"No model everywhere" invites the obvious follow-up: then what should be used?
+That no single model wins everywhere invites the obvious follow-up: then what
+should be used?
 Two things are needed to answer it honestly.
 
 *Complementarity.* If the predictors were merely noisy copies of one another,
