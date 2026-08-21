@@ -1,7 +1,7 @@
 # Project conventions
 
 Rules the analysis code is written against. They are referenced by number in
-module docstrings ("project rule 5"), so they are recorded here rather than left
+module docstrings ("CONVENTIONS.md rule 5"), so they are recorded here rather than left
 implicit.
 
 ## 1. Frozen data is never edited in place
