@@ -27,7 +27,7 @@ Do not edit this template in place.
 - `NOTES.md` — model version/checkpoint, date scored, orientation rule, quirks.
 - `cache/` — cached outputs; cache key MUST include the SHA-256 of the input file.
 
-## Rules (see ../../project conventions)
+## Rules (see ../../CONVENTIONS.md)
 
 - Model versions, checkpoint IDs and API identifiers must be obtained from the
   source (API response, model card file) and written into `NOTES.md` by the script

@@ -2,7 +2,7 @@
 
 Pooled Spearman ρ (DL meta-analysis) by intronic offset bin for AlphaGenome,
 SpliceAI and Pangolin, with per-gene ρ as jittered points. Reads only
-results/eval_<model>.json (project rule 5); missing models are skipped with
+results/eval_<model>.json (CONVENTIONS.md rule 5); missing models are skipped with
 a note so the figure works before/after the Pangolin full run.
 
 Usage (PYTHONPATH=src):  python figures/splice_territory_comparison.py

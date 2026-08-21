@@ -57,6 +57,6 @@ def test_mock_scorer_contract_and_determinism(tmp_path):
     assert "3 from cache" in r2.stdout
 
     # Run metadata recorded.
-    log = json.loads((SCORER.parent / "run_log.json").read_text())
+    log = json.loads((out1.parent / "run_log.json").read_text())
     assert log["api_version"] == "GRCh38-v1.7"
     assert log["mock"] is True

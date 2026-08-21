@@ -76,7 +76,7 @@ def test_mock_scorer_contract_and_determinism(toy_variants, tmp_path):
     assert "3 from cache" in r2.stdout
 
     # Run metadata recorded (client version, score definition, timestamp).
-    log = json.loads((SCORER.parent / "run_log.json").read_text())
+    log = json.loads((out1.parent / "run_log.json").read_text())
     assert log["client_package"] == "alphagenome==0.7.0"
     assert log["mock"] is True
 

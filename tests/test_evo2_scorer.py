@@ -50,7 +50,7 @@ def test_mock_scorer_contract_and_determinism(tmp_path):
     assert r2.returncode == 0, r2.stderr
     pd.testing.assert_series_equal(df1["evo2"], pd.read_parquet(out2)["evo2"])
 
-    log = json.loads((SCORER.parent / "run_log.json").read_text())
+    log = json.loads((out1.parent / "run_log.json").read_text())
     assert log["mock"] is True
     assert "LL(ref window)" in log["score_definition"]
 

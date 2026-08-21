@@ -52,7 +52,7 @@ def test_mock_scorer_contract_and_determinism(tmp_path):
         df1["nucleotide_transformer"], pd.read_parquet(out2)["nucleotide_transformer"]
     )
 
-    log = json.loads((SCORER.parent / "run_log.json").read_text())
+    log = json.loads((out1.parent / "run_log.json").read_text())
     assert log["mock"] is True
     assert "logP(ref 6-mer" in log["score_definition"]
 

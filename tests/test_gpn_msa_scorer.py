@@ -61,7 +61,7 @@ def test_mock_scorer_contract_and_determinism(tmp_path):
     assert r2.returncode == 0, r2.stderr
     pd.testing.assert_series_equal(df1["gpn_msa"], pd.read_parquet(out2)["gpn_msa"])
 
-    log = json.loads((SCORER.parent / "run_log.json").read_text())
+    log = json.loads((out1.parent / "run_log.json").read_text())
     assert log["mock"] is True
     assert log["score_definition"].startswith("gpn_msa = -raw")
 

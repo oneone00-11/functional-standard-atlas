@@ -186,6 +186,19 @@ def score_precomputed(df: pd.DataFrame, mirror: str, cache_dir: Path, retries: i
 
 
 # --------------------------------------------------------------------- main
+
+def _run_log_dir(args):
+    """Where the run log belongs.
+
+    A real run records provenance next to the scorer. A mock run — which the
+    test suite performs on three variants — writes beside its own output
+    instead, so it cannot overwrite the record of the run that produced the
+    deposited scores.
+    """
+    if getattr(args, "mock", False):
+        return Path(args.output).resolve().parent
+    return MODEL_DIR
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--input", required=True)
@@ -234,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
             "from_cache": "per-block region tsvs in cache/regions/",
             "run_at": datetime.now(timezone.utc).isoformat(),
         }
-        (MODEL_DIR / "run_log.json").write_text(json.dumps(run_log, indent=2) + "\n")
+        (_run_log_dir(args) / "run_log.json").write_text(json.dumps(run_log, indent=2) + "\n")
         print(
             f"{MODEL_NAME}: scored {len(out)}/{len(df)} "
             f"({len(df) - len(out)} unmatched) -> {args.output}"
@@ -296,7 +309,7 @@ def main(argv: list[str] | None = None) -> int:
         "from_cache": n_from_cache,
         "run_at": datetime.now(timezone.utc).isoformat(),
     }
-    (MODEL_DIR / "run_log.json").write_text(json.dumps(run_log, indent=2) + "\n")
+    (_run_log_dir(args) / "run_log.json").write_text(json.dumps(run_log, indent=2) + "\n")
     print(
         f"{MODEL_NAME}: scored {len(out)}/{len(df)} "
         f"({n_from_cache} from cache, {len(df) - len(out)} unscored/failed) -> {args.output}"

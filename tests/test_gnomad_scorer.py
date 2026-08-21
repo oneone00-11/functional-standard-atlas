@@ -57,7 +57,7 @@ def test_mock_scorer_contract_and_determinism(tmp_path):
         df1["gnomad_af_global"], pd.read_parquet(out2)["gnomad_af_global"]
     )
 
-    log = json.loads((SCORER.parent / "run_log_gnomad_af_global.json").read_text())
+    log = json.loads((out1.parent / "run_log_gnomad_af_global.json").read_text())
     assert log["dataset"] == "gnomad_r4"
     assert log["mock"] is True
 

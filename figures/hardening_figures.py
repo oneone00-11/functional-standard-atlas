@@ -1,6 +1,6 @@
 """Main figures for the hardened manuscript.
 
-Reads only committed pipeline outputs under results/ (project rule 5–6) and
+Reads only committed pipeline outputs under results/ (CONVENTIONS.md rule 5–6) and
 writes PNG + PDF pairs. Produces:
 
   fig_territory_corrected   Fig 2 — pooled ρ (7 genes) beside the same grid

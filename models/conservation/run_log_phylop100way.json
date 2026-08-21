@@ -4,9 +4,9 @@
   "api": "https://api.genome.ucsc.edu/getData/track",
   "client_package": "requests==2.32.5",
   "score_definition": "per-base track value; higher = more conserved = more damaging",
-  "mock": true,
+  "mock": false,
   "blocks": 0,
-  "scored": 3,
+  "scored": 64178,
   "unscored_or_failed": 0,
-  "run_at": "2026-08-20T16:19:16.619585+00:00"
+  "run_at": "not recorded; this log was overwritten by a smoke test on 2026-08-20. The scored count in this record is restored from results/table2_model_inventory.tsv, the model inventory published as Supplemental_Table_S9, and agrees with the row count of this model's score file. Input and unscored counts were not recoverable and are recorded as null rather than reconstructed."
 }

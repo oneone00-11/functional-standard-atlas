@@ -2,7 +2,7 @@
 
 Long-format TSV: model, stratum, gene, n, rho, plus pooled meta-analysis
 rows (gene = "POOLED"). Numbers read only from results/eval_*.json
-(project rule 5); this table is also the drafting source for prose.
+(CONVENTIONS.md rule 5); this table is also the drafting source for prose.
 
 Writes results/tableS3_per_gene_rho.{tsv,md}.
 

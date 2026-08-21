@@ -56,6 +56,6 @@ def test_mock_scorer_contract_and_determinism(tmp_path):
         df1["alphamissense"], pd.read_parquet(out2)["alphamissense"]
     )
 
-    log = json.loads((SCORER.parent / "run_log.json").read_text())
+    log = json.loads((out1.parent / "run_log.json").read_text())
     assert log["mock"] is True
     assert "zenodo.org" in log["source_url"]

@@ -80,6 +80,19 @@ def filter_alphamissense(df: pd.DataFrame, gz_path: Path) -> pd.Series:
     )
 
 
+
+def _run_log_dir(args):
+    """Where the run log belongs.
+
+    A real run records provenance next to the scorer. A mock run — which the
+    test suite performs on three variants — writes beside its own output
+    instead, so it cannot overwrite the record of the run that produced the
+    deposited scores.
+    """
+    if getattr(args, "mock", False):
+        return Path(args.output).resolve().parent
+    return MODEL_DIR
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--input", required=True)
@@ -122,7 +135,7 @@ def main(argv: list[str] | None = None) -> int:
         "not_in_table": len(df) - len(out),
         "run_at": datetime.now(timezone.utc).isoformat(),
     }
-    (MODEL_DIR / "run_log.json").write_text(json.dumps(run_log, indent=2) + "\n")
+    (_run_log_dir(args) / "run_log.json").write_text(json.dumps(run_log, indent=2) + "\n")
     print(
         f"{MODEL_NAME}: scored {len(out)}/{len(df)} "
         f"({len(df) - len(out)} not in table / non-missense) -> {args.output}"

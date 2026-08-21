@@ -60,7 +60,7 @@ def test_mock_scorer_contract_and_determinism(tmp_path):
     )
 
     # Run metadata recorded per track.
-    log = json.loads((SCORER.parent / "run_log_phylop100way.json").read_text())
+    log = json.loads((out1.parent / "run_log_phylop100way.json").read_text())
     assert log["track"] == "phyloP100way"
     assert log["mock"] is True
 

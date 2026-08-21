@@ -1,6 +1,6 @@
 """Fig 1 — atlas overview.
 
-Three panels, all numbers read from pipeline files (project rule 5):
+Three panels, all numbers read from pipeline files (CONVENTIONS.md rule 5):
   A) Variants per gene, stacked by region class (classify_region on hgvs_c).
   B) Functional score (functional_pathogenicity) distribution per gene.
   C) Score coverage (% of 64,178 variants) per model, from the atlas matrix.

@@ -56,7 +56,7 @@ def test_mock_scorer_contract_and_determinism(tmp_path):
         df1["pangolin_score"], pd.read_parquet(out2)["pangolin_score"]
     )
 
-    log = json.loads((SCORER.parent / "run_log.json").read_text())
+    log = json.loads((out1.parent / "run_log.json").read_text())
     assert log["mock"] is True
     assert log["score_definition"].startswith("max(splice gain")
 

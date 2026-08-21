@@ -1,7 +1,7 @@
 """Assemble score matrix v2: full-precision splice scores + meta-predictors.
 
 Three changes relative to ``score_matrix_atlas_v1.parquet``, which is left
-untouched (project rule 1 — produce a new versioned file, never edit in place):
+untouched (CONVENTIONS.md rule 1 — produce a new versioned file, never edit in place):
 
 1. ``spliceai_ds`` and ``pangolin_score`` are replaced by the full-precision
    re-scores. These are the *same* score definitions: both tools compute in

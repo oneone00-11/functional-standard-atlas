@@ -10,7 +10,7 @@ keyed by ``variant_id``.
 
 Column names and semantics differ per deposit, so every column is registered by
 hand in ``AUX`` below rather than pattern-matched, and is *validated* wherever the
-deposit makes validation possible (project rule 4: never assume what a source
+deposit makes validation possible (CONVENTIONS.md rule 4: never assume what a source
 column means).
 
 Validation performed

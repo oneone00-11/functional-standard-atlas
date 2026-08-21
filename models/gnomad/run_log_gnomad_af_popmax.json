@@ -3,8 +3,8 @@
   "dataset": "gnomad_r4",
   "api": "https://gnomad.broadinstitute.org/api",
   "score_definition": "gnomad_af_popmax = -AF (flipped: larger = more damaging); variants absent from gnomAD left unscored",
-  "mock": true,
-  "scored": 3,
+  "mock": false,
+  "scored": 10545,
   "not_in_gnomad": 0,
-  "run_at": "2026-08-20T16:19:19.673301+00:00"
+  "run_at": "not recorded; this log was overwritten by a smoke test on 2026-08-20. The scored count in this record is restored from results/table2_model_inventory.tsv, the model inventory published as Supplemental_Table_S9, and agrees with the row count of this model's score file. Input and unscored counts were not recoverable and are recorded as null rather than reconstructed."
 }

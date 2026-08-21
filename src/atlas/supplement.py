@@ -1,7 +1,7 @@
 """Assemble the Supplementary Note and supplementary tables from pipeline outputs.
 
 Every number in the Note is read from a file under ``results/`` at build time
-(project rule 5), so the Note cannot drift from the analysis. Emits Markdown,
+(CONVENTIONS.md rule 5), so the Note cannot drift from the analysis. Emits Markdown,
 a Word version, and the supplementary tables as TSV.
 
 Usage (PYTHONPATH=src):
@@ -580,7 +580,8 @@ MAIN_FIGS = ["fig_atlas_overview", "fig_territory_corrected",
              "fig_mavedb_ceilings"]
 DEMOTED_FIGS = {"fig_splice_territory": "Supplemental_Fig_S14",
                 "fig_selection_strategies": "Supplemental_Fig_S15",
-                "fig_definition_sweep": "Supplemental_Fig_S16"}
+                "fig_definition_sweep": "Supplemental_Fig_S16",
+                "fig_mavedb_ceiling_correlates": "Supplemental_Fig_S17"}
 
 
 
