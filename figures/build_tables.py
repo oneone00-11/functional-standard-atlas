@@ -82,8 +82,41 @@ MODELS = [
 ]
 
 
+ATLAS_MATRIX = RESULTS / "score_matrix_atlas_v2.parquet"
+ATLAS_SUMMARY = RESULTS / "score_matrix_atlas_v2.summary.json"
+
+
+def _atlas_summary() -> dict:
+    """Per-model coverage over the scored atlas.
+
+    The v2 summary was never emitted by the scoring stage -- only
+    score_matrix_atlas_v1.summary.json and score_matrix_atlas_v2.parquet exist --
+    so build_tables() used to abort here with FileNotFoundError, taking
+    Supplemental_Table_S9 down with it and making "every table regenerates from
+    the archive" false. The matrix itself is archived, so the summary is derived
+    from it and written out on first use rather than being a missing input.
+    """
+    if ATLAS_SUMMARY.exists():
+        return json.loads(ATLAS_SUMMARY.read_text())
+    if not ATLAS_MATRIX.exists():
+        raise FileNotFoundError(
+            f"neither {ATLAS_SUMMARY.name} nor {ATLAS_MATRIX.name} is present; "
+            "run the scoring stage before building the tables")
+    df = pd.read_parquet(ATLAS_MATRIX)
+    summary = {
+        "matrix": ATLAS_MATRIX.name,
+        "n_variants": int(len(df)),
+        "coverage": {col: int(df[col].notna().sum())
+                     for col, *_ in MODELS if col in df.columns},
+        "derived_from": f"{ATLAS_MATRIX.name} (summary json absent)",
+    }
+    ATLAS_SUMMARY.write_text(json.dumps(summary, indent=2) + "\n")
+    print(f"derived {ATLAS_SUMMARY.name} from {ATLAS_MATRIX.name}")
+    return summary
+
+
 def table2() -> pd.DataFrame:
-    summary = json.loads((RESULTS / "score_matrix_atlas_v2.summary.json").read_text())
+    summary = _atlas_summary()
     cov = summary["coverage"]
     n_total = summary["n_variants"]
     rows = []
@@ -98,6 +131,81 @@ def table2() -> pd.DataFrame:
             "n_scored": n,
             "coverage_pct": round(100.0 * n / n_total, 1),
         })
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------
+# Manuscript Table 2 — territory-appropriate predictor selection guide.
+#
+# This table used to be maintained by hand and drifted from the pipeline: three
+# held-out rho cells disagreed with the leave-one-gene-out medians they quote.
+# The numeric columns are now derived here and pinned by
+# tests/test_table2_territory_guide.py.
+#
+# ROWS is the editorial layer: which predictor is recommended per territory, and
+# the prose note. Those are judgements, not outputs, and follow the same
+# convention as table2()'s descriptive strings. The numbers beside them are not
+# judgements and are never typed in.
+#
+# `source` names the ensemble_logo_v1 column each recommendation corresponds to;
+# `held_out_rho` is the median of that column over the stratum's LOGO folds.
+# ---------------------------------------------------------------------------
+GUIDE_ROWS = [
+    ("Missense coding",        "coding_or_utr", None,
+     "AlphaMissense", "beats all seven clinical meta-predictors within missense"),
+    ("General coding / UTR",   "coding_or_utr", "territory_logo",
+     "CADD", "rank-average adds nothing; GPN-MSA and Evo2-7B close behind"),
+    ("Splice region (any offset)", "splice_region", "rank_average_splice",
+     "Rank-average of AlphaGenome, SpliceAI and Pangolin",
+     "beats every single model; the selector picks a splice specialist in every fold"),
+    ("Splice 3-10 bp",         "splice_3_10", "rank_average_splice",
+     "Rank-average of the three splice models",
+     "exceeds the best achievable single choice"),
+    ("Splice 11-50 bp",        "splice_11_50", "rank_average_splice",
+     "Rank-average of the three splice models",
+     "worst-served territory: about a sixth of the ceiling is realised"),
+    ("Splice +-1-2",           "splice_1_2", None,
+     "None - treat as uninformative", "assay cannot resolve variation here"),
+    ("Deep intronic >50 bp",   "splice_deep", None,
+     "None - use RNA or functional assay",
+     "below the ceiling at which any correction is trustworthy"),
+    ("Whole-gene, single choice", "all", "rank_average_broad",
+     "Rank-average of CADD, Evo2-7B and GPN-MSA", "CADD alone returns 0.384"),
+]
+
+
+def _ceilings() -> pd.DataFrame:
+    """Per-stratum attenuation ceiling: median over genes carrying a validated
+    error model, with the between-gene range (matches figures/hardening_figures)."""
+    rel = pd.read_csv(RESULTS / "reliability_v1.tsv", sep="\t")
+    g = (rel[rel["status"] == "validated"]
+         .sort_values("method", ascending=False)
+         .drop_duplicates(["gene", "stratum"])
+         .groupby("stratum")["ceiling"])
+    return pd.DataFrame({"median": g.median(), "lo": g.min(), "hi": g.max(),
+                         "k": g.count()})
+
+
+def table2_territory_guide() -> pd.DataFrame:
+    logo = pd.read_csv(RESULTS / "ensemble_logo_v1.tsv", sep="\t")
+    ceil = _ceilings()
+    rows = []
+    for territory, stratum, col, rec, note in GUIDE_ROWS:
+        if col is None:
+            rho, folds = "", ""
+        else:
+            v = logo.loc[logo["stratum"] == stratum, col].dropna()
+            rho, folds = f"{v.median():.3f}", len(v)
+        c = ceil.loc[stratum]
+        # the caption shows a range only where the contributing genes disagree
+        # by >= 0.10; with one contributing gene there is no range to show
+        cs = f"{c['median']:.2f}"
+        if c["k"] > 1 and (c["hi"] - c["lo"]) >= 0.10:
+            cs += f" ({c['lo']:.2f}-{c['hi']:.2f})"
+        rows.append({"territory": territory, "stratum": stratum,
+                     "recommended": rec, "source": col or "",
+                     "held_out_rho": rho, "logo_folds": folds,
+                     "ceiling": cs, "notes": note})
     return pd.DataFrame(rows)
 
 
@@ -123,6 +231,7 @@ def write(df: pd.DataFrame, stem: str) -> None:
 def main() -> None:
     write(table1(), "table1_atlas_composition")
     write(table2(), "table2_model_inventory")
+    write(table2_territory_guide(), "table2_territory_guide")
 
 
 if __name__ == "__main__":

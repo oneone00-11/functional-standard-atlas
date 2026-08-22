@@ -28,8 +28,8 @@ keywords:
   - reproducibility
 license: MIT
 license-url: "https://opensource.org/licenses/MIT"
-version: "2.3.0"
-date-released: "2026-08-21"
+version: "2.3.1"
+date-released: "2026-08-22"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.21828448"

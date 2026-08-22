@@ -20,8 +20,10 @@ plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 9,
 d = pd.read_csv(REPO / "results/mavedb_ceilings_v1.tsv", sep="\t")
 hd = d[(d.stratum == "human") & (d.status == "ok")].dropna(subset=["ceiling"])
 h = hd.ceiling.sort_values()
-# deposits whose error column is an explicit SE, reconcilable replicates or a CI —
-# i.e. excluding the majority form, a deposited SD used as if it were an SE
+# deposits whose error column is an explicit SE, reconcilable replicates or a CI
+# (124 + 16 + 4 = 144) — i.e. excluding the majority form, a deposited SD used as
+# if it were an SE. The legend names all three arms; omitting the CI arm was a
+# mismatch with the figure caption, which has always named it.
 sub = hd[hd.method != "sd_as_se"].ceiling.sort_values()
 n = len(h)
 med = float(h.median())
@@ -34,7 +36,7 @@ ax.step(h, y, where="post", color=S1, lw=2, zorder=4, label=f"all deposits (n = 
 ax.fill_between(h, 0, y, step="post", color=S1, alpha=.10, zorder=2)
 ys = np.arange(1, len(sub) + 1) / len(sub)
 ax.step(sub, ys, where="post", color=S2, lw=2, zorder=5,
-        label=f"explicit SE / replicates (n = {len(sub)})")
+        label=f"explicit SE, replicates or CI (n = {len(sub)})")
 
 for x, lab, ha in ((0.45, "0.45\ncorrection lower bound", "left"), (0.90, "0.90", "right")):
     ax.axvline(x, color=INK2, lw=1.1, ls="--", zorder=3)
@@ -55,7 +57,7 @@ ax.text(.035, .95, f"all {n}: median {med:.3f}, {b90:.1%} below 0.90\n"
 ax.set_xlim(0, 1.02); ax.set_ylim(0, 1.0)
 ax.set_xlabel("Attenuation ceiling  √(reliability)", color=INK2)
 ax.set_ylabel("Cumulative fraction of deposits", color=INK2)
-ax.set_title("A third to a half of human MaveDB deposits cap correlation below 0.90",
+ax.set_title("30% to 52% of human MaveDB deposits cap correlation below 0.90",
              loc="left", fontsize=11.5, fontweight="bold", color=INK, pad=10)
 for s in ("top", "right"): ax.spines[s].set_visible(False)
 ax.legend(frameon=False, fontsize=8.5, loc="upper left", bbox_to_anchor=(.03, .80))
