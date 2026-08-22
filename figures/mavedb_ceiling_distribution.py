@@ -1,4 +1,4 @@
-"""Figure 6 — attenuation ceilings across human MaveDB deposits.
+"""Figure 3 — attenuation ceilings across human MaveDB deposits.
 
 Human deposits only. The designed-stability protease platform is excluded: its
 published interval is a curve-fitting CI on dG rather than a reproducibility
