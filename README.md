@@ -35,7 +35,7 @@ where each stops.
 
 | Tier | You have | You can | Wall clock | Disk |
 |---|---|---|---|---|
-| 1 | git clone | run the 92 guardrail tests | ~25 s | 20 MB |
+| 1 | git clone | run the 95 guardrail tests | ~25 s | 20 MB |
 | 2 | **+ Zenodo archive** | **regenerate every figure and table in the paper** | **< 1 min** | 60 MB |
 | 3 | + network | rebuild the frozen matrix from MaveDB | ~20 min | 2.2 GB |
 | 4 | + API key + GPU | re-score every predictor from scratch | ~40 h | 6 GB |
@@ -85,10 +85,19 @@ reproducible on CPU with network access.
 ## Full pipeline (tiers 3–4)
 
 ```bash
-make setup     # install pinned dependencies
+make setup     # install pinned dependencies  (needs Python >= 3.12)
 make fetch     # download registered assays + reference genome, build hash manifest
 make freeze    # map to GRCh38 (Mutalyzer + Ensembl), build the frozen matrix
-make test      # 92 guardrail tests (93 with the release-hygiene denylist present)
+make test      # 95 guardrail tests (96 with the release-hygiene denylist present)
+```
+
+**Python >= 3.12 is required** — numpy 2.5.1 and scipy 1.18.0 both declare it.
+`make setup` checks this before installing and stops with an explanation if the
+interpreter is older, which matters because a bare `python3` is still 3.9 on
+macOS. If your default is older, point it at a newer one:
+
+```bash
+make setup PYTHON=python3.12
 ```
 
 `make fetch` pulls ~2.1 GB of reference sequence, which is why `data/refs/` is
