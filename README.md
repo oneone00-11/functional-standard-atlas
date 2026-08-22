@@ -4,10 +4,12 @@ An attenuation-corrected, territory-resolved benchmark of variant effect
 predictors against saturation genome editing (SGE) measurements: 64,178
 variants, seven cancer susceptibility genes, nineteen predictors.
 
-Accompanies the manuscript listed in `CITATION.cff`. Two companion manuscripts
-on overlapping data are under review at *Bioinformatics* and *Briefings in
-Bioinformatics*; they benchmark embedding architectures and share no results
-section with this work.
+Accompanies the manuscript listed in `CITATION.cff`. A companion manuscript on
+ranking versus calibration of splice-region predictors is under review at
+*Briefings in Bioinformatics*; it draws on an overlapping subset of the same
+MaveDB assays but estimates no measurement reliability and applies no
+attenuation correction, and shares no results section, figure or table with
+this work.
 
 ## What this repository is
 
@@ -43,10 +45,12 @@ where each stops.
 
 ```bash
 make setup                                     # pinned dependencies, ~2 min
-PYTHONPATH=src python figures/atlas_overview.py            # Fig 1
-PYTHONPATH=src python figures/hardening_figures.py         # Figs 2-6, Supplemental Fig S15
+PYTHONPATH=src python figures/atlas_overview.py                # Fig 1
+PYTHONPATH=src python figures/hardening_figures.py             # Figs 2, 4, 5, 6 and Supplemental Figs S15, S16
+PYTHONPATH=src python figures/mavedb_ceiling_distribution.py   # Fig 3
+PYTHONPATH=src python figures/mavedb_ceiling_correlates.py     # Supplemental Fig S17
 PYTHONPATH=src python figures/splice_territory_comparison.py   # Supplemental Fig S14
-PYTHONPATH=src python figures/reproducibility.py           # Supplemental Fig S13
+PYTHONPATH=src python figures/reproducibility.py               # Supplemental Fig S13
 ```
 
 Each script takes under three seconds and writes PNG + PDF into `results/`.
