@@ -26,11 +26,11 @@ column (21,410 shared variants).
 
 ## Known caveat — window provenance
 
-The companion's original cloud run did **not** record its window
-(legacy `docs/OPEN_ITEMS.md`); 6000 bp is the documented default, not a
-confirmed original. Concordance ρ=1.0 is hoped but not guaranteed — if
-0.95 < ρ < 1.0, window mismatch is the documented prime suspect, and the
-finding (definition sensitivity) feeds the paper's reproducibility narrative.
+The companion's original cloud run did **not** record its window; 6000 bp is
+the documented default, not a confirmed original. Concordance ρ=1.0 is hoped
+but not guaranteed — if 0.95 < ρ < 1.0, window mismatch is the documented
+prime suspect, and the finding (definition sensitivity) feeds the paper's
+reproducibility narrative.
 
 ## Environment & run
 

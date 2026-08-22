@@ -17,9 +17,9 @@ legacy `nucleotide_transformer` column is expected.
   (non-overlapping 6-mer tokenizer, masked-LM head)
 - Window: 6000 bp centred on the variant, start shifted so the variant
   offset is a multiple of 6 (variant inside exactly one token).
-  NOTE: the companion's original cloud run did NOT record its window
-  (legacy docs/OPEN_ITEMS.md); 6000 is the documented default. If
-  concordance rho < 0.99, window mismatch is the prime suspect.
+  NOTE: the companion's original cloud run did NOT record its window;
+  6000 is the documented default. If concordance rho < 0.99, window
+  mismatch is the prime suspect.
 - Skips (score = None): FASTA ref-base mismatch, N/ambiguous base in window,
   ref/alt 6-mer maps to UNK. Counted as unscored in run_log.json.
 
@@ -208,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
         "window_bp": WINDOW_BP,
         "score_definition": "logP(ref 6-mer|masked) - logP(alt 6-mer|masked); higher = more pathogenic",
         "scope": "SNVs only (indels deferred)",
-        "window_caveat": "companion original run window unrecorded (legacy OPEN_ITEMS); 6000 bp is documented default",
+        "window_caveat": "companion original run window unrecorded; 6000 bp is documented default",
         "mock": args.mock,
         "snv_in_input": n_snv,
         "scored": len(out),
