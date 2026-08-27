@@ -2,9 +2,9 @@
 
 `build_submission()` copies `MAIN_FIGS[i]` to `Zhang_Fig{i+1}`, so the list is
 not a collection but an ordering: changing a position renumbers a delivered
-figure, and nothing downstream notices. The manuscript's Code availability
-section states that every figure regenerates from the archive, which is only
-true while this order matches the paper.
+figure, and nothing downstream notices. The manuscript states that every figure
+regenerates from the archive, which is only true while this order matches the
+paper.
 
 That has now drifted twice. Both times the list carried a comment saying it was
 pinned to the manuscript, and both times the comment was read as description
