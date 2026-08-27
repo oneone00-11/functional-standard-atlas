@@ -12,10 +12,10 @@ rather than constraint -- the second drift left `Zhang_Fig3` holding the
 head-to-head panel while the paper's Figure 3 was the ceiling distribution. A
 comment cannot fail a build, so the pin lives here instead.
 
-SOURCE OF TRUTH: the submitted manuscript, `functional-standard-atlas_manuscript-npj`
-(Figures 1-6, first-citation order). When the manuscript renumbers, change
-EXPECTED_MAIN_FIGS in this file and `MAIN_FIGS` in `atlas.supplement` together;
-the caption fragments below are what make the intended order checkable by eye.
+SOURCE OF TRUTH: the submitted manuscript (Figures 1-6, first-citation order).
+When the manuscript renumbers, change EXPECTED_MAIN_FIGS in this file and
+`MAIN_FIGS` in `atlas.supplement` together; the caption fragments below are
+what make the intended order checkable by eye.
 """
 
 from __future__ import annotations
