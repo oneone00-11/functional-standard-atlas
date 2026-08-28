@@ -20,6 +20,7 @@ import pandas as pd
 from pathlib import Path
 
 from atlas.evaluate import classify_region
+from atlas.predictor_resources import ROWS as PREDICTOR_ROWS
 
 REPO = Path(__file__).resolve().parents[1]
 RESULTS = REPO / "results"
@@ -53,6 +54,8 @@ def table1() -> pd.DataFrame:
 
 # (column, label, version, scope, definition, reference) — text per NOTES.md;
 # coverage is filled from the matrix summary, not typed by hand.
+_DBNSFP_SOURCE = "dbNSFP (assembly hg38), via MyVariant.info batch API"
+
 MODELS = [
     ("alphagenome", "AlphaGenome", "client 0.7.0", "all variants (API)",
      "merged quantile splice score, 16-kb window", "AlphaGenome API"),
@@ -79,6 +82,24 @@ MODELS = [
     ("pangolin_score", "Pangolin", "git 5cf94b8 (torch 2.13.0, CPU)", "SNV",
      "max(splice gain, |splice loss|), distance 50, default mask",
      "local; Ensembl r112 gffutils db"),
+    # The seven dbNSFP meta-predictors. `version` is empty by design: the dbNSFP
+    # release was not recorded at fetch time, and inventing one would be worse
+    # than the gap. The footnote below the table says so.
+    ("revel", "REVEL", "", "missense SNV",
+     "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
+    ("bayesdel_addaf", "BayesDel (addAF)", "",
+     "missense SNV; also 1,656 nonsense, 955 splice-region",
+     "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
+    ("clinpred", "ClinPred", "", "missense SNV",
+     "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
+    ("metarnn", "MetaRNN", "", "missense SNV",
+     "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
+    ("primateai", "PrimateAI", "", "missense SNV",
+     "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
+    ("vest4", "VEST4", "", "missense SNV; also 1,646 nonsense",
+     "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
+    ("esm1b", "ESM-1b", "", "missense SNV",
+     "dbNSFP score, max over transcript records; sign-flipped", _DBNSFP_SOURCE),
 ]
 
 
@@ -97,7 +118,12 @@ def _atlas_summary() -> dict:
     from it and written out on first use rather than being a missing input.
     """
     if ATLAS_SUMMARY.exists():
-        return json.loads(ATLAS_SUMMARY.read_text())
+        cached = json.loads(ATLAS_SUMMARY.read_text())
+        # A summary written before a model was added to MODELS would leave
+        # table2() with a KeyError, so a stale one is rebuilt rather than used.
+        if all(col in cached.get("coverage", {}) for col, *_ in MODELS):
+            return cached
+        print(f"{ATLAS_SUMMARY.name} predates the current MODELS list; rederiving")
     if not ATLAS_MATRIX.exists():
         raise FileNotFoundError(
             f"neither {ATLAS_SUMMARY.name} nor {ATLAS_MATRIX.name} is present; "
@@ -116,20 +142,39 @@ def _atlas_summary() -> dict:
 
 
 def table2() -> pd.DataFrame:
+    """Supplemental Table S9 -- the model inventory, all nineteen scored columns.
+
+    This is a rendering of `atlas.predictor_resources`, which is the curated
+    source of truth for version, source, access date and licence. Here it gains
+    the editorial `scope` and `score_definition` strings and the two columns that
+    have to be computed from the matrix (`n_scored`, `coverage_pct`).
+
+    It carried only the twelve primary predictors until 2026-08-28. The delivered
+    S9 had nineteen rows because the seven dbNSFP meta-predictors were joined in
+    by hand at submission and never went back into the build, so a rebuild
+    silently produced a shorter table than the one the manuscript cites.
+    tests/test_supplemental_table_s9.py now fails if that happens again.
+    """
     summary = _atlas_summary()
     cov = summary["coverage"]
     n_total = summary["n_variants"]
+    accessed = {p: a for p, _, _, a, _, _ in PREDICTOR_ROWS}
+    licence = {p: (lic, src) for p, _, _, _, lic, src in PREDICTOR_ROWS}
     rows = []
     for col, label, version, scope, definition, reference in MODELS:
         n = cov[col]
+        lic, lic_src = licence[label]
         rows.append({
             "model": label,
             "version": version,
             "scope": scope,
             "score_definition": definition,
             "source": reference,
+            "accessed": accessed[label],
             "n_scored": n,
             "coverage_pct": round(100.0 * n / n_total, 1),
+            "licence": lic,
+            "licence_source": lic_src,
         })
     return pd.DataFrame(rows)
 
