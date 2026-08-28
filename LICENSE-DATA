@@ -1,25 +1,24 @@
 Licence for derived data files
 ==============================
 
-The derived data produced by this repository — the frozen variant matrices
-(`data/frozen/`), the score matrices and every table under `results/` — are
-released under the Creative Commons Attribution 4.0 International licence
-(CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+Two files in this repository have different answers, and one licence statement
+cannot cover both. They are treated separately below.
 
+The source code is licensed separately under the MIT License (see LICENSE).
 Cite as described in CITATION.cff.
 
-This file covers derived data only. The source code is licensed separately
-under the MIT License (see LICENSE).
 
+1. The frozen assay matrix — CC BY 4.0, without qualification
+-------------------------------------------------------------
 
-Upstream terms that continue to apply
--------------------------------------
+`data/frozen/frozen-matrix-v1.parquet` contains the saturation genome editing
+measurements and their coordinates, region classes and oriented functional
+scores. It contains NO predictor score column.
 
-The derived data are computed from third-party sources whose own terms are
-not superseded by this licence. Redistribution here is permitted under those
-terms; attribution obligations pass through to anyone reusing this dataset.
+It is released under the Creative Commons Attribution 4.0 International licence
+(CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
 
-Saturation genome editing measurements (MaveDB deposits):
+Upstream terms that continue to apply:
 
     Gene     MaveDB URN                    Upstream licence
     -------  ----------------------------  ----------------
@@ -32,27 +31,73 @@ Saturation genome editing measurements (MaveDB deposits):
     VHL      urn:mavedb:00000675-a-1       CC BY 4.0
 
   The three CC BY 4.0 deposits require attribution to their originating
-  publications, which are cited in the manuscript and in CITATION.cff. CC BY 4.0
-  was chosen for the derived data precisely because it is the most restrictive
-  of the upstream licences, so this release is compatible with all seven.
+  publications, which are cited in the manuscript and in CITATION.cff. Of these
+  SEVEN DEPOSIT LICENCES, CC BY 4.0 is the most restrictive, so the CC BY 4.0
+  release of this file is compatible with all seven. That reasoning is about the
+  seven MaveDB deposits only; it does not extend to section 2.
 
-Predictor score columns:
 
-  Each column in the score matrices is derived from a third-party predictor with
-  its own terms; see `models/<name>/NOTES.md` for the source and version of each.
-  Two require specific attention:
+2. The score matrices and everything derived from them — mixed terms
+---------------------------------------------------------------------
 
-  * AlphaGenome. Scored through the official API, whose free tier is licensed for
-    NON-COMMERCIAL use only. The `alphagenome` column, and any figure or table
-    derived from it, therefore carries a restriction that the CC BY 4.0 grant
-    above does not lift. Commercial reuse of that column requires permission from
-    the API provider.
+`results/score_matrix_atlas_v*.parquet`, every table under `results/`, and every
+figure and table in the manuscript that is computed from them carry nineteen
+third-party predictor columns whose terms differ column by column. The CC BY 4.0
+grant above does NOT lift them, and no single licence describes this file.
 
-  * CADD. Free for non-commercial use; commercial users must obtain a licence
-    from the University of Washington.
+  PER-COLUMN LICENCE TERMS ARE IN `results/predictor_resources_v1.tsv`
+  (columns `licence` and `licence_source`), which is the single source of
+  truth. `results/` is generated, not tracked in git: the table ships in the
+  archived release, and in a git checkout it appears once
+  `python -m atlas.predictor_resources` has been run. The summary below is
+  therefore complete on its own, so that this file stands without it.
 
-  All other score columns derive from sources that permit redistribution and
-  reuse with attribution.
+Summary as of the 2026-08-28 audit:
+
+  * EIGHT columns are more restrictive than CC BY 4.0. Each restriction travels
+    with its column and with any figure or table derived from it:
+
+      alphagenome             non-commercial (API free tier)
+      cadd                    non-commercial; commercial licence from UW
+      alphamissense           CC BY-NC-SA 4.0
+      nucleotide_transformer  CC BY-NC-SA 4.0
+      spliceai_ds             CC BY-NC 4.0 (trained models, Illumina)
+      revel                   non-commercial
+      primateai               CC BY-NC 4.0 (trained models, Illumina)
+      vest4                   non-commercial; excluded from dbNSFP's
+                              commercial branch
+
+    Two of these -- alphamissense and nucleotide_transformer -- are ShareAlike
+    as well as NonCommercial.
+
+  * EIGHT columns carry no restriction beyond attribution: gpn_msa (MIT),
+    evo2 (Apache-2.0), phylop100way and phastcons100way (UCSC track data, free
+    for commercial use), esm1b (MIT), pangolin_score (see below), and
+    gnomad_af_global and gnomad_af_popmax (CC0 1.0).
+
+  * THREE columns have NO LICENCE TERMS THAT COULD BE LOCATED:
+    bayesdel_addaf, clinpred and metarnn. Each is supplied through the dbNSFP
+    academic branch. An absent licence statement is not a permissive one and
+    must not be read as one; a reuser needing certainty should contact those
+    authors or drop the three columns.
+
+  Pangolin. `pangolin_score` was produced by running Pangolin, which is licensed
+  GPL-3.0. Running a GPL-licensed program does not place its output under the
+  GPL, so the column is recorded as unencumbered by that licence. This is a
+  stated decision rather than an omission.
+
+  dbNSFP. The seven meta-predictor columns (revel, bayesdel_addaf, clinpred,
+  metarnn, primateai, vest4, esm1b) are read from dbNSFP through the
+  MyVariant.info batch API. dbNSFP ships an academic branch and a commercial
+  branch with restricted components removed; because the requested fields
+  include PrimateAI, VEST4 and REVEL, these values come from the ACADEMIC
+  branch. MyVariant.info's terms add no permission of their own -- they disclaim
+  warranties and pass upstream obligations through to the user.
+
+Because the restricted columns cover between 40.2% and 100% of the matrix, a
+reuser whose purpose is commercial can drop those eight columns and retain a
+usable matrix. That is why the terms are declared per column rather than as a
+blanket restriction on the whole file.
 
 
 Reference genome and annotation
@@ -60,5 +105,5 @@ Reference genome and annotation
 
 GRCh38 sequence and Ensembl annotation under `data/refs/` are redistributed
 under the terms of their providers (Ensembl: no restriction; UCSC track data:
-free for academic and non-profit use). These files are not included in the
-Zenodo archive; `make fetch` retrieves them from source.
+free for public and commercial use). These files are not included in the Zenodo
+archive; `make fetch` retrieves them from source.

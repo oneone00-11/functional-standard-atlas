@@ -128,7 +128,24 @@ a committed script.
 
 ## Licence
 
-MIT for code (`LICENSE`); CC BY 4.0 for derived data (`LICENSE-DATA`). The
-upstream MaveDB deposits carry CC0 or CC BY 4.0 terms that pass through, and
-the `alphagenome` column derives from a non-commercial API tier — both are
-detailed in `LICENSE-DATA`.
+MIT for code (`LICENSE`). Data terms are in `LICENSE-DATA`, and they are not
+uniform:
+
+- **`data/frozen/frozen-matrix-v1.parquet`** — the assay measurements, no
+  predictor columns — is CC BY 4.0 without qualification. The upstream MaveDB
+  deposits carry CC0 or CC BY 4.0 terms that pass through.
+- **The score matrices under `results/`**, and every figure and table derived
+  from them, carry nineteen predictor columns with **mixed terms**. Eight are
+  more restrictive than CC BY 4.0 — `alphagenome`, `cadd`, `alphamissense`,
+  `nucleotide_transformer`, `spliceai_ds`, `revel`, `primateai`, `vest4` — of
+  which `alphamissense` and `nucleotide_transformer` are ShareAlike as well as
+  NonCommercial. Three more — `bayesdel_addaf`, `clinpred`, `metarnn` — have no
+  licence terms that could be located, which is not the same as permissive.
+
+Per-column licences, each with a source URL, are in
+`results/predictor_resources_v1.tsv` — the single source of truth. `results/`
+is generated rather than tracked, so that table ships in the archived release
+and appears in a checkout after `python -m atlas.predictor_resources`;
+`LICENSE-DATA` restates the full summary so it does not depend on the file
+being present. Each restriction travels with its column and with anything
+derived from it.

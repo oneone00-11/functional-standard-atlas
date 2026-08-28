@@ -41,8 +41,11 @@ references:
       Source saturation genome editing measurements. Deposits
       urn:mavedb:00000097-0-2 (BRCA1), 00001225-a-1 (BRCA2), 00001250-a-2
       (BARD1), 00001259-a-2 (PALB2), 00000662-0-1 (BAP1), 00000673-0-1
-      (RAD51C), 00000675-a-1 (VHL). Derived data released CC BY 4.0; see
-      LICENSE-DATA for per-deposit upstream terms.
+      (RAD51C), 00000675-a-1 (VHL). The frozen assay matrix is released CC BY
+      4.0; the score matrices additionally carry nineteen predictor columns
+      under mixed terms, eight of them more restrictive than CC BY 4.0 and
+      three with no terms located. See LICENSE-DATA, and
+      results/predictor_resources_v1.tsv for the per-column licences.
     authors:
       - name: MaveDB
     url: "https://www.mavedb.org"
