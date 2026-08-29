@@ -82,23 +82,32 @@ MODELS = [
     ("pangolin_score", "Pangolin", "git 5cf94b8 (torch 2.13.0, CPU)", "SNV",
      "max(splice gain, |splice loss|), distance 50, default mask",
      "local; Ensembl r112 gffutils db"),
-    # The seven dbNSFP meta-predictors. `version` is empty by design: the dbNSFP
+    # The seven dbNSFP meta-predictors. `scope` names every consequence class with a
+    # non-zero count in the matrix, in descending order of count, read from
+    # score_matrix_atlas_v2 rather than from any earlier scope string; a predictor with
+    # no non-missense coverage is marked "only". PrimateAI is the only such predictor.
+    # `version` is empty by design: the dbNSFP
     # release was not recorded at fetch time, and inventing one would be worse
     # than the gap. The footnote below the table says so.
-    ("revel", "REVEL", "", "missense SNV",
+    ("revel", "REVEL", "",
+     "missense SNV; also 66 splice-region, 46 start-lost, 40 synonymous, 3 nonsense",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
     ("bayesdel_addaf", "BayesDel (addAF)", "",
-     "missense SNV; also 1,656 nonsense, 955 splice-region, 186 synonymous",
+     "missense SNV; also 1,656 nonsense, 955 splice-region, 186 synonymous, 46 start-lost, 38 stop-lost",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
-    ("clinpred", "ClinPred", "", "missense SNV",
+    ("clinpred", "ClinPred", "",
+     "missense SNV; also 126 nonsense, 114 synonymous, 78 splice-region, 46 start-lost, 5 stop-lost",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
-    ("metarnn", "MetaRNN", "", "missense SNV",
+    ("metarnn", "MetaRNN", "",
+     "missense SNV; also 173 synonymous, 88 splice-region, 46 start-lost, 18 nonsense",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
-    ("primateai", "PrimateAI", "", "missense SNV",
+    ("primateai", "PrimateAI", "", "missense SNV only",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
-    ("vest4", "VEST4", "", "missense SNV; also 1,646 nonsense",
+    ("vest4", "VEST4", "",
+     "missense SNV; also 1,646 nonsense, 106 synonymous, 46 start-lost, 38 stop-lost, 34 splice-region",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
-    ("esm1b", "ESM-1b", "", "missense SNV",
+    ("esm1b", "ESM-1b", "",
+     "missense SNV; also 47 synonymous, 46 start-lost, 3 nonsense",
      "dbNSFP score, max over transcript records; sign-flipped", _DBNSFP_SOURCE),
 ]
 
