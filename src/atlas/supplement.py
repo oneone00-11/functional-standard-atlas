@@ -616,6 +616,33 @@ def _write_xlsx(df: pd.DataFrame, path: Path, decimals: int = 4) -> None:
             ws.column_dimensions[column[0].column_letter].width = min(max(width + 2, 10), 42)
 
 
+def _inline_spans(text: str) -> list[tuple[str, bool, bool]]:
+    """Split a markdown line into (text, bold, italic) runs.
+
+    Only ``**bold**`` was handled before, so a single-asterisk ``*italic*`` span
+    reached the DOCX -- and the printed PDF -- with its asterisks visible. Code
+    spans are passed through untouched, backticks included, because an asterisk
+    inside them is content: the region-classifier note discusses the literal
+    ``*`` prefix of a UTR-relative HGVS position on the same line as an italic
+    span, and treating that as a delimiter would mangle it.
+    """
+    out: list[tuple[str, bool, bool]] = []
+    for seg in re.split(r"(`[^`\n]*`)", text):
+        if not seg:
+            continue
+        if seg.startswith("`") and seg.endswith("`") and len(seg) > 1:
+            out.append((seg, False, False))
+            continue
+        for k, chunk in enumerate(seg.split("**")):
+            if not chunk:
+                continue
+            bold = k % 2 == 1
+            for j, part in enumerate(re.split(r"(?<![\w*])\*([^*\n]+?)\*(?![\w*])", chunk)):
+                if part:
+                    out.append((part, bold, j % 2 == 1))
+    return out
+
+
 def write_docx(md: str, path: Path) -> None:
     import docx
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -670,9 +697,11 @@ def write_docx(md: str, path: Path) -> None:
             text = ln[2:] if ln.startswith("- ") else ln
             if ln.startswith("- "):
                 p.paragraph_format.left_indent = Pt(14)
-            for k, piece in enumerate(text.split("**")):
+            for piece, bold, ital in _inline_spans(text):
                 if piece:
-                    p.add_run(piece).bold = k % 2 == 1
+                    r = p.add_run(piece)
+                    r.bold = bold
+                    r.italic = ital
         i += 1
     d.save(str(path))
 
