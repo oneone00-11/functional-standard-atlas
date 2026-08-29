@@ -88,7 +88,7 @@ MODELS = [
     ("revel", "REVEL", "", "missense SNV",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
     ("bayesdel_addaf", "BayesDel (addAF)", "",
-     "missense SNV; also 1,656 nonsense, 955 splice-region",
+     "missense SNV; also 1,656 nonsense, 955 splice-region, 186 synonymous",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
     ("clinpred", "ClinPred", "", "missense SNV",
      "dbNSFP score, max over transcript records", _DBNSFP_SOURCE),
