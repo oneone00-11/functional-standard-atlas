@@ -13,16 +13,27 @@ line under `[allow]` to exempt a legitimate use.
 
 Without that file the scan cannot run and the test skips. Keep a copy outside
 the repository; it is the operational half of this check.
+
+SCOPE. This gate used to scan `git ls-files`, which is not what ships. A release
+archive also carries `data/raw/`, `data/frozen/` and the ~270 files in
+`results/` -- all gitignored, all published in v2.3.1 and v2.3.2 without ever
+passing this check. It now scans `atlas.package_release.manifest()`, the
+definition of what actually goes in the archive, and a companion test asserts
+that definition covers every file in a candidate archive.
 """
 
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "src"))
+
+from atlas.package_release import manifest, verify  # noqa: E402
 DENYLIST = REPO / ".release-denylist"
 SELF = "tests/test_release_hygiene.py"
 
@@ -49,23 +60,23 @@ def _load() -> tuple[list[str], list[tuple[str, str]]]:
     return terms, allow
 
 
-def _tracked() -> list[str] | None:
+def _shipped() -> list[str] | None:
+    """Everything the release archive will contain -- not merely what git tracks."""
     try:
-        r = subprocess.run(["git", "ls-files"], cwd=REPO,
-                           capture_output=True, text=True)
+        files = manifest()
     except OSError:
         return None
-    if r.returncode != 0 or not r.stdout.strip():
+    if not files:
         return None
-    return [ln for ln in r.stdout.splitlines() if ln.strip() and ln.strip() != SELF]
+    return [f for f in files if f != SELF]
 
 
-def test_no_drafting_material_is_tracked():
+def test_no_drafting_material_ships():
     if not DENYLIST.exists():
         pytest.skip(f"{DENYLIST.name} not present; see this module's docstring")
-    tracked = _tracked()
+    tracked = _shipped()
     if tracked is None:
-        pytest.skip("not a git checkout; the gate applies to the repository")
+        pytest.skip("cannot determine the packaging output in this checkout")
 
     terms, allow = _load()
     assert terms, f"{DENYLIST.name} lists no terms"
@@ -91,5 +102,49 @@ def test_no_drafting_material_is_tracked():
             if term in text and not ok(rel, term):
                 hits.append(f"{rel}: contents match a rejected term")
 
-    assert not hits, ("drafting material is tracked and would ship publicly:\n  "
+    assert not hits, ("drafting material would ship publicly:\n  "
                       + "\n  ".join(sorted(set(hits))))
+
+
+def test_the_scan_covers_the_whole_archive():
+    """The defect this gate carried for months: scanning a subset of what ships.
+    Coverage is asserted directly, so a future path that is packaged but not
+    enumerated fails here rather than shipping unscanned."""
+    files = manifest()
+    assert files, "packaging manifest is empty"
+    for top in ("data/raw", "data/frozen", "results"):
+        base = REPO / top
+        if not base.is_dir() or not any(base.rglob("*")):
+            continue
+        on_disk = {p.relative_to(REPO).as_posix() for p in base.rglob("*")
+                   if p.is_file() and p.name != ".DS_Store"
+                   and "_scratch" not in p.parts}
+        missing = sorted(on_disk - set(files))
+        assert not missing, (
+            f"{top}/ ships but {len(missing)} of its files are outside the scan:\n  "
+            + "\n  ".join(missing[:20]))
+
+
+def test_development_output_never_ships():
+    """CONVENTIONS.md rule 6. Three July smoke-test artefacts reached the v2.3.1
+    and v2.3.2 archives, one of them carrying an OPEN DECISION note and a term
+    the denylist rejects outside models/. The place is the rule: `_scratch` is
+    excluded structurally, so the next one is excluded before it is written."""
+    files = manifest()
+    leaked = [f for f in files if "_scratch" in Path(f).parts]
+    assert not leaked, "development output is in the packaging manifest:\n  " + "\n  ".join(leaked)
+
+    scratch = REPO / "results" / "_scratch"
+    if scratch.is_dir():
+        assert any(scratch.iterdir()), "results/_scratch exists but is empty"
+
+
+def test_manifest_accounts_for_a_reference_archive():
+    """If an extracted archive is available, nothing in it may be undeclared."""
+    root = REPO.parent / "_release_candidate"
+    if not root.is_dir():
+        pytest.skip("no extracted archive to check against")
+    r = verify(root)
+    assert not r["in_archive_only"], (
+        "files present in the archive but not declared by package_release:\n  "
+        + "\n  ".join(r["in_archive_only"][:20]))

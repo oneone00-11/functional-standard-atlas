@@ -1,0 +1,38 @@
+# Numeric tokens in the manuscript that legitimately have no counterpart in
+# results/. Every entry needs a reason; `atlas.check_manuscript_numbers` fails
+# on any token that is neither matched to pipeline output nor listed here, so
+# this file is the explicit record of what a human has signed off.
+#
+# `value` matches the token as printed. `pattern` is a regular expression for
+# families (section numbers, version strings). Keep it as small as possible:
+# every line here is a number nothing checks.
+
+section_numbers:
+  reason: >
+    Numbered headings and cross-references, not measurements.
+  pattern: '^(?:[1-9]|1[0-9])\.[0-9]$'
+
+software_versions:
+  reason: >
+    Pinned client and tool versions, recorded in models/*/run_log.json and
+    config/, not in results/.
+  values: ["0.7.0", "3.0", "1.7", "2.0", "4.1", "1.2"]
+
+reference_years:
+  reason: >
+    Publication years inside citations and the reference list.
+  pattern: '^(?:19|20)[0-9]{2}$'
+
+statistical_constants:
+  reason: >
+    Conventional thresholds and distributional constants, defined in the text
+    rather than estimated: significance level, power, the normal quantile used
+    for the 95% interval, and the Tavtigian point-system prior.
+  values: ["0.05", "0.80", "1.96", "0.10", "18.7", "95", "80"]
+
+genome_and_assay_constants:
+  reason: >
+    Assembly, transcript and window constants declared in Methods and pinned in
+    models/*/; not derived from the atlas.
+  values: ["38", "16384", "131072", "524288", "1048576", "6000", "8192", "16"]
+

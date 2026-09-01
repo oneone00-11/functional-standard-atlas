@@ -1,0 +1,74 @@
+# Every sentence in the manuscript that asserts an analysis was performed,
+# bound to the script that performs it and the output it produces.
+#
+# WHY THIS FILE EXISTS
+# The number checker (atlas.check_manuscript_numbers) asks whether a value has a
+# source. It cannot ask whether a *described analysis* exists, because such a
+# sentence often carries no number at all -- and where it does, a low-precision
+# figure matches unrelated pipeline values by coincidence. The complementarity
+# sentence claimed a nineteen-predictor axis analysis; the matrix behind it has
+# nine columns and has had nine since the commit that introduced the seven
+# meta-predictors. Six rounds of numeric checking never asked the question.
+#
+# tests/test_analysis_claims.py asserts that every script and output named here
+# exists. Add a row when a claim is added to the manuscript; if a row cannot be
+# filled, the claim has nothing behind it.
+#
+# status:  verified   -- script and output exist and support the claim
+#          narrative  -- not an analysis claim (disclaimer, acknowledgement)
+#          gap        -- the claim is not supported; see note
+
+claims:
+  - {para: P7,   claim: "nineteen predictors scored across sixteen strata",       script: src/atlas/evaluate_ext.py,        output: results/eval_ext_v1.tsv,                  status: verified,
+     cardinality: {count: 19, noun: predictors}}
+  - {para: P7,   claim: "reliability ceiling per territory; 0.45 validity bound", script: src/atlas/reliability.py,         output: results/attenuation_v1.tsv,               status: verified}
+  - {para: P7,   claim: "correction validated by simulation",                     script: src/atlas/simulate_attenuation.py, output: results/attenuation_simulation_v1.tsv,   status: verified}
+  - {para: P15,  claim: "four supporting analyses: paired tests",                 script: src/atlas/evaluate_ext.py,        output: results/head_to_head_v1.tsv,              status: verified}
+  - {para: P15,  claim: "four supporting analyses: classification/evidence",      script: src/atlas/clinical_evidence.py,   output: results/clinical_evidence_v1.tsv,         status: verified}
+  - {para: P15,  claim: "four supporting analyses: second readout",               script: src/atlas/rna_readout.py,         output: results/rna_readout_v1.tsv,               status: verified}
+  - {para: P15,  claim: "four supporting analyses: definition sweep",             script: src/atlas/definition_sweep.py,    output: results/definition_sweep_v1.json,         status: verified}
+  - {para: P20,  claim: "seven SGE assays assembled and mapped to GRCh38",        script: src/atlas/mapping.py,             output: results/mapping_report_v1.md,            status: verified}
+  - {para: P21,  claim: "predictor coverage of the atlas",                        script: src/atlas/predictor_resources.py, output: results/table2_model_inventory.tsv,       status: verified}
+  - {para: P28,  claim: "per-stratum reliability and attenuation ceiling",        script: src/atlas/reliability.py,         output: results/reliability_v1.tsv,               status: verified}
+  - {para: P33,  claim: "whole chain tested by simulation",                       script: src/atlas/simulate_attenuation.py, output: results/attenuation_simulation_v1.json,  status: verified}
+  - {para: P35,  claim: "all 2,803 MaveDB score sets surveyed",                   script: src/atlas/mavedb_survey.py,       output: results/mavedb_survey_v1.tsv,             status: verified}
+  - {para: P37,  claim: "ceilings for 674 usable human deposits",                 script: src/atlas/mavedb_ceilings.py,     output: results/mavedb_ceilings_v1.tsv,           status: verified}
+  - {para: P42,  claim: "within-assay percentile of canonical splice variants",   script: src/atlas/assay_aux.py,           output: results/saturation_percentiles_v1.tsv,    status: verified}
+  - {para: P43,  claim: "coding-versus-splice comparison on a matched set",       script: src/atlas/matched_realisation.py, output: results/matched_realisation_v1.tsv,       status: verified}
+  - {para: P49,  claim: "ordering claims tested pairwise (Steiger + bootstrap)",  script: src/atlas/evaluate_ext.py,        output: results/head_to_head_v1.tsv,              status: verified}
+  - {para: P52,  claim: "seven dbNSFP meta-predictors compared in missense",      script: src/atlas/metapredictors.py,      output: results/eval_ext_v1.tsv,                  status: verified}
+  - {para: P58,  claim: "cross-readout agreement pooled over four genes",         script: src/atlas/rna_readout.py,         output: results/rna_readout_v1.tsv,               status: verified}
+  - {para: P63,  claim: "AUROC and likelihood ratio by territory",                script: src/atlas/clinical_evidence.py,   output: results/clinical_evidence_v1.tsv,         status: verified}
+  - {para: P65,  claim: "achievable correlation differs up to threefold",         script: src/atlas/reliability.py,         output: results/attenuation_v1.tsv,               status: verified,
+     note: "Corrected 2026-09-02: previously said 'in reliability'. 3.07 is the ceiling ratio; the reliability ratio is 9.39 (reliability = ceiling squared)."}
+  - {para: P71,  claim: "two axes among the scored predictors, cross-cluster range", script: src/atlas/ensemble.py,          output: results/model_correlation_coding_or_utr_v1.tsv, status: verified,
+     cardinality: {count: 9, noun: predictors},
+     note: "Corrected 2026-09-02: the matrix carries the NINE models in ensemble.CANDIDATES, not nineteen. The prose previously said nineteen and claimed the seven meta-predictors added no third axis; they are not in the matrix and never were. Range restated from the file as 0.14-0.25 across clusters against 0.43-0.82 within."}
+  - {para: P71,  claim: "selection strategies scored leave-one-gene-out",         script: src/atlas/ensemble.py,            output: results/ensemble_logo_v1.tsv,             status: verified}
+  - {para: P75,  claim: "four windows crossed with four aggregations",            script: src/atlas/definition_sweep.py,    output: results/definition_sweep_performance_v1.tsv, status: verified}
+  - {para: P81,  claim: "three earlier claims did not survive",                   script: null, output: null, status: narrative,
+     note: "A statement about this manuscript's own history; the three checks it names (attenuation estimate, paired test, definition sweep) each exist above."}
+  - {para: P92,  claim: "variants mapped via Mutalyzer 3, cross-validated by VEP", script: src/atlas/mapping.py,            output: results/mapping_summary_v1.json,          status: verified}
+  - {para: P94,  claim: "protein consequence re-derived locally",                 script: src/atlas/consequence.py,         output: results/consequence_v1.parquet,           status: verified}
+  - {para: P97,  claim: "model scoring under pinned pipelines",                   script: src/atlas/assemble.py,            output: results/score_matrix_atlas_v2.summary.json, status: verified}
+  - {para: P98,  claim: "SpliceAI and Pangolin re-scored at full precision",      script: src/atlas/robustness.py,          output: results/tie_audit_rounded_vs_fullprec_v1.tsv, status: verified}
+  - {para: P100, claim: "per-gene Spearman pooled by DerSimonian-Laird, 16 strata", script: src/atlas/evaluate_ext.py,      output: results/eval_ext_v1.tsv,                  status: verified}
+  - {para: P100, claim: "Benjamini-Hochberg adjustment across the grid",          script: src/atlas/evaluate_ext.py,        output: results/fdr_grid_v1.tsv,                  status: verified}
+  - {para: P102, claim: "reliability by two estimators, SE validated against CI",  script: src/atlas/reliability.py,         output: results/reliability_v1.tsv,               status: verified}
+  - {para: P104, claim: "MaveDB enumerated through the public API",               script: src/atlas/mavedb_survey.py,       output: results/mavedb_metadata_v1.tsv,           status: verified}
+  - {para: P105, claim: "ceilings for every surveyed deposit that permits one",   script: src/atlas/mavedb_ceilings.py,     output: results/mavedb_ceilings_v1.tsv,           status: verified}
+  - {para: P105, claim: "protease platform reported separately, never pooled",    script: src/atlas/protease_agreement.py,  output: results/protease_agreement_v1.tsv,        status: verified}
+  - {para: P105, claim: "the two estimators compared where both are available",   script: src/atlas/mavedb_estimator_comparison.py, output: results/mavedb_estimator_comparison_v1.tsv, status: verified}
+  - {para: P107, claim: "simulation grid, 151,200 trials",                        script: src/atlas/simulate_attenuation.py, output: results/attenuation_simulation_v1.tsv,   status: verified}
+  - {para: P109, claim: "tie-imposed arithmetic ceiling per model x stratum",     script: src/atlas/robustness.py,          output: results/tie_audit_v1.tsv,                 status: verified}
+  - {para: P109, claim: "minimum detectable rho at 80% power",                    script: src/atlas/evaluate_ext.py,        output: results/power_v1.tsv,                     status: verified}
+  - {para: P109, claim: "Steiger's test pooled, 4,000-replicate bootstrap",       script: src/atlas/evaluate_ext.py,        output: results/fdr_head_to_head_v1.tsv,          status: verified}
+  - {para: P111, claim: "AUROC and average precision pooled on the logit scale",  script: src/atlas/clinical_evidence.py,   output: results/clinical_evidence_v1.tsv,         status: verified}
+  - {para: P113, claim: "ensembles over an a priori panel; LOGO selection",       script: src/atlas/ensemble.py,            output: results/ensemble_pooled_v1.tsv,           status: verified}
+  - {para: P113, claim: "definition sweep, 2,722 variants over four windows",     script: src/atlas/definition_sweep.py,    output: results/alphagenome_definition_sweep_v1.parquet, status: verified}
+  - {para: P115, claim: "ported scorers reproduce prior runs (concordance)",      script: src/atlas/concordance.py,         output: results/concordance_cadd.json,            status: verified}
+  - {para: P117, claim: "figures and tables verified by content hash",            script: src/atlas/artefact_manifest.py,   output: manifests/artefacts.json,                 status: verified,
+     note: "Implemented 2026-09-02. Before that nothing performed this check: atlas.manifest hashed downloads and the frozen matrix only, test_release_hygiene scanned git ls-files, test_figure_numbering checked names."}
+  - {para: P117, claim: "every reported value read programmatically",             script: src/atlas/check_manuscript_numbers.py, output: config/manuscript_number_whitelist.yaml, status: verified,
+     note: "Implemented 2026-09-02. The checker reports tokens with no pipeline counterpart and refuses to pass them silently. Its limit is recorded in tests/test_check_manuscript_numbers.py: a low-precision number matches unrelated pipeline values by coincidence, so specificity is reported and this manifest carries the claim-level binding."}
+  - {para: P117, claim: "102 guardrail tests from a clean extract",               script: tests/test_release_hygiene.py,    output: null,                                     status: verified}

@@ -4,12 +4,11 @@ An attenuation-corrected, territory-resolved benchmark of variant effect
 predictors against saturation genome editing (SGE) measurements: 64,178
 variants, seven cancer susceptibility genes, nineteen predictors.
 
-Accompanies the manuscript listed in `CITATION.cff`. A companion manuscript on
-ranking versus calibration of splice-region predictors is under review at
-*Briefings in Bioinformatics*; it draws on an overlapping subset of the same
-MaveDB assays but estimates no measurement reliability and applies no
-attenuation correction, and shares no results section, figure or table with
-this work.
+Accompanies the manuscript listed in `CITATION.cff`. A separate companion
+manuscript on ranking versus calibration of splice-region predictors draws on
+an overlapping subset of the same MaveDB assays but estimates no measurement
+reliability and applies no attenuation correction, and shares no results
+section, figure or table with this work.
 
 ## What this repository is
 
@@ -35,7 +34,7 @@ where each stops.
 
 | Tier | You have | You can | Wall clock | Disk |
 |---|---|---|---|---|
-| 1 | git clone | run the 95 guardrail tests | ~25 s | 20 MB |
+| 1 | git clone | run the 125 guardrail tests | ~25 s | 20 MB |
 | 2 | **+ Zenodo archive** | **regenerate every figure and table in the paper** | **< 1 min** | 60 MB |
 | 3 | + network | rebuild the frozen matrix from MaveDB | ~20 min | 2.2 GB |
 | 4 | + API key + GPU | re-score every predictor from scratch | ~40 h | 6 GB |
@@ -88,7 +87,7 @@ reproducible on CPU with network access.
 make setup     # install pinned dependencies  (needs Python >= 3.12)
 make fetch     # download registered assays + reference genome, build hash manifest
 make freeze    # map to GRCh38 (Mutalyzer + Ensembl), build the frozen matrix
-make test      # 95 guardrail tests (96 with the release-hygiene denylist present)
+make test      # 125 guardrail tests collected
 ```
 
 **Python >= 3.12 is required** — numpy 2.5.1 and scipy 1.18.0 both declare it.
