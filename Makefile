@@ -10,7 +10,7 @@ export PYTHONPATH := src
 PYTHON ?= python3
 MIN_PY := 3.12
 
-.PHONY: setup fetch freeze test clean check-python artefacts check-numbers verify
+.PHONY: setup fetch freeze test clean check-python artefacts check-numbers facts verify
 
 check-python:
 	@$(PYTHON) -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 12) else 1)' \
@@ -53,9 +53,16 @@ check-numbers:
 	@test -n "$(DOCX)" || { echo "usage: make check-numbers DOCX=path/to/manuscript.docx"; exit 2; }
 	$(PY) -m atlas.check_manuscript_numbers "$(DOCX)" --verbose
 
+# Counts the manuscript cites that live in no results/ file -- the guardrail
+# suite size above all. Without this a stale "102 guardrail tests" would match
+# some unrelated pipeline value by coincidence and pass as verified.
+facts:
+	$(PY) -m atlas.pipeline_facts --write
+
 # Everything a delivered artefact has to satisfy.
 verify: test
 	$(PY) -m atlas.artefact_manifest --check
+	$(PY) -m atlas.pipeline_facts --check
 
 clean:
 	rm -rf results/*

@@ -89,3 +89,102 @@ def test_weak_matches_are_a_separate_class():
     assert n >= WEAK_MATCH_MIN, (
         "0.12 no longer matches many pipeline values; the weak-match threshold "
         "may need revisiting")
+
+
+# --- the cardinality gate ---------------------------------------------------
+# The complementarity sentence is the reason this exists. No value check catches
+# it: every number it prints corresponds to some cell of the matrix it cites,
+# whether the check runs against the whole pipeline or against that one file.
+# What was wrong was the COUNT -- "the nineteen predictors" citing a nine-model
+# matrix. That is a claim about the output's shape, and only a shape check sees
+# it. Verified against the real pre-correction manuscript at the time this was
+# written (1 cardinality mismatch, 0 after the fix); reproduced here on a
+# synthetic document so the suite stays self-contained.
+
+def _doc(tmp_path, text):
+    import docx
+    d = docx.Document()
+    d.add_paragraph("padding")          # so the sentence lands in P1
+    d.add_paragraph(text)
+    p = tmp_path / "m.docx"
+    d.save(p)
+    return p
+
+
+def _claims(tmp_path, count):
+    p = tmp_path / "claims.yaml"
+    p.write_text(
+        "claims:\n"
+        "  - para: P1\n"
+        "    claim: two axes\n"
+        "    script: src/atlas/ensemble.py\n"
+        "    output: results/model_correlation_coding_or_utr_v1.tsv\n"
+        "    status: verified\n"
+        f"    cardinality: {{count: {count}, noun: predictors}}\n")
+    return p
+
+
+def test_cardinality_mismatch_is_caught(tmp_path):
+    from atlas.check_manuscript_numbers import classify
+    doc = _doc(tmp_path, "The matrix shows that the nineteen predictors span two axes.")
+    r = classify(doc, claims=_claims(tmp_path, 9))
+    assert len(r["cardinality_mismatch"]) == 1, r["cardinality_mismatch"]
+    m = r["cardinality_mismatch"][0]
+    assert m["asserted"] == 19 and m["recorded"] == 9
+
+
+def test_correct_cardinality_passes(tmp_path):
+    from atlas.check_manuscript_numbers import classify
+    doc = _doc(tmp_path, "The matrix shows that the nine broad-scope and "
+                         "splice-aware predictors span two axes.")
+    r = classify(doc, claims=_claims(tmp_path, 9))
+    assert r["cardinality_mismatch"] == []
+
+
+def test_value_checks_alone_would_not_have_caught_it(tmp_path):
+    """Pinned so the cardinality gate is never removed as redundant: the printed
+    numbers in that sentence all correspond to real cells, scoped or not."""
+    import numpy as np
+    from atlas.check_manuscript_numbers import claim_scopes, scoped_values
+    scopes = claim_scopes()
+    if "P71" not in scopes or not (REPO / scopes["P71"][0]).exists():
+        pytest.skip("results/ not built in this checkout")
+    pool = scoped_values(scopes["P71"])
+    assert np.any(np.abs(pool - 0.12) <= 0.005), (
+        "0.12 no longer corresponds to a cell of the cited matrix; the note in "
+        "this test about why a value check is insufficient may need revisiting")
+
+
+# --- declared counts about the pipeline itself -------------------------------
+# The guardrail count is the case that proves pool membership is the wrong test.
+# 102 (the count before this work) and 118 (the count during it) each match
+# exactly one unrelated pipeline value, so a stale count passes as VERIFIED.
+# It is a declared fact, so it is compared against the declared value.
+
+def test_stale_declared_count_is_caught(tmp_path):
+    from atlas.check_manuscript_numbers import classify
+    doc = _doc(tmp_path, "the pipeline is covered by 118 guardrail tests that run from a clean extract")
+    r = classify(doc)
+    assert len(r["stale_counts"]) == 1, r["stale_counts"]
+    assert r["stale_counts"][0]["stated"] == 118
+
+
+def test_current_declared_count_passes(tmp_path):
+    import json
+    from atlas.check_manuscript_numbers import FACTS, classify
+    n = json.loads(FACTS.read_text())["guardrail_tests_collected"]
+    doc = _doc(tmp_path, f"the pipeline is covered by {n} guardrail tests")
+    assert classify(doc)["stale_counts"] == []
+
+
+def test_a_stale_count_would_otherwise_pass_as_verified(tmp_path):
+    """Pinned so this check is never dropped as redundant with the value pool."""
+    import numpy as np
+    from atlas.check_manuscript_numbers import pipeline_values
+    if not RESULTS.is_dir() or not any(RESULTS.iterdir()):
+        pytest.skip("results/ not built in this checkout")
+    pool = pipeline_values()
+    for stale in (102, 118):
+        assert np.any(np.abs(pool - stale) <= 0.5), (
+            f"{stale} no longer coincides with a pipeline value; the rationale "
+            "recorded here may need revisiting")

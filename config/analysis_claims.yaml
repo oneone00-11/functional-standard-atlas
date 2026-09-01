@@ -19,7 +19,8 @@
 #          gap        -- the claim is not supported; see note
 
 claims:
-  - {para: P7,   claim: "nineteen predictors scored across sixteen strata",       script: src/atlas/evaluate_ext.py,        output: results/eval_ext_v1.tsv,                  status: verified}
+  - {para: P7,   claim: "nineteen predictors scored across sixteen strata",       script: src/atlas/evaluate_ext.py,        output: results/eval_ext_v1.tsv,                  status: verified,
+     cardinality: {count: 19, noun: predictors}}
   - {para: P7,   claim: "reliability ceiling per territory; 0.45 validity bound", script: src/atlas/reliability.py,         output: results/attenuation_v1.tsv,               status: verified}
   - {para: P7,   claim: "correction validated by simulation",                     script: src/atlas/simulate_attenuation.py, output: results/attenuation_simulation_v1.tsv,   status: verified}
   - {para: P15,  claim: "four supporting analyses: paired tests",                 script: src/atlas/evaluate_ext.py,        output: results/head_to_head_v1.tsv,              status: verified}
@@ -41,6 +42,7 @@ claims:
   - {para: P65,  claim: "achievable correlation differs up to threefold",         script: src/atlas/reliability.py,         output: results/attenuation_v1.tsv,               status: verified,
      note: "Corrected 2026-09-02: previously said 'in reliability'. 3.07 is the ceiling ratio; the reliability ratio is 9.39 (reliability = ceiling squared)."}
   - {para: P71,  claim: "two axes among the scored predictors, cross-cluster range", script: src/atlas/ensemble.py,          output: results/model_correlation_coding_or_utr_v1.tsv, status: verified,
+     cardinality: {count: 9, noun: predictors},
      note: "Corrected 2026-09-02: the matrix carries the NINE models in ensemble.CANDIDATES, not nineteen. The prose previously said nineteen and claimed the seven meta-predictors added no third axis; they are not in the matrix and never were. Range restated from the file as 0.14-0.25 across clusters against 0.43-0.82 within."}
   - {para: P71,  claim: "selection strategies scored leave-one-gene-out",         script: src/atlas/ensemble.py,            output: results/ensemble_logo_v1.tsv,             status: verified}
   - {para: P75,  claim: "four windows crossed with four aggregations",            script: src/atlas/definition_sweep.py,    output: results/definition_sweep_performance_v1.tsv, status: verified}
