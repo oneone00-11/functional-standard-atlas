@@ -4,12 +4,11 @@ An attenuation-corrected, territory-resolved benchmark of variant effect
 predictors against saturation genome editing (SGE) measurements: 64,178
 variants, seven cancer susceptibility genes, nineteen predictors.
 
-Accompanies the manuscript listed in `CITATION.cff`. A companion manuscript on
-ranking versus calibration of splice-region predictors is under review at
-*Briefings in Bioinformatics*; it draws on an overlapping subset of the same
-MaveDB assays but estimates no measurement reliability and applies no
-attenuation correction, and shares no results section, figure or table with
-this work.
+Accompanies the manuscript listed in `CITATION.cff`. A separate companion
+manuscript on ranking versus calibration of splice-region predictors draws on
+an overlapping subset of the same MaveDB assays but estimates no measurement
+reliability and applies no attenuation correction, and shares no results
+section, figure or table with this work.
 
 ## What this repository is
 
