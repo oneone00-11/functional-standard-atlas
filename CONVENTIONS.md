@@ -33,3 +33,19 @@ the check are recorded as unusable rather than used with a caveat.
 Every figure, table and quoted value is produced by a script reading a file
 under `results/`. Nothing is copied by hand from one document to another, so a
 rerun cannot leave a stale number behind.
+
+## 6. Development output never lands in `results/`
+
+`results/` is published: it ships in the release archive and is cited from the
+manuscript. Smoke tests, probes and one-off checks write to `results/_scratch/`,
+which `atlas.package_release` excludes and which nothing downstream may read.
+
+The rule exists because three July smoke-test artefacts —
+`ag_test.parquet`, `ag_test_report_v1.md` and `cadd_smoke.parquet` — reached the
+v2.3.1 and v2.3.2 archives. One of them carried a section headed OPEN DECISION
+recording a scoring choice that the manuscript has since settled, and named a
+term the release denylist rejects outside `models/`. Nothing referenced them.
+They were invisible because the hygiene gate scanned `git ls-files` while
+`results/` is gitignored; the gate now scans the packaging output instead.
+
+A per-file exclusion list would have hidden the next one. The place is the rule.
