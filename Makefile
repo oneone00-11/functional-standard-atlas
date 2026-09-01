@@ -10,7 +10,7 @@ export PYTHONPATH := src
 PYTHON ?= python3
 MIN_PY := 3.12
 
-.PHONY: setup fetch freeze test clean check-python
+.PHONY: setup fetch freeze test clean check-python artefacts check-numbers verify
 
 check-python:
 	@$(PYTHON) -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 12) else 1)' \
@@ -38,6 +38,24 @@ freeze:
 
 test:
 	$(PY) -m pytest tests/ -q
+
+# Rehash every delivered figure and table into manifests/artefacts.json. Run
+# after a rebuild; `make test` then fails if anything drifts from the record.
+artefacts:
+	$(PY) -m atlas.artefact_manifest --write
+
+# Does every number in the manuscript come from pipeline output? Tokens with no
+# counterpart are reported and fail the run unless they are listed, with a
+# reason, in config/manuscript_number_whitelist.yaml.
+#     make check-numbers DOCX=path/to/manuscript.docx
+DOCX ?=
+check-numbers:
+	@test -n "$(DOCX)" || { echo "usage: make check-numbers DOCX=path/to/manuscript.docx"; exit 2; }
+	$(PY) -m atlas.check_manuscript_numbers "$(DOCX)" --verbose
+
+# Everything a delivered artefact has to satisfy.
+verify: test
+	$(PY) -m atlas.artefact_manifest --check
 
 clean:
 	rm -rf results/*
