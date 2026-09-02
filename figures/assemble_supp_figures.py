@@ -89,8 +89,8 @@ def montage(panels: list[tuple[Path, str]], title: str, out: Path) -> None:
         d.text((x + 4, y), label, fill="black", font=lf)
         sheet.paste(im, (x, y + LABEL_H))
     sheet.save(out, dpi=(150, 150))
-    # PNG is not an accepted review format at the target journal (GIF, TIFF, EPS,
-    # PDF, JPEG are), so every sheet is written as PDF alongside the PNG.
+    # PNG is not among the figure formats submission systems generally accept
+    # (GIF, TIFF, EPS, PDF, JPEG are), so every sheet is written as PDF too.
     sheet.convert("RGB").save(out.with_suffix(".pdf"), "PDF", resolution=150.0)
     print(f"  {out.name}: {len(thumbs)} panels, {W}x{H} (+ PDF)")
 

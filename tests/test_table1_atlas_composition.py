@@ -1,6 +1,6 @@
 """Pin manuscript Table 1 (atlas composition) to the pipeline.
 
-Third instance of the same failure mode in one review round: MAIN_FIGS drifted
+Third instance of the same failure mode: MAIN_FIGS drifted
 from the manuscript's figure order, Table 2 had no generator at all, and
 results/table1_atlas_composition.tsv went stale -- it held BRCA1 as
 2,868 / 137 / 527 while both the classifier and the manuscript say

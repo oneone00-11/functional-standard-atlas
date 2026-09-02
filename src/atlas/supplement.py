@@ -719,7 +719,7 @@ def main(argv: list[str] | None = None) -> int:
     (RESULTS / "Supplemental_Note.md").write_text(md)   # source, not an upload
     write_docx(md, out / "Supplemental_Note.docx")
 
-    # .tsv is not an accepted review format; tables ship as .xlsx with a
+    # .tsv is not a format submission systems accept; tables ship as .xlsx with a
     # frozen header row. Full precision is kept in the Zenodo deposit's TSVs.
     for dest, src in TABLES.items():
         _write_xlsx(pd.read_csv(RESULTS / src, sep="\t"),

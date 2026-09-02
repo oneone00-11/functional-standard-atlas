@@ -282,8 +282,8 @@ def table_training_provenance() -> pd.DataFrame:
 
     Kept separate from S9 rather than widening it. S9 is the inventory a reader
     consults for version, coverage and licence; this answers a different
-    question, asked by review: whether a benchmarked predictor has a hidden
-    dependency on the measurements it is scored against. Merging them would put
+    question: whether a benchmarked predictor has a hidden dependency on the
+    measurements it is scored against. Merging them would put
     ten columns of licence text beside ten of provenance and serve neither.
 
     Rendered from `atlas.predictor_resources.TRAINING`, which is the curated
