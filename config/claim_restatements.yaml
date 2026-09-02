@@ -1,0 +1,60 @@
+# Claims that appear in more than one place, and where.
+#
+# WHY THIS FILE EXISTS
+# A correction applied in one place does not travel. The clinical-yield sentence
+# in the companion manuscript was corrected in Results and left standing,
+# unqualified, in the Abstract, the Introduction and the Discussion, because
+# nothing listed the other places the same claim was made. Fixing a claim now
+# means running `python -m atlas.claim_index --report <docx>` and confirming
+# every location it returns.
+#
+# This is not the analysis-claims manifest. config/analysis_claims.yaml asks
+# "does the analysis this sentence describes exist?"; this file asks "where else
+# is this claim stated, and do those statements still agree?"
+#
+# `pattern` is a regular expression matched per sentence, case-insensitive.
+
+manuscripts:
+  atlas:
+    file: functional-standard-atlas_manuscript-gb.docx
+    claims:
+      - id: reliability-prescription
+        says: report a per-stratum reliability estimate, or say the assay permits none
+        pattern: 'per-stratum reliability estimate|reliability estimate alongside|assay (permits|does not permit) none'
+      - id: worst-served-territory
+        says: 11-50 bp is the worst-served territory
+        pattern: '11–50 bp|worst-served|genuinely weakest'
+      - id: canonical-is-a-ceiling
+        says: the collapse at canonical splice sites is a measurement ceiling, not model failure
+        pattern: 'measurement ceiling|collapse at canonical splice|property of the assay'
+      - id: deep-intron-is-an-assay-limit
+        says: deep-intronic performance is bounded by the assay, not by the predictors
+        pattern: 'deep intron|limiting factor is the assay|blind deep in introns'
+      - id: paired-not-marginal
+        says: ordering claims need paired tests, not overlapping marginal intervals
+        pattern: 'paired test|interval overlap|Steiger'
+      - id: splice-aware-rank-in-coding
+        says: where the splice-aware models sit in coding sequence
+        pattern: 'seventh, eighth and ninth|worst in coding|weakest against fitness|worst overall in coding'
+
+  splice-fusion:
+    file: draft_reframed_BiB.docx
+    claims:
+      - id: ranking-saturated
+        says: ranking among the top splice tools is saturated
+        pattern: 'saturated|tie on ranking|interchangeable in ranking'
+      - id: evolutionary-axis-redundant
+        says: the evolutionary axis adds nothing
+        pattern: 'evolutionary axis is redundant|redundant with|adds nothing to ranking'
+      - id: fusion-lowest-brier
+        says: the calibrated fusion has the lowest Brier score
+        pattern: 'lowest Brier|more accurate probabilit|lower Brier score'
+      - id: clinical-yield
+        says: how many actionable calls the fusion makes, and in how many conditions
+        pattern: 'actionable call|clinical yield|actionable fraction|higher clinical yield'
+      - id: calibrate-before-acmg
+        says: raw scores are not probabilities and must be calibrated before ACMG use
+        pattern: 'calibrated before use as ACMG|PP3|BP4|not probabilities'
+      - id: frozen-and-rerunnable
+        says: the analysis is content-hash pinned and re-runnable
+        pattern: 'content-hash|frozen-matrix-v1|clean-clone|regenerable'
