@@ -40,6 +40,9 @@ manuscripts:
   splice-fusion:
     file: draft_reframed_BiB.docx
     claims:
+      - id: evidence-strength-not-improved
+        says: the calibration advantage does not survive translation into evidence strength
+        pattern: 'evidence strength|likelihood ratio|LR\+|reaches? Strong|Tavtigian|ACMG (band|evidence)'
       - id: ranking-saturated
         says: ranking among the top splice tools is saturated
         pattern: 'saturated|tie on ranking|interchangeable in ranking'
