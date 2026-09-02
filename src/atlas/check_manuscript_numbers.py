@@ -4,8 +4,8 @@ The manuscript states that "every value reported in the text, tables and figures
 is read programmatically from pipeline output rather than transcribed". Nothing
 enforced that, and one sentence -- the between-model correlation range in the
 complementarity paragraph -- carried a figure with no source anywhere in
-`results/`, which survived six rounds of review because every round asked
-whether a number was *right* and none asked whether it had a *source*.
+`results/`. A value check asks whether a number is *right*; it never asks
+whether the number has a *source*, so a figure with no origin passes.
 
 This is that missing step. Every decimal and integer token in the .docx (body
 paragraphs, table cells and figure captions alike) is matched against every
@@ -163,8 +163,8 @@ def load_whitelist(path: Path = WHITELIST) -> tuple[set[str], list[re.Pattern], 
 # A token printed to few decimals sits in a dense part of the pool, so a match
 # carries no information: "0.12" is within half a last-digit of hundreds of
 # unrelated pipeline values. Such matches are reported separately as `weak`,
-# because treating them as verification is exactly the mistake that let the
-# complementarity range survive review.
+# because treating them as verification is exactly the mistake that lets a
+# sourceless number pass.
 WEAK_MATCH_MIN = 25          # distinct pool values inside the tolerance window
 
 

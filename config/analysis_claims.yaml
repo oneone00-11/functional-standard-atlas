@@ -8,7 +8,7 @@
 # figure matches unrelated pipeline values by coincidence. The complementarity
 # sentence claimed a nineteen-predictor axis analysis; the matrix behind it has
 # nine columns and has had nine since the commit that introduced the seven
-# meta-predictors. Six rounds of numeric checking never asked the question.
+# meta-predictors. No numeric check asks that question.
 #
 # tests/test_analysis_claims.py asserts that every script and output named here
 # exists. Add a row when a claim is added to the manuscript; if a row cannot be

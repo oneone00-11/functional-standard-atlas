@@ -1,7 +1,7 @@
 """Every analysis the manuscript claims must have code and output behind it.
 
-This is the check that no earlier round performed. Six rounds asked whether a
-number was right; none asked whether the analysis a sentence describes exists.
+A value check asks whether a number is right. It cannot ask whether the analysis
+a sentence describes exists at all, which is a different question.
 The complementarity paragraph claimed a nineteen-predictor axis analysis and
 cited a matrix that has carried nine models since the commit that introduced the
 seven meta-predictors -- a sentence with no number wrong in it, and nothing to

@@ -8,8 +8,8 @@ the two behaviours that make it worth having:
     silently skipped -- the whitelist is the only way past, and it is tracked;
   * a match that carries no information must not be counted as verification.
     A two-decimal number in a dense range matches hundreds of unrelated pipeline
-    values; calling that "verified" is precisely how the complementarity range
-    survived six rounds of checking.
+    values; calling that "verified" is precisely how a sourceless number passes
+    unnoticed.
 """
 from __future__ import annotations
 
