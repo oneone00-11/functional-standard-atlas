@@ -76,3 +76,55 @@ def test_no_unresolved_gaps():
     Failing here is the point: it should not be possible to ship one quietly."""
     gaps = [f"{c['para']}: {c['claim']}" for c in _claims() if c["status"] == "gap"]
     assert not gaps, "manuscript claims with nothing behind them:\n  " + "\n  ".join(gaps)
+
+
+MANUSCRIPT = Path.home() / "Desktop" / "functional-standard-atlas_manuscript-gb.docx"
+
+
+def test_every_claim_carries_an_anchor():
+    """`para` is commentary. The anchor is what actually binds."""
+    missing = [f"{c['para']}: {c['claim']}" for c in _claims() if not c.get("anchor")]
+    assert not missing, "claims with no content anchor:\n  " + "\n  ".join(missing)
+
+
+def test_every_anchor_hits_exactly_once():
+    """Zero hits means the sentence was reworded and the row now describes
+    nothing; more than one means the anchor is not distinctive and could bind to
+    the wrong sentence. Both were invisible under paragraph numbers, which
+    always resolve to *some* paragraph however far the text has moved."""
+    if not MANUSCRIPT.exists():
+        pytest.skip("manuscript not available in this checkout")
+    from atlas.check_manuscript_numbers import _blocks
+
+    blocks = _blocks(MANUSCRIPT)
+    bad = []
+    for c in _claims():
+        anchor = c.get("anchor")
+        if not anchor:
+            continue
+        n = sum(text.count(anchor) for _, text in blocks)
+        if n != 1:
+            bad.append(f"{c['para']}: {n} hits for {anchor!r} ({c['claim']})")
+    assert not bad, "anchors that do not hit exactly once:\n  " + "\n  ".join(bad)
+
+
+def test_paragraph_numbers_are_not_load_bearing():
+    """Regression for the 2026-09-02 shift: with every `para` deliberately
+    wrong, resolution must be unaffected, because nothing matches on it."""
+    if not MANUSCRIPT.exists():
+        pytest.skip("manuscript not available in this checkout")
+    import atlas.check_manuscript_numbers as cmn
+
+    before = cmn.resolve_anchors(MANUSCRIPT)
+    shifted = yaml.safe_load(MANIFEST.read_text())
+    for c in shifted["claims"]:
+        if str(c.get("para", "")).startswith("P"):
+            c["para"] = f"P{int(c['para'][1:]) + 23}"
+    tmp = REPO / "config" / ".analysis_claims.shifted.yaml"
+    tmp.write_text(yaml.safe_dump(shifted, allow_unicode=True))
+    try:
+        after = cmn.resolve_anchors(MANUSCRIPT, tmp)
+    finally:
+        tmp.unlink()
+    assert before == after and before, (
+        "paragraph numbers still influence resolution")

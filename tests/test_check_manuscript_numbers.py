@@ -117,6 +117,7 @@ def _claims(tmp_path, count):
         "claims:\n"
         "  - para: P1\n"
         "    claim: two axes\n"
+        "    anchor: span two axes\n"
         "    script: src/atlas/ensemble.py\n"
         "    output: results/model_correlation_coding_or_utr_v1.tsv\n"
         "    status: verified\n"
@@ -146,13 +147,21 @@ def test_value_checks_alone_would_not_have_caught_it(tmp_path):
     numbers in that sentence all correspond to real cells, scoped or not."""
     import numpy as np
     from atlas.check_manuscript_numbers import claim_scopes, scoped_values
-    scopes = claim_scopes()
-    if "P71" not in scopes or not (REPO / scopes["P71"][0]).exists():
+    manuscript = Path.home() / "Desktop" / "functional-standard-atlas_manuscript-gb.docx"
+    if not manuscript.exists():
+        pytest.skip("manuscript not available in this checkout")
+    # Scopes are keyed by where the anchor lands, not by a paragraph number.
+    matrix = "results/model_correlation_coding_or_utr_v1.tsv"
+    block = [v for v in claim_scopes(manuscript).values() if matrix in v]
+    if not block or not (REPO / matrix).exists():
         pytest.skip("results/ not built in this checkout")
-    pool = scoped_values(scopes["P71"])
+    pool = scoped_values(block[0])   # every output that paragraph declares
     assert np.any(np.abs(pool - 0.12) <= 0.005), (
-        "0.12 no longer corresponds to a cell of the cited matrix; the note in "
-        "this test about why a value check is insufficient may need revisiting")
+        "0.12 no longer corresponds to a value this paragraph declares a source "
+        "for; the note in this test about why a value check is insufficient may "
+        "need revisiting. It sits in ensemble_logo_v1.tsv rather than in the "
+        "correlation matrix itself, which is the point: even scoped to the "
+        "paragraph's own outputs, the number passes.")
 
 
 # --- declared counts about the pipeline itself -------------------------------
