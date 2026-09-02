@@ -137,9 +137,9 @@ ROWS = [
 # ---------------------------------------------------------------------------
 # Training provenance
 # ---------------------------------------------------------------------------
-# Reviewer 1 asked whether the benchmarked predictors have a hidden dependency on
-# the functional data they are scored against. Two dependencies must be kept
-# apart, because only the first is the one usually discussed:
+# Whether the benchmarked predictors have a hidden dependency on the functional
+# data they are scored against. Two dependencies must be kept apart, because
+# only the first is the one usually discussed:
 #
 #   ClinVar circularity  -- a predictor trained on clinical assertions, scored
 #                           against clinical assertions. This paper avoids it by

@@ -1,8 +1,8 @@
 """Supplemental Table S11 must actually answer the hidden-dependency question.
 
-Review asked whether the benchmarked predictors have an information overlap with
-the functional data they are scored against. A table that answers it only for
-some rows would be worse than none, because the gaps read as "no overlap".
+Whether the benchmarked predictors have an information overlap with the
+functional data they are scored against. A table that answers it only for some
+rows would be worse than none, because the gaps read as "no overlap".
 """
 from __future__ import annotations
 
