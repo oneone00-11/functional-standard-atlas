@@ -273,6 +273,33 @@ def _md_table(df: pd.DataFrame) -> str:
     return "\n".join(lines) + "\n"
 
 
+def table_training_provenance() -> pd.DataFrame:
+    """Supplemental Table S11 -- where each predictor's training signal comes from.
+
+    Written as table_s11_training_data_v1: artefact_manifest excludes any name
+    containing "provenance" as an intermediate, and the _v1 suffix is what puts a
+    supplementary table into the manifest at all.
+
+    Kept separate from S9 rather than widening it. S9 is the inventory a reader
+    consults for version, coverage and licence; this answers a different
+    question, asked by review: whether a benchmarked predictor has a hidden
+    dependency on the measurements it is scored against. Merging them would put
+    ten columns of licence text beside ten of provenance and serve neither.
+
+    Rendered from `atlas.predictor_resources.TRAINING`, which is the curated
+    source and carries a documentation URL per row.
+    """
+    from atlas.predictor_resources import ROWS as PR, TRAINING
+
+    return pd.DataFrame([{
+        "predictor": p,
+        "training_data": TRAINING[p][0],
+        "contains_clinical_labels": TRAINING[p][1],
+        "possible_mave_sge_overlap": TRAINING[p][2],
+        "training_source": TRAINING[p][3],
+    } for p, *_ in PR])
+
+
 def write(df: pd.DataFrame, stem: str) -> None:
     tsv = RESULTS / f"{stem}.tsv"
     md = RESULTS / f"{stem}.md"
@@ -286,6 +313,7 @@ def main() -> None:
     write(table1(), "table1_atlas_composition")
     write(table2(), "table2_model_inventory")
     write(table2_territory_guide(), "table2_territory_guide")
+    write(table_training_provenance(), "table_s11_training_data_v1")
 
 
 if __name__ == "__main__":

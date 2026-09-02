@@ -133,8 +133,131 @@ ROWS = [
      "https://github.com/facebookresearch/esm"),
 ]
 
+
+# ---------------------------------------------------------------------------
+# Training provenance
+# ---------------------------------------------------------------------------
+# Reviewer 1 asked whether the benchmarked predictors have a hidden dependency on
+# the functional data they are scored against. Two dependencies must be kept
+# apart, because only the first is the one usually discussed:
+#
+#   ClinVar circularity  -- a predictor trained on clinical assertions, scored
+#                           against clinical assertions. This paper avoids it by
+#                           construction: the standard is assay measurement.
+#   assay overlap        -- a predictor trained on MAVE/DMS/SGE measurements, then
+#                           scored against measurements of the same kind.
+#
+# There is also an indirect path that neither column alone captures: a predictor
+# trained on ClinVar or HGMD can inherit assay evidence, because PS3/BS3
+# classifications are themselves made partly from functional assays, including
+# the SGE experiments in this atlas. Rows carrying clinical labels are marked for
+# that path rather than as clean.
+#
+# `training_source` is held to the same standard as `licence_source`: the
+# project's own documentation or the publication that describes the training set.
+# Where a row states an assessment rather than a documented fact, it says so.
+
+_INHERITED = ("Indirect: clinical labels can inherit PS3/BS3 evidence derived "
+              "from functional assays, including SGE")
+_NONE_DOC = "None documented"
+
+# predictor -> (training_data, clinical_labels, mave_sge_overlap, training_source)
+TRAINING = {
+    "AlphaGenome": (
+        "Multi-task supervision on functional genomics tracks (expression, "
+        "splicing, chromatin) from ENCODE/GTEx-class data; no variant labels",
+        "No", _NONE_DOC,
+        "https://deepmind.google.com/science/alphagenome"),
+    "SpliceAI": (
+        "GENCODE-annotated splice junctions on pre-mRNA sequence; no variant labels",
+        "No", _NONE_DOC,
+        "https://doi.org/10.1016/j.cell.2018.12.015"),
+    "Pangolin": (
+        "Splice-site usage quantified from RNA-seq across four species and "
+        "multiple tissues; no variant labels",
+        "No", _NONE_DOC,
+        "https://doi.org/10.1186/s13059-022-02664-4"),
+    "CADD": (
+        "Simulated de novo variants versus fixed derived human alleles, a proxy "
+        "contrast with no disease labels",
+        "No", _NONE_DOC,
+        "https://cadd.gs.washington.edu/info"),
+    "AlphaMissense": (
+        "Protein language model fine-tuned on a population-frequency proxy "
+        "(gnomAD common variants versus unobserved), plus structural context",
+        "No", "None documented; DMS sets were used for evaluation, not training",
+        "https://doi.org/10.1126/science.adg7492"),
+    "Evo2-7B": (
+        "Self-supervised next-token prediction over genomes; no labels of any kind",
+        "No", _NONE_DOC,
+        "https://github.com/ArcInstitute/evo2"),
+    "GPN-MSA": (
+        "Self-supervised masked language modelling over a whole-genome vertebrate "
+        "alignment; no labels of any kind",
+        "No", _NONE_DOC,
+        "https://huggingface.co/songlab/gpn-msa-hg38-scores"),
+    "NT-v2-500M": (
+        "Self-supervised masked language modelling over multi-species genomes; "
+        "never trained on variant effects",
+        "No", _NONE_DOC,
+        "https://huggingface.co/InstaDeepAI/nucleotide-transformer-v2-500m-multi-species"),
+    "phyloP-100way": (
+        "Not trained. Per-base substitution rate under a neutral model fitted to a "
+        "100-species alignment",
+        "No", _NONE_DOC,
+        "https://genome.ucsc.edu/cgi-bin/hgTrackUi?db=hg38&g=cons100way"),
+    "phastCons-100way": (
+        "Not trained. Phylo-HMM conserved-element posterior on the same alignment",
+        "No", _NONE_DOC,
+        "https://genome.ucsc.edu/cgi-bin/hgTrackUi?db=hg38&g=cons100way"),
+    "gnomAD AF (global)": (
+        "Not a predictor and not trained; an observed allele frequency",
+        "No", _NONE_DOC,
+        "https://gnomad.broadinstitute.org/help/what-is-gnomad"),
+    "gnomAD AF (popmax)": (
+        "Not a predictor and not trained; an observed allele frequency",
+        "No", _NONE_DOC,
+        "https://gnomad.broadinstitute.org/help/what-is-gnomad"),
+    "REVEL": (
+        "Ensemble trained on HGMD disease mutations versus rare neutral variants "
+        "from ESP/ARIC, over thirteen component scores",
+        "Yes (HGMD disease assertions)", _INHERITED,
+        "https://doi.org/10.1016/j.ajhg.2016.08.016"),
+    "BayesDel (addAF)": (
+        "Metascore trained on clinically classified variants (ClinVar/HGMD) "
+        "against controls, integrating allele frequency in the addAF form",
+        "Yes (ClinVar/HGMD assertions)", _INHERITED,
+        "https://doi.org/10.1002/humu.23158"),
+    "ClinPred": (
+        "Trained on ClinVar pathogenic versus gnomAD benign missense variants",
+        "Yes (ClinVar assertions)", _INHERITED,
+        "https://doi.org/10.1016/j.ajhg.2018.08.005"),
+    "MetaRNN": (
+        "Recurrent ensemble trained on ClinVar-derived pathogenic and benign sets "
+        "with gnomAD frequency features",
+        "Yes (ClinVar assertions)", _INHERITED,
+        "https://doi.org/10.1186/s13073-022-01120-z"),
+    "PrimateAI": (
+        "Deep network trained on common missense variation observed in six "
+        "non-human primate species; no human disease labels",
+        "No", _NONE_DOC,
+        "https://doi.org/10.1038/s41588-018-0167-z"),
+    "VEST4": (
+        "Random forest trained on HGMD disease mutations versus common variants "
+        "from ESP",
+        "Yes (HGMD disease assertions)", _INHERITED,
+        "https://doi.org/10.1186/1471-2164-14-S3-S3"),
+    "ESM-1b": (
+        "Self-supervised masked language modelling over UniRef protein sequences; "
+        "variant scores are zero-shot pseudo-likelihoods, with no labels",
+        "No", _NONE_DOC,
+        "https://github.com/facebookresearch/esm"),
+}
+
 HEADER = ["predictor", "version_or_resource", "source", "accessed",
-          "licence", "licence_source"]
+          "licence", "licence_source",
+          "training_data", "contains_clinical_labels",
+          "possible_mave_sge_overlap", "training_source"]
 
 # Columns whose terms are more restrictive than the CC BY 4.0 granted to the derived
 # data. Quoted by LICENSE-DATA and README.md; keep in sync with ROWS.
@@ -147,7 +270,8 @@ def main() -> None:
     with OUT.open("w", newline="") as fh:
         w = csv.writer(fh, delimiter="\t")
         w.writerow(HEADER)
-        w.writerows(ROWS)
+        for row in ROWS:
+            w.writerow(list(row) + list(TRAINING[row[0]]))
     print(f"wrote {OUT} ({len(ROWS)} predictors; "
           f"{len(RESTRICTED)} more restrictive than CC BY 4.0, "
           f"{len(NO_TERMS_LOCATED)} with no terms located)")

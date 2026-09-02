@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 204,
+ "n_files": 205,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 40
+  "supp_table": 41
  },
  "files": {
   "results/attenuation_simulation_v1.json": {
@@ -820,8 +820,8 @@
   },
   "results/predictor_resources_v1.tsv": {
    "role": "supp_table",
-   "sha256": "a1c96d979119d2b38b0d04abfa7da4900a7fa0c284deb46f06f5f67f5d1168fe",
-   "bytes": 4367
+   "sha256": "2290bd2c1e14a0dcc90dbf6b97729d5252ebab164ac18227a6071d7b100a6e41",
+   "bytes": 8190
   },
   "results/protease_agreement_v1.tsv": {
    "role": "supp_table",
@@ -1017,6 +1017,11 @@
    "role": "main_table",
    "sha256": "9cbcfb0be2d0bcf8e7849384b58ab385ce44128da23f4b2c2978a884674bf1e4",
    "bytes": 32297
+  },
+  "results/table_s11_training_data_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "ed69459ce7f656d6cf85543989c8f3d4ed79c0ab0bf6587c4c8d27dfe87903dc",
+   "bytes": 4041
   },
   "results/tie_audit_rounded_vs_fullprec_v1.tsv": {
    "role": "supp_table",

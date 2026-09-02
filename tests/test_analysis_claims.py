@@ -30,6 +30,12 @@ def _claims() -> list[dict]:
     return yaml.safe_load(MANIFEST.read_text())["claims"]
 
 
+def _outputs(c) -> list[str]:
+    """A claim may name several outputs; all of them must resolve."""
+    out = c.get("output")
+    return [] if not out else (out if isinstance(out, list) else [out])
+
+
 def test_manifest_is_well_formed():
     claims = _claims()
     assert claims, "no claims recorded"
@@ -49,18 +55,14 @@ def test_every_named_script_exists():
 def test_every_named_output_exists():
     """`results/` is gitignored, so outputs are only checkable in a built
     checkout; tracked paths are checked either way."""
-    tracked = [c for c in _claims()
-               if c.get("output") and not str(c["output"]).startswith("results/")]
-    missing = [f"{c['para']}: {c['output']}" for c in tracked
-               if not (REPO / c["output"]).exists()]
+    missing = [f"{c['para']}: {rel}" for c in _claims() for rel in _outputs(c)
+               if not rel.startswith("results/") and not (REPO / rel).exists()]
     assert not missing, "claims name tracked outputs that do not exist:\n  " + "\n  ".join(missing)
 
     if not (REPO / "results").is_dir() or not any((REPO / "results").iterdir()):
         pytest.skip("results/ not built in this checkout")
-    built = [c for c in _claims()
-             if c.get("output") and str(c["output"]).startswith("results/")]
-    missing = [f"{c['para']}: {c['output']}" for c in built
-               if not (REPO / c["output"]).exists()]
+    missing = [f"{c['para']}: {rel}" for c in _claims() for rel in _outputs(c)
+               if rel.startswith("results/") and not (REPO / rel).exists()]
     assert not missing, "claims name pipeline outputs that do not exist:\n  " + "\n  ".join(missing)
 
 

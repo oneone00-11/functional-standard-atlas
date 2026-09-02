@@ -290,7 +290,9 @@ def claim_scopes(docx_path: Path, path: Path = CLAIMS) -> dict[str, list[str]]:
     for idx, c in enumerate(spec.get("claims", [])):
         out = c.get("output")
         if out and c.get("status") == "verified" and idx in where:
-            scopes.setdefault(where[idx], []).append(out)
+            # a claim may name several outputs; all of them scope the block
+            scopes.setdefault(where[idx], []).extend(
+                out if isinstance(out, list) else [out])
     return scopes
 
 
