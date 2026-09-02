@@ -170,9 +170,13 @@ def test_stale_declared_count_is_caught(tmp_path):
 
 
 def test_current_declared_count_passes(tmp_path):
+    """The key checked is the ARCHIVE-measured passing count, not the local
+    collected count: the manuscript says the tests run "from a clean extract",
+    and a development tree is not one."""
     import json
-    from atlas.check_manuscript_numbers import FACTS, classify
-    n = json.loads(FACTS.read_text())["guardrail_tests_collected"]
+    from atlas.check_manuscript_numbers import DECLARED_COUNTS, FACTS, classify
+    key = next(iter(DECLARED_COUNTS.values()))
+    n = json.loads(FACTS.read_text())[key]
     doc = _doc(tmp_path, f"the pipeline is covered by {n} guardrail tests")
     assert classify(doc)["stale_counts"] == []
 

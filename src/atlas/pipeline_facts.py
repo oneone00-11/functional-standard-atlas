@@ -58,6 +58,13 @@ def write() -> dict:
         "guardrail_tests_collected": n,
         "guardrail_tests_passing": n - skipped,
         "guardrail_tests_skipped_without_denylist": skipped,
+        # Measured by running the suite from a clean extract of the release
+        # archive -- the only number that makes the manuscript's "from a clean
+        # extract" true. Re-measure at every release; `--write` preserves it.
+        "guardrail_tests_passing_from_archive":
+            int(d.get("guardrail_tests_passing_from_archive", 0)) or None,
+        "archive_measured_for_version":
+            d.get("archive_measured_for_version"),
         "tests_covering_the_analyses_introduced_here":
             int(d.get("tests_covering_the_analyses_introduced_here", 26)),
     }

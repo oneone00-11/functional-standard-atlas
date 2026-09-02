@@ -174,7 +174,7 @@ WEAK_MATCH_MIN = 25          # distinct pool values inside the tolerance window
 # reported as VERIFIED rather than missed. They are declared facts, so they are
 # compared against the declared value.
 DECLARED_COUNTS = {
-    r"(\d{1,4})\s+guardrail tests": "guardrail_tests_collected",
+    r"(\d{1,4})\s+guardrail tests": "guardrail_tests_passing_from_archive",
 }
 
 NUMBER_WORDS = {

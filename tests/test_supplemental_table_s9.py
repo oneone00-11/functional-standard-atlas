@@ -63,7 +63,13 @@ EXPECTED_COVERAGE = {
 
 @pytest.fixture(scope="module")
 def s9():
-    return table2()
+    """`table2()` reads the score matrix, which is gitignored. Without it these
+    tests cannot run -- and they should say so rather than erroring, so that a
+    bare clone reports a clean skip instead of five tracebacks."""
+    try:
+        return table2()
+    except (FileNotFoundError, OSError) as exc:
+        pytest.skip(f"score matrix not built in this checkout ({exc.__class__.__name__})")
 
 
 def test_s9_covers_every_scored_predictor(s9):
