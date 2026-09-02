@@ -29,7 +29,7 @@ manuscripts:
         pattern: 'measurement ceiling|collapse at canonical splice|property of the assay'
       - id: deep-intron-is-an-assay-limit
         says: deep-intronic performance is bounded by the assay, not by the predictors
-        pattern: 'deep intron|limiting factor is the assay|blind deep in introns'
+        pattern: 'deep[- ]intron|limiting factor is the assay|blind deep in introns'
       - id: paired-not-marginal
         says: ordering claims need paired tests, not overlapping marginal intervals
         pattern: 'paired test|interval overlap|Steiger'
