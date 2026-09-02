@@ -68,3 +68,62 @@ def test_index_finds_multiple_restatements_when_the_manuscript_is_available():
             "patterns are too narrow to catch a restatement")
         return
     pytest.skip("neither manuscript is available in this checkout")
+
+
+def _blocks(path: Path) -> list[str]:
+    """Paragraph and table-cell text, the same surface claim_index searches."""
+    from docx import Document
+
+    d = Document(str(path))
+    out = [p.text for p in d.paragraphs]
+    for t in d.tables:
+        for row in t.rows:
+            out.extend(c.text for c in row.cells)
+    return out
+
+
+def _near_miss_variants(term: str) -> set[str]:
+    """Spelling variants a pattern written one way would silently miss."""
+    v = {term}
+    if "-" in term:
+        v |= {term.replace("-", " "), term.replace("-", "")}
+    if " " in term:
+        v.add(term.replace(" ", "-"))
+    v.add(term[:-1] if term.endswith("s") else term + "s")
+    return v - {term}
+
+
+def test_patterns_have_no_near_miss_spelling_variants():
+    """A pattern that matches 'deep intron' but not 'deep-intronic' reports a
+    claim as stated in nine places when it is stated in fifteen, and a
+    correction applied to it misses the six. The failure is silent, so it is
+    checked rather than watched for: for each literal alternative in each
+    pattern, a hyphen, spacing or plural variant that appears in the manuscript
+    and is NOT matched by the pattern is a gap in the index.
+    """
+    import re
+
+    specs = load()
+    checked = 0
+    gaps = []
+    for name, spec in specs.items():
+        path = Path.home() / "Desktop" / spec["file"]
+        if not path.exists():
+            continue
+        checked += 1
+        blocks = _blocks(path)
+        for claim in spec["claims"]:
+            pat = re.compile(claim["pattern"], re.I)
+            for alt in claim["pattern"].split("|"):
+                literal = re.sub(r"[()\[\]?*+^$\\]|\{\d+,?\d*\}", "", alt).strip()
+                if len(literal) < 5:
+                    continue
+                for variant in _near_miss_variants(literal):
+                    hit = next((t for t in blocks
+                                if variant.lower() in t.lower() and not pat.search(t)), None)
+                    if hit:
+                        gaps.append(f"{name}/{claim['id']}: pattern has {literal!r} but the "
+                                    f"manuscript also says {variant!r} — e.g. {hit[:70]!r}")
+    if not checked:
+        pytest.skip("neither manuscript is available in this checkout")
+    assert not gaps, "restatement patterns with spelling gaps:\n  " + "\n  ".join(gaps)
