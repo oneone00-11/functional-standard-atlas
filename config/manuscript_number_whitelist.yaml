@@ -36,3 +36,11 @@ genome_and_assay_constants:
     models/*/; not derived from the atlas.
   values: ["38", "16384", "131072", "524288", "1048576", "6000", "8192", "16"]
 
+scoring_window_sizes:
+  reason: >
+    Context-window sizes the language models were scored over: 6,000 bp for
+    Nucleotide Transformer and 8,192 bp for Evo2-7B. They are scoring
+    parameters recorded in models/*/NOTES.md and the run logs, not values any
+    results/ file produces. Listed as two values rather than exempting the
+    model-scoring paragraph, which also states measured coverage.
+  values: ["6,000", "8,192"]

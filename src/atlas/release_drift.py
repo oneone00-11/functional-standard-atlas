@@ -1,0 +1,133 @@
+"""Does the manuscript's cited archive still match this repository?
+
+The declared-count check compares the manuscript against manifests/pipeline_facts.json
+and passes when both agree. That verifies internal consistency and nothing else. It
+reported clean while the manuscript cited a DOI for v2.3.2, quoted a test count
+measured on a v2.4.0 release candidate that was never published, and referenced a
+supplementary table whose generator postdates the tag -- three statements that cannot
+all be true of one deposit.
+
+Two checks, because they need different things:
+
+  drift()      offline. The repository has moved past the tag the manuscript cites.
+               Fails when HEAD is ahead of the last published tag and the manuscript
+               cites a DOI, and names the deliverables that changed.
+
+  deposit()    at release time. Given the file listing of the cited deposit, every
+               artefact the manuscript names must be in it. The listing is passed in
+               rather than fetched here, so the check is testable offline and the
+               network call stays at the call site.
+
+Usage (PYTHONPATH=src):
+    python -m atlas.release_drift <manuscript.docx>
+    python -m atlas.release_drift <manuscript.docx> --deposit-files listing.json
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+DOI = re.compile(r"10\.5281/zenodo\.(\d+)")
+# Supplementary tables the manuscript names, as they appear in results/
+TABLE_TOKEN = re.compile(r"\bS(\d+[a-z]?)\b")
+
+
+def _git(*args: str, repo: Path = REPO) -> str:
+    return subprocess.run(("git", *args), cwd=repo, capture_output=True,
+                          text=True).stdout.strip()
+
+
+def last_published_tag(repo: Path = REPO) -> str | None:
+    tags = [t for t in _git("tag", "--sort=-creatordate", repo=repo).splitlines()
+            if re.search(r"v\d+\.\d+", t)]
+    return tags[0] if tags else None
+
+
+def cited_dois(docx_path: Path) -> list[str]:
+    import docx
+
+    d = docx.Document(str(docx_path))
+    text = " ".join(p.text for p in d.paragraphs)
+    return sorted(set(DOI.findall(text)))
+
+
+def drift(docx_path: Path, repo: Path = REPO) -> dict:
+    """Commits and deliverables between the cited tag and HEAD."""
+    from atlas.package_release import manifest
+
+    tag = last_published_tag(repo)
+    dois = cited_dois(docx_path)
+    if tag is None:
+        return {"tag": None, "dois": dois, "commits_ahead": 0,
+                "changed": [], "fatal": bool(dois),
+                "why": "the manuscript cites a deposit but the repository has no release tag"}
+    ahead = _git("rev-list", "--count", f"{tag}..HEAD", repo=repo)
+    ahead = int(ahead) if ahead.isdigit() else 0
+    shipped = set(manifest(repo))
+    in_tag = set(_git("ls-tree", "-r", "--name-only", tag, repo=repo).splitlines())
+    # deliverables that ship today but were not in the tagged tree, plus tracked
+    # files the tag carried that have since changed
+    added = sorted(f for f in shipped if f not in in_tag and (repo / f).exists()
+                   and not f.startswith(("data/", "results/")))
+    changed = _git("diff", "--name-only", f"{tag}..HEAD", repo=repo).splitlines()
+    changed = sorted(f for f in changed if f in shipped)
+    return {"tag": tag, "dois": dois, "commits_ahead": ahead,
+            "added_since_tag": added, "changed": changed,
+            "fatal": bool(dois and ahead),
+            "why": (f"the manuscript cites zenodo.{', '.join(dois)} but HEAD is "
+                    f"{ahead} commits past {tag}") if dois and ahead else ""}
+
+
+def deposit(docx_path: Path, listing: list[str], repo: Path = REPO) -> dict:
+    """Every results/ artefact the manuscript names must be in the deposit."""
+    import docx
+
+    d = docx.Document(str(docx_path))
+    text = " ".join(p.text for p in d.paragraphs)
+    wanted = {t.name for t in (repo / "results").glob("table_s*")} if (repo / "results").is_dir() else set()
+    named = {f"S{n}" for n in TABLE_TOKEN.findall(text)}
+    have = {Path(f).name for f in listing}
+    missing = sorted(w for w in wanted if w not in have)
+    return {"tables_named_in_text": sorted(named), "deposit_files": len(listing),
+            "missing_from_deposit": missing, "fatal": bool(missing)}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("docx")
+    ap.add_argument("--deposit-files", help="JSON list of filenames in the cited deposit")
+    a = ap.parse_args()
+    doc = Path(a.docx)
+
+    r = drift(doc)
+    print(f"[release] last published tag: {r['tag'] or '(none)'}; "
+          f"manuscript cites: {', '.join('zenodo.'+d for d in r['dois']) or '(no DOI)'}")
+    print(f"[release] HEAD is {r['commits_ahead']} commits past the tag")
+    if r.get("added_since_tag"):
+        print(f"  deliverables added since the tag ({len(r['added_since_tag'])}):")
+        for f in r["added_since_tag"][:12]:
+            print(f"    + {f}")
+    if r.get("changed"):
+        print(f"  shipped files changed since the tag: {len(r['changed'])}")
+    bad = r["fatal"]
+    if bad:
+        print(f"  DRIFT: {r['why']}")
+
+    if a.deposit_files:
+        listing = json.loads(Path(a.deposit_files).read_text())
+        d = deposit(doc, listing)
+        print(f"[release] deposit carries {d['deposit_files']} files; "
+              f"tables named in the text: {', '.join(d['tables_named_in_text'])}")
+        for m in d["missing_from_deposit"]:
+            print(f"  MISSING FROM DEPOSIT: {m}")
+        bad = bad or d["fatal"]
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
