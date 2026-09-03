@@ -287,6 +287,34 @@ def freshness(spec: dict, name: str, texts: dict[str, str] | None = None) -> lis
     return out
 
 
+# ---------------------------------------------------------------------------
+# text-layer integrity
+# ---------------------------------------------------------------------------
+# iThenticate reads the text layer, so a PDF whose words run together is a
+# problem even when it looks right on screen. The obvious metric -- the share of
+# characters that are spaces -- is the wrong instrument: the delivered files sit
+# near 0.135 partly because of how their glyphs are placed, which makes the extractor emit
+# padding ("stratum  cells  move"), while a cleanly converted file with single
+# spaces sits lower and is not worse. What does discriminate is whether words
+# survive at all: a converter that renders a space as a horizontal offset rather
+# than a space glyph produces long glued runs the extractor cannot split.
+GLUE_MIN = 22          # characters; shorter runs are real words and hyphenates
+
+
+def text_layer(path: Path) -> dict:
+    """Glued-token count for a PDF's text layer, and the worst offenders."""
+    import pypdf
+
+    pages = pypdf.PdfReader(str(path)).pages
+    raw = "\n".join((p.extract_text() or "") for p in pages)
+    flat = re.sub(r"\s+", " ", raw)
+    words = re.findall(r"[A-Za-z][A-Za-z\u2019'-]+", flat)
+    glued = sorted({w for w in words if len(w) >= GLUE_MIN and "-" not in w},
+                   key=len, reverse=True)
+    return {"pages": len(pages), "words": len(words), "glued": glued,
+            "space_ratio": flat.count(" ") / max(len(flat), 1)}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--package", default="atlas")
