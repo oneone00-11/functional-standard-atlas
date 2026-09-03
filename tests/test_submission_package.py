@@ -20,6 +20,15 @@ from atlas import submission_package as sp   # noqa: E402
 
 CONFIG = REPO / "config" / "submission_package.yaml"
 
+# Both manuscripts ship a package. Only the atlas one was checked at first, so
+# the companion package -- manuscript, supplement, cover letter -- had no
+# inventory, no cross-file number check and no reference closure at all.
+PACKAGES = ("atlas", "bib")
+
+# The companion cover letter is rewritten per submission and the venue is
+# undecided, so it is declared and absent on purpose.
+KNOWN_ABSENT = {"BiB_cover_letter.pdf"}
+
 
 def _spec():
     if not CONFIG.exists():
@@ -42,37 +51,42 @@ def test_the_manifest_is_well_formed():
                 f"{e['path']} declares neither a generator nor hand maintenance")
 
 
-def test_every_declared_file_exists():
+@pytest.mark.parametrize("pkg", PACKAGES)
+def test_every_declared_file_exists(pkg):
     spec = _spec()
-    inv = sp.inventory(spec, "atlas")
-    assert not inv["missing"], inv["missing"]
+    missing = [m for m in sp.inventory(spec, pkg)["missing"]
+               if Path(m).name not in KNOWN_ABSENT]
+    assert not missing, missing
 
 
-def test_nothing_undeclared_sits_in_the_package_directories():
+@pytest.mark.parametrize("pkg", PACKAGES)
+def test_nothing_undeclared_sits_in_the_package_directories(pkg):
     """An old export of the related manuscript survived two submissions by
     sitting in the directory with nobody listing it."""
     spec = _spec()
-    inv = sp.inventory(spec, "atlas")
+    inv = sp.inventory(spec, pkg)
     assert not inv["undeclared"], (
         "undeclared files in the package:\n  " + "\n  ".join(inv["undeclared"]))
 
 
-def test_a_quantity_stated_twice_agrees():
+@pytest.mark.parametrize("pkg", PACKAGES)
+def test_a_quantity_stated_twice_agrees(pkg):
     """Regression: the guardrail count is 144 in the manuscript, 102 in the
     cover letter and 83 in Note S12; the deep-intronic minimum detectable rho
     is 0.107 in the manuscript and 0.197 in Note S6."""
     spec = _spec()
-    bad = sp.quantities(spec, "atlas")
+    bad = sp.quantities(spec, pkg)
     assert not bad, "quantities stated inconsistently:\n  " + "\n  ".join(
         f"{q['quantity']}: {', '.join(q['values'])}" for q in bad)
 
 
-def test_every_cited_item_is_in_the_file_the_text_names():
+@pytest.mark.parametrize("pkg", PACKAGES)
+def test_every_cited_item_is_in_the_file_the_text_names(pkg):
     """Regression: Table S11 is cited as Additional file 1 and is not in it.
     Note S11 exists -- in Additional file 2 -- which is why a check that pooled
     items across the package saw nothing wrong."""
     spec = _spec()
-    refs = sp.references(spec, "atlas")
+    refs = sp.references(spec, pkg)
     assert not refs["cited_but_absent"], refs["cited_but_absent"]
     assert not refs["misdirected"], "\n  ".join(
         f"{m['kind']} {m['item']} cited as {m['cited_in']}, found in "

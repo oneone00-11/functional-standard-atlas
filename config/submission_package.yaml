@@ -68,6 +68,28 @@ packages:
         sources: results/
         is_directory: true
 
+  bib:
+    manuscript: draft_reframed_BiB.docx
+    files:
+      - path: draft_reframed_BiB.docx
+        role: manuscript
+        maintained_by_hand: true
+      - path: BiB supplementary_material.docx
+        role: supplementary tables and notes
+        maintained_by_hand: true
+        note: >-
+          Assembled by hand. Its numeric content is pinned from the other side
+          by tests/test_reported_numbers.py in the companion repository, which
+          compares the manuscript against the pipeline, but nothing regenerates
+          this file.
+      - path: BiB_cover_letter.pdf
+        role: cover letter
+        maintained_by_hand: true
+        note: >-
+          Deferred: it is rewritten per submission and the venue is undecided,
+          so it is declared and currently absent. The gate reporting it missing
+          is a true statement about whether the package is complete.
+
 # Quantities stated in more than one deliverable. A quantity is a labelled
 # number, not a bare value: two files saying "0.9" about different things is
 # fine, two files disagreeing about the guardrail-test count is not.
