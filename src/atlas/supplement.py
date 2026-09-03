@@ -444,6 +444,16 @@ def build_note() -> str:
 
     # ---- S13 unnumbered data files --------------------------------------
     A("\n## S13. Machine-readable source files\n")
+    # Two numbered tables render a repository file directly rather than
+    # summarising an analysis, so they are introduced here where a reader is
+    # already being told what comes from where.
+    A(f"\nTwo of the {_NUMWORD.get(len(TABLES), len(TABLES))} Supplemental Tables render a "
+      "repository file directly. `Supplemental_Table_S11` is the per-predictor training "
+      "provenance — training data, whether it carries clinical labels, whether any overlap "
+      "with MAVE or SGE measurements is documented, and a documentation URL for every row. "
+      "`Supplemental_Table_S12` collects the summary statistics quoted in the manuscript "
+      "together with the output file each is computed from, so those figures can be checked "
+      "without opening the deposit.\n")
     A(f"{_NUMWORD.get(len(EXTRA), len(EXTRA))} analysis-level TSV files carry the full "
       "numeric output behind the Note "
       "sections named below, at a granularity too fine to typeset — every model \u00d7 "
@@ -504,6 +514,12 @@ TABLES = {
     "Supplemental_Table_S9_model_inventory.tsv": "table2_model_inventory.tsv",
     "Supplemental_Table_S10_fdr_grid.tsv": "fdr_grid_v1.tsv",
     "Supplemental_Table_S10b_fdr_pairwise.tsv": "fdr_head_to_head_v1.tsv",
+    # S11 and S12 were added to the delivered workbook by
+    # atlas.build_additional_file_1 but not here, so this module and that one
+    # disagreed about how many tables exist: the Notes said twelve while the
+    # workbook shipped fourteen. This map is the single source of truth.
+    "Supplemental_Table_S11_training_data.tsv": "table_s11_training_data_v1.tsv",
+    "Supplemental_Table_S12_quoted_summary.tsv": "table_s12_quoted_summary_v1.tsv",
 }
 _NUMWORD = {9: "Nine", 10: "Ten", 11: "Eleven", 12: "Twelve", 13: "Thirteen",
             14: "Fourteen", 15: "Fifteen", 16: "Sixteen", 17: "Seventeen",

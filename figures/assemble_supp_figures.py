@@ -14,6 +14,7 @@ Outputs: results/supp_fig_S01.png ... results/supp_fig_S18.png
 """
 from __future__ import annotations
 
+import argparse
 import shutil
 from pathlib import Path
 
@@ -96,6 +97,15 @@ def montage(panels: list[tuple[Path, str]], title: str, out: Path) -> None:
 
 
 def main() -> None:
+    # --out lets a rebuild be staged somewhere else and compared before it
+    # replaces anything. Writing into results/ overwrites files the artefact
+    # manifest tracks, and the delivered figures carry a repair applied by hand.
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=str(RESULTS),
+                    help="directory to write the sheets into (default: results/)")
+    out = Path(ap.parse_args().out).expanduser()
+    out.mkdir(parents=True, exist_ok=True)
+
     for num, prefix, label in MODELS:
         panels = []
         for suffix, disp in STRATUM_ORDER:
@@ -106,15 +116,15 @@ def main() -> None:
             raise SystemExit(f"no forest panels found for {prefix}")
         montage(panels, f"Supplemental Fig. S{num} — {label}: per-gene correlation "
                         f"with functional score, by stratum",
-                RESULTS / f"supp_fig_S{num:02d}.png")
+                out / f"supp_fig_S{num:02d}.png")
 
     conc = sorted(RESULTS.glob("concordance_*.png"))
     montage([(p, p.stem.replace("concordance_", "")) for p in conc],
             "Supplemental Fig. S13 — Concordance with the companion benchmark, per ported score",
-            RESULTS / "supp_fig_S13.png")
+            out / "supp_fig_S13.png")
 
     for num, src in SINGLES.items():
-        shutil.copyfile(RESULTS / src, RESULTS / f"supp_fig_S{num}.png")
+        shutil.copyfile(RESULTS / src, out / f"supp_fig_S{num}.png")
         print(f"  supp_fig_S{num}.png <- {src}")
 
 
