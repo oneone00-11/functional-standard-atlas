@@ -34,7 +34,11 @@ SHIPPED_UNTRACKED = ("data/raw", "data/frozen", "results")
 # `_scratch` is where development output goes (CONVENTIONS.md): smoke tests,
 # probes and one-off checks, none of which belong in a published archive.
 EXCLUDE_PARTS = ("__pycache__", ".venv", ".pytest_cache", ".git", "cache",
-                 "_scratch")
+                 "_scratch", "dist")
+# `dist` is where release candidates are built. An archive must never contain a
+# previous archive: a 47 MB zip reached a commit once, and the next build then
+# tried to package it into its own successor and failed on the file it had just
+# replaced. Excluded here as well as gitignored, so neither alone is load-bearing.
 # `models/*/run_log.json` is gitignored and so never reaches `tracked()`; the
 # per-model `run_log_<column>.json` files ARE tracked and did ship in v2.3.1 and
 # v2.3.2, so no name rule is needed here -- trackedness already decides.

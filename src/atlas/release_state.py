@@ -97,6 +97,64 @@ def deposit(docx_path: Path, listing: list[str], repo: Path = REPO) -> dict:
             "missing_from_deposit": missing, "fatal": bool(missing)}
 
 
+# ---------------------------------------------------------------------------
+# Counts declared outside the manuscript
+# ---------------------------------------------------------------------------
+# The manuscript is not the only place that states how many tests pass, which
+# version is current, or which deposit to cite. README.md, CITATION.cff and the
+# Zenodo description say it too, and nothing checked them: the README carried
+# 128/126/91/37 for three releases after those numbers stopped being true.
+DECLARATION_FILES = ("README.md", "CITATION.cff", ".zenodo.json")
+
+DECLARED_COUNTS = {
+    r"(\d{2,4})\s+collected": "guardrail_tests_collected",
+    r"(\d{2,4})\s+pass(?:es)? from a clean extract": "guardrail_tests_passing_from_archive",
+    r"(\d{2,4})\s+guardrail tests": "guardrail_tests_passing_from_archive",
+    r"(\d{2,4})\s+code-only guardrails": "guardrail_tests_passing_from_bare_clone",
+    r"bare clone runs (\d{2,4})": "guardrail_tests_passing_from_bare_clone",
+    r"\((\d{1,3}) skip without data\)": "guardrail_tests_skipped_from_bare_clone",
+    r"skips (\d{1,3}) for want of data": "guardrail_tests_skipped_from_bare_clone",
+}
+
+
+def declarations(repo: Path = REPO, docx_path: Path | None = None) -> list[dict]:
+    """Every count, version and DOI stated outside the manuscript, checked.
+
+    Compared against manifests/pipeline_facts.json for counts, against the
+    version the archive was actually measured for, and -- when a manuscript is
+    given -- against the deposit it cites, so the two cannot drift apart.
+    """
+    facts_path = repo / "manifests" / "pipeline_facts.json"
+    facts = json.loads(facts_path.read_text()) if facts_path.exists() else {}
+    cited = set(cited_dois(docx_path)) if docx_path else set()
+    bad: list[dict] = []
+    for rel in DECLARATION_FILES:
+        f = repo / rel
+        if not f.exists():
+            continue
+        text = f.read_text(errors="ignore")
+        for pat, key in DECLARED_COUNTS.items():
+            want = facts.get(key)
+            if want is None:
+                continue
+            for m in re.finditer(pat, text):
+                if int(m.group(1)) != int(want):
+                    bad.append({"file": rel, "says": m.group(0), "phrase": m.group(0),
+                                "expected": want, "key": key})
+        want_v = str(facts.get("release_version") or "")
+        for m in re.finditer(r'^version:\s*"?([\d.]+)"?', text, re.M):
+            if want_v and m.group(1) != want_v:
+                bad.append({"file": rel, "says": m.group(0).strip(),
+                            "expected": want_v, "key": "release_version"})
+        if cited:
+            for m in re.finditer(r"10\.5281/zenodo\.(\d+)", text):
+                if m.group(1) not in cited:
+                    bad.append({"file": rel, "says": m.group(0),
+                                "expected": "one of " + ", ".join(sorted(cited)),
+                                "key": "deposit cited by the manuscript"})
+    return bad
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("docx")
@@ -117,6 +175,16 @@ def main() -> int:
     bad = r["fatal"]
     if bad:
         print(f"  OUT OF SYNC: {r['why']}")
+
+    decl = declarations(docx_path=doc)
+    if decl:
+        print(f"[release] declarations outside the manuscript: {len(decl)} stale")
+        for x in decl:
+            print(f"  STALE {x['file']}: {x['says']!r} -- expected {x['expected']} "
+                  f"({x['key']})")
+        bad = True
+    else:
+        print("[release] declarations in README, CITATION and the Zenodo description agree")
 
     if a.deposit_files:
         listing = json.loads(Path(a.deposit_files).read_text())

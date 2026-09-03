@@ -28,7 +28,7 @@ keywords:
   - reproducibility
 license: MIT
 license-url: "https://opensource.org/licenses/MIT"
-version: "2.3.2"
+version: "2.4.0"
 date-released: "2026-08-28"
 identifiers:
   - type: doi

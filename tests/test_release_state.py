@@ -84,3 +84,64 @@ def test_a_complete_deposit_passes(tmp_path):
         pytest.skip("results/ not built in this checkout")
     d = rd.deposit(MANUSCRIPT, listing)
     assert not d["fatal"], d
+
+
+# --- counts declared outside the manuscript ----------------------------------
+
+def test_declarations_outside_the_manuscript_agree_with_the_facts():
+    """README, CITATION and the Zenodo description state counts and a version
+    too. Nothing checked them, and the README carried 128/126/91/37 for three
+    releases after those numbers stopped being true."""
+    _needs_git()
+    bad = rd.declarations()
+    assert not bad, "stale declarations:\n  " + "\n  ".join(
+        f"{x['file']}: {x['says']!r} expected {x['expected']}" for x in bad)
+
+
+def test_a_stale_count_outside_the_manuscript_is_caught(tmp_path):
+    """Regression for the four README numbers: the check must report them."""
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "manifests" / "pipeline_facts.json").write_text(json.dumps({
+        "guardrail_tests_collected": 148,
+        "guardrail_tests_passing_from_archive": 141,
+        "guardrail_tests_passing_from_bare_clone": 110,
+        "guardrail_tests_skipped_from_bare_clone": 38,
+        "release_version": "2.4.0"}))
+    (tmp_path / "README.md").write_text(
+        "run the 91 code-only guardrails (37 skip without data)\n"
+        "make test      # 128 collected. 126 pass from a clean extract\n")
+    (tmp_path / "CITATION.cff").write_text('version: "2.3.2"\n')
+
+    bad = rd.declarations(repo=tmp_path)
+    said = {x["says"] for x in bad}
+    for stale in ("91 code-only guardrails", "128 collected",
+                  "126 pass from a clean extract"):
+        assert any(stale in s for s in said), (stale, said)
+    assert any("37 skip without data" in s for s in said), said
+    assert any(x["key"] == "release_version" for x in bad), bad
+
+
+def test_correct_declarations_pass(tmp_path):
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "manifests" / "pipeline_facts.json").write_text(json.dumps({
+        "guardrail_tests_collected": 148,
+        "guardrail_tests_passing_from_archive": 141,
+        "guardrail_tests_passing_from_bare_clone": 110,
+        "guardrail_tests_skipped_from_bare_clone": 38,
+        "release_version": "2.4.0"}))
+    (tmp_path / "README.md").write_text(
+        "run the 110 code-only guardrails (38 skip without data)\n"
+        "make test      # 148 collected. 141 pass from a clean extract\n")
+    (tmp_path / "CITATION.cff").write_text('version: "2.4.0"\n')
+    assert rd.declarations(repo=tmp_path) == []
+
+
+def test_an_archive_never_contains_another_archive():
+    """A release candidate is a build product, not an input. It reached a commit
+    once, and the next build tried to package it into its own successor."""
+    _needs_git()
+    sys.path.insert(0, str(REPO / "src"))
+    from atlas.package_release import manifest
+
+    packed = [f for f in manifest() if f.startswith("dist/") or f.endswith(".zip")]
+    assert not packed, f"the archive would contain build products: {packed}"
