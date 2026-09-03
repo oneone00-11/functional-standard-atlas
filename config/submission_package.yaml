@@ -1,0 +1,69 @@
+# What actually goes to the journal, and where each part comes from.
+#
+# WHY THIS FILE EXISTS
+# The manuscript has been gated for a while; the package around it has not. Three
+# defects survived every check because nothing looked across deliverables:
+#   the guardrail-test count is stated three times with three values
+#     (manuscript, cover letter, Additional file 2 Note S12)
+#   the minimum detectable rho is 0.107 in the manuscript and 0.197 in Note S6
+#   Table S11 is cited in the text and absent from Additional file 1
+# A fourth is structural: the delivered .xlsx and .pdf are assembled by hand, so
+# nothing ties them to results/ and they drift silently.
+#
+# `generated_by` names the script that produces a deliverable from results/.
+# `maintained_by_hand: true` is an explicit admission that one does not exist;
+# tests/test_submission_package.py requires those to be re-confirmed whenever the
+# manuscript changes, which is the only guarantee a hand-built file can carry.
+
+root: ~/Desktop
+
+packages:
+  atlas:
+    manuscript: functional-standard-atlas_manuscript-gb.docx
+    files:
+      - path: functional-standard-atlas_manuscript-gb.docx
+        role: manuscript
+        maintained_by_hand: true
+      - path: GB_additional_files/Additional_file_1.xlsx
+        role: supplementary tables
+        generated_by: src/atlas/build_additional_file_1.py
+        sources: results/
+      - path: GB_additional_files/Additional_file_2.pdf
+        role: supplementary information
+        maintained_by_hand: true
+        note: >-
+          Pages 16-32 were repaired by hand after a font-overlap problem; the
+          delivered PDF is not what the generator produces. Registered as
+          hand-maintained rather than regenerated, so the repair is not lost.
+      - path: GB_additional_files/GBcoverletter.pdf
+        role: cover letter
+        maintained_by_hand: true
+      - path: GB_additional_files/Supplemental_Related_Manuscript_1.pdf
+        role: related manuscript
+        maintained_by_hand: true
+        note: >-
+          Exported from the companion manuscript. Must be re-exported whenever
+          that manuscript changes; it is not generated from this repository.
+      - path: functional-standard-atlas_supplement_v5/Supplementary_Information.pdf
+        role: supplementary information (parallel copy)
+        maintained_by_hand: true
+      - path: functional-standard-atlas_supplement_v5/tables
+        role: supplementary tables, one workbook each (parallel copy)
+        generated_by: src/atlas/build_additional_file_1.py
+        sources: results/
+        is_directory: true
+
+# Quantities stated in more than one deliverable. A quantity is a labelled
+# number, not a bare value: two files saying "0.9" about different things is
+# fine, two files disagreeing about the guardrail-test count is not.
+quantities:
+  guardrail test count:
+    pattern: '(\d{2,4})\s+guardrail tests'
+  minimum detectable rho, deep intron:
+    pattern: '(?:minimum (?:rho|ρ) detectable at 80% power is\s*|can only detect (?:rho|ρ)\s*≥\s*)(0\.\d{3})'
+  atlas variants:
+    pattern: '\b(64,178)\b'
+  predictors scored:
+    pattern: '\b(nineteen|19)\s+(?:variant effect )?predictors'
+  tests covering the new analyses:
+    pattern: '(\d{1,3})\s+of them covering'
