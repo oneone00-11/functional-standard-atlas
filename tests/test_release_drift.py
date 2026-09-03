@@ -22,11 +22,20 @@ from atlas import release_drift as rd   # noqa: E402
 MANUSCRIPT = Path.home() / "Desktop" / "functional-standard-atlas_manuscript-gb.docx"
 
 
+def _needs_git():
+    """A release archive is not a git checkout, so these checks cannot run from
+    one. That is the point of the archive; skip rather than fail there."""
+    if not (REPO / ".git").exists():
+        pytest.skip("not a git checkout; drift is a property of the repository")
+
+
 def test_a_release_tag_exists_to_compare_against():
+    _needs_git()
     assert rd.last_published_tag() is not None
 
 
 def test_drift_is_detected_while_the_repository_is_ahead_of_the_tag():
+    _needs_git()
     """Regression for the state this check was written for: 19 commits past
     v2.3.2 while the manuscript cites that deposit."""
     if not MANUSCRIPT.exists():
@@ -40,6 +49,7 @@ def test_drift_is_detected_while_the_repository_is_ahead_of_the_tag():
 
 
 def test_the_deliverables_added_since_the_tag_are_named():
+    _needs_git()
     if not MANUSCRIPT.exists():
         pytest.skip("manuscript not available in this checkout")
     r = rd.drift(MANUSCRIPT)
@@ -52,6 +62,9 @@ def test_the_deliverables_added_since_the_tag_are_named():
 
 def test_a_table_absent_from_the_deposit_is_reported():
     """Table S11 postdates the cited tag, so the deposit cannot carry it."""
+    _needs_git()
+    if not list((REPO / "results").glob("table_s*")):
+        pytest.skip("results/ not built; nothing to compare against the deposit")
     if not MANUSCRIPT.exists():
         pytest.skip("manuscript not available in this checkout")
     tag = rd.last_published_tag()
@@ -66,7 +79,8 @@ def test_a_complete_deposit_passes(tmp_path):
     """The check must clear once the deposit actually carries the artefacts."""
     if not MANUSCRIPT.exists():
         pytest.skip("manuscript not available in this checkout")
-    results = REPO / "results"
-    listing = [f"results/{p.name}" for p in results.glob("table_s*")]
+    listing = [f"results/{p.name}" for p in (REPO / "results").glob("table_s*")]
+    if not listing:
+        pytest.skip("results/ not built in this checkout")
     d = rd.deposit(MANUSCRIPT, listing)
     assert not d["fatal"], d
