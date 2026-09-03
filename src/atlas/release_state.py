@@ -9,7 +9,7 @@ all be true of one deposit.
 
 Two checks, because they need different things:
 
-  drift()      offline. The repository has moved past the tag the manuscript cites.
+  divergence() offline. The repository has moved past the tag the manuscript cites.
                Fails when HEAD is ahead of the last published tag and the manuscript
                cites a DOI, and names the deliverables that changed.
 
@@ -19,8 +19,8 @@ Two checks, because they need different things:
                network call stays at the call site.
 
 Usage (PYTHONPATH=src):
-    python -m atlas.release_drift <manuscript.docx>
-    python -m atlas.release_drift <manuscript.docx> --deposit-files listing.json
+    python -m atlas.release_state <manuscript.docx>
+    python -m atlas.release_state <manuscript.docx> --deposit-files listing.json
 """
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def cited_dois(docx_path: Path) -> list[str]:
     return sorted(set(DOI.findall(text)))
 
 
-def drift(docx_path: Path, repo: Path = REPO) -> dict:
+def divergence(docx_path: Path, repo: Path = REPO) -> dict:
     """Commits and deliverables between the cited tag and HEAD."""
     from atlas.package_release import manifest
 
@@ -104,7 +104,7 @@ def main() -> int:
     a = ap.parse_args()
     doc = Path(a.docx)
 
-    r = drift(doc)
+    r = divergence(doc)
     print(f"[release] last published tag: {r['tag'] or '(none)'}; "
           f"manuscript cites: {', '.join('zenodo.'+d for d in r['dois']) or '(no DOI)'}")
     print(f"[release] HEAD is {r['commits_ahead']} commits past the tag")
@@ -116,7 +116,7 @@ def main() -> int:
         print(f"  shipped files changed since the tag: {len(r['changed'])}")
     bad = r["fatal"]
     if bad:
-        print(f"  DRIFT: {r['why']}")
+        print(f"  OUT OF SYNC: {r['why']}")
 
     if a.deposit_files:
         listing = json.loads(Path(a.deposit_files).read_text())

@@ -17,7 +17,7 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from atlas import release_drift as rd   # noqa: E402
+from atlas import release_state as rd   # noqa: E402
 
 MANUSCRIPT = Path.home() / "Desktop" / "functional-standard-atlas_manuscript-gb.docx"
 
@@ -26,7 +26,7 @@ def _needs_git():
     """A release archive is not a git checkout, so these checks cannot run from
     one. That is the point of the archive; skip rather than fail there."""
     if not (REPO / ".git").exists():
-        pytest.skip("not a git checkout; drift is a property of the repository")
+        pytest.skip("not a git checkout; this is a property of the repository")
 
 
 def test_a_release_tag_exists_to_compare_against():
@@ -34,13 +34,13 @@ def test_a_release_tag_exists_to_compare_against():
     assert rd.last_published_tag() is not None
 
 
-def test_drift_is_detected_while_the_repository_is_ahead_of_the_tag():
+def test_divergence_is_detected_while_the_repository_is_ahead_of_the_tag():
     _needs_git()
     """Regression for the state this check was written for: 19 commits past
     v2.3.2 while the manuscript cites that deposit."""
     if not MANUSCRIPT.exists():
         pytest.skip("manuscript not available in this checkout")
-    r = rd.drift(MANUSCRIPT)
+    r = rd.divergence(MANUSCRIPT)
     assert r["dois"], "the manuscript should cite at least one deposit"
     if r["commits_ahead"] == 0:
         pytest.skip("repository is at the published tag; nothing to detect")
@@ -52,7 +52,7 @@ def test_the_deliverables_added_since_the_tag_are_named():
     _needs_git()
     if not MANUSCRIPT.exists():
         pytest.skip("manuscript not available in this checkout")
-    r = rd.drift(MANUSCRIPT)
+    r = rd.divergence(MANUSCRIPT)
     if r["commits_ahead"] == 0:
         pytest.skip("repository is at the published tag")
     # the operator has to know what is missing from the deposit, not just that

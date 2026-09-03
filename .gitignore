@@ -13,3 +13,7 @@ data/refs/
 .env.*
 *.env
 .release-denylist
+
+# Release candidates: built artefacts, never tracked. A 47 MB zip reached a
+# commit once because this line was missing.
+dist/
