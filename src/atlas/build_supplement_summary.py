@@ -81,6 +81,24 @@ def rows() -> list[dict]:
             "matched_realisation_v1.tsv", f"best of {int(q.n_models)} models, splice +-1-2")
         add(f"matched set, median ratio ({label})", f"{q.median_ratio:.3f}",
             "matched_realisation_v1.tsv", "coding median / splice median")
+    # --- repeated measurements that are not clean replicates ---------------
+    # VHL contributes no row to reliability_v1.tsv: its second selection
+    # condition is not a replicate, so it cannot enter the primary ceiling and
+    # is carried as a lower bound instead. The two figures the text quotes come
+    # from here, not from the reliability table, which is why looking for them
+    # in the wrong file suggested they had no source at all.
+    cr = RESULTS / "reliability_corroboration_v1.tsv"
+    if cr.exists():
+        c = pd.read_csv(cr, sep="\t")
+        for gene, stratum, label in (("VHL", "coding_or_utr", "coding/UTR"),
+                                     ("VHL", "splice_deep", "deep intronic")):
+            row = c[(c.gene == gene) & (c.stratum == stratum)]
+            if len(row):
+                r = row.iloc[0]
+                add(f"{gene}, agreement between selection conditions, {label}",
+                    f"{r.agreement_rho:.3f}", "reliability_corroboration_v1.tsv",
+                    f"{r.direction}; n = {int(r.n)}; not a clean replicate, so it "
+                    "bounds rather than estimates the ceiling")
     return out
 
 
