@@ -666,6 +666,39 @@ def _inline_spans(text: str) -> list[tuple[str, bool, bool]]:
     return out
 
 
+def _drop_restricted_fonts(path: Path, replacement: str = "Times New Roman") -> list[str]:
+    """Remove licence-restricted font names left in the template's XML parts.
+
+    python-docx's default template declares Courier in word/fontTable.xml and in
+    word/stylesWithEffects.xml, a legacy duplicate of styles.xml that the library
+    does not expose. No run uses it, but a converter scans declared fonts, finds
+    one it may not embed, and offers to write an image-only PDF -- which would
+    leave the file with no text layer for a similarity check to read. Rewriting
+    the two parts changes nothing that renders.
+    """
+    import shutil
+    import zipfile
+
+    restricted = ("Courier",)
+    tmp = path.with_suffix(".fontfix.tmp")
+    touched: list[str] = []
+    with zipfile.ZipFile(path) as src, zipfile.ZipFile(
+            tmp, "w", zipfile.ZIP_DEFLATED) as dst:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            if item.filename.endswith(".xml"):
+                text = data.decode("utf8")
+                new = text
+                for bad in restricted:
+                    new = new.replace(f'"{bad}"', f'"{replacement}"')
+                if new != text:
+                    touched.append(item.filename)
+                    data = new.encode("utf8")
+            dst.writestr(item, data)
+    shutil.move(tmp, path)
+    return touched
+
+
 def write_docx(md: str, path: Path) -> None:
     import docx
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -682,6 +715,18 @@ def write_docx(md: str, path: Path) -> None:
         h.font.size = Pt(size)
         h.font.bold = True
         h.font.color.rgb = RGBColor(0, 0, 0)
+
+    # python-docx's default template declares Courier on the unused `macro` and
+    # `Macro Text Char` styles. No run uses them, but a converter scans declared
+    # fonts, finds a licence-restricted one it cannot embed, and offers to write
+    # an image-only PDF instead -- which would leave the file with no text layer
+    # at all. Retarget them to the body font; nothing renders differently.
+    for style in d.styles:
+        try:
+            if style.font is not None and style.font.name == "Courier":
+                style.font.name = "Times New Roman"
+        except (AttributeError, NotImplementedError):
+            continue
 
     lines = md.split("\n")
     i = 0
@@ -741,6 +786,9 @@ def main(argv: list[str] | None = None) -> int:
     md = _insert_toc(md)
     (RESULTS / "Supplemental_Note.md").write_text(md)   # source, not an upload
     write_docx(md, out / "Supplemental_Note.docx")
+    fixed = _drop_restricted_fonts(out / "Supplemental_Note.docx")
+    if fixed:
+        print(f"  removed a licence-restricted font declaration from: {', '.join(fixed)}")
 
     # .tsv is not a format submission systems accept; tables ship as .xlsx with a
     # frozen header row. Full precision is kept in the Zenodo deposit's TSVs.
