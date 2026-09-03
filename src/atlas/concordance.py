@@ -78,7 +78,11 @@ def main(argv: list[str] | None = None) -> int:
     ax.scatter(merged[xcol], merged[ycol], s=3, alpha=0.3, c="#2F4B5C")
     ax.set_xlabel(f"old: {args.old_col}")
     ax.set_ylabel(f"new: {args.new_col}")
-    ax.set_title(f"score concordance (Spearman ρ = {res['overall_rho']:.3f}, n = {res['n_shared']})")
+    # Four places, not three: the Nucleotide Transformer concordance is 0.99969,
+    # which three places round to 1.000 -- a figure panel claiming a perfect
+    # correlation while the text and Note S2 say 0.9997. figures/reproducibility.py
+    # already prints four; this is the panel that feeds Supplemental Fig. S13.
+    ax.set_title(f"score concordance (Spearman ρ = {res['overall_rho']:.4f}, n = {res['n_shared']})")
     fig.tight_layout()
     fig.savefig(out.with_suffix(".png"), dpi=150)
     plt.close(fig)

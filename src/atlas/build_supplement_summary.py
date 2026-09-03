@@ -99,6 +99,23 @@ def rows() -> list[dict]:
                     f"{r.agreement_rho:.3f}", "reliability_corroboration_v1.tsv",
                     f"{r.direction}; n = {int(r.n)}; not a clean replicate, so it "
                     "bounds rather than estimates the ceiling")
+    # --- the RNA-axis figures the text quotes ------------------------------
+    # Pangolin's fitness-axis value is 0.1335, an exact tie at three decimal
+    # places: the manuscript printed 0.134 and Note S9 printed 0.133 from the
+    # same number. Recorded here at four places so neither document has to carry
+    # an ambiguous rounding alone.
+    rr = RESULTS / "rna_readout_v1.json"
+    if rr.exists():
+        import json
+        j = json.loads(rr.read_text())
+        for e in j.get("pooled_by_model", []):
+            if e["model"] not in {"pangolin_score", "alphagenome", "spliceai_ds"}:
+                continue
+            for axis, key in (("fitness", "vs_fitness"), ("RNA", "vs_rna")):
+                if e.get(key):
+                    add(f"{e['model']} pooled rho, {axis} axis",
+                        f"{e[key]['rho']:.4f}", "rna_readout_v1.json",
+                        f"DerSimonian-Laird over {e[key]['k']} genes")
     return out
 
 
