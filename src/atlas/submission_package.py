@@ -265,6 +265,28 @@ def references(spec: dict, name: str, texts: dict[str, str] | None = None) -> di
             "present_but_never_cited": sorted(everywhere - cited)}
 
 
+def freshness(spec: dict, name: str, texts: dict[str, str] | None = None) -> list[dict]:
+    """Deliverables exported by hand from something else, checked against it.
+
+    A hand export has no build step to keep it honest, so the only guarantee it
+    can carry is a list of phrases that must and must not appear. The related
+    manuscript sat three months behind its source, still carrying a claim the
+    source had retracted, and nothing in the package could tell.
+    """
+    texts = corpus(spec, name) if texts is None else texts
+    out = []
+    for entry in spec["packages"][name]["files"]:
+        text = texts.get(entry["path"])
+        if text is None or not (entry.get("must_contain") or entry.get("must_not_contain")):
+            continue
+        absent = [m for m in entry.get("must_contain", []) if m not in text]
+        present = [m for m in entry.get("must_not_contain", []) if m in text]
+        if absent or present:
+            out.append({"path": entry["path"], "exported_from": entry.get("exported_from"),
+                        "missing": absent, "should_be_gone": present})
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--package", default="atlas")
@@ -293,6 +315,16 @@ def main() -> int:
     else:
         print("[package] every cross-referenced quantity agrees")
 
+    stale = freshness(spec, name, texts)
+    for f in stale:
+        print(f"  STALE EXPORT {f['path']}")
+        if f["exported_from"]:
+            print(f"      exported from {f['exported_from']}")
+        for m in f["missing"]:
+            print(f"      missing: {m!r}")
+        for m in f["should_be_gone"]:
+            print(f"      still present: {m!r}")
+
     refs = references(spec, name, texts)
     for r in refs["cited_but_absent"]:
         print(f"  CITED BUT ABSENT FROM THE PACKAGE: {r}")
@@ -306,7 +338,7 @@ def main() -> int:
     if refs["present_but_never_cited"]:
         print(f"  present but never cited: {', '.join(refs['present_but_never_cited'])}")
 
-    return 1 if (inv["missing"] or bad or refs["cited_but_absent"]
+    return 1 if (inv["missing"] or bad or stale or refs["cited_but_absent"]
                  or refs["misdirected"]) else 0
 
 

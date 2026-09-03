@@ -232,8 +232,15 @@ def build_note() -> str:
           .reindex([s for s in STRAT if s in set(power["stratum"])]))
     pw.insert(0, "Stratum", [STRAT[s] for s in pw.index])
     A("\n" + md_table(pw.reset_index(drop=True)) + "\n")
-    A("\nThe deep-intronic stratum can only detect ρ ≥ 0.197 pooled, which bounds how "
-      "strongly a null result there can be stated.\n")
+    # The table above aggregates by max, so its deep-intronic figure is the
+    # worst-covered column -- gnomAD allele frequency, whose smallest gene
+    # carries 74 variants. The manuscript quotes the figure for the predictors
+    # that actually score the stratum, and the two must not disagree.
+    A("\nThe deep-intronic stratum can only detect ρ ≥ 0.107 pooled for the predictors "
+      "that score it, which bounds how strongly a null result there can be stated. The "
+      "0.197 in the table above is the worst-covered column rather than a predictor: the "
+      "two gnomAD allele-frequency columns carry 74 variants in their smallest gene "
+      "against 249 to 296 for everything else.\n")
 
     # ---- S7 -------------------------------------------------------------
     A("\n## S7. Paired comparisons and leave-one-gene-out sensitivity\n")
