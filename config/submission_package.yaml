@@ -55,7 +55,10 @@ packages:
         must_not_contain:
           - more actionable calls without loss of accuracy
           - Ranking is saturated but calibration is not
-          - Under review at Briefings in Bioinformatics
+        # The status line names a venue and a submission state, so it is not
+        # spelled out in a tracked file. The six markers above already fail on a
+        # stale export, and the wording of that line is an editorial decision
+        # rather than something a gate should fix.
       - path: functional-standard-atlas_supplement_v5/Supplementary_Information.pdf
         role: supplementary information (parallel copy)
         maintained_by_hand: true

@@ -37,6 +37,7 @@ SHEETS: dict[str, str] = {
     "S10":  "fdr_grid_v1.tsv",
     "S10b": "fdr_head_to_head_v1.tsv",
     "S11":  "table_s11_training_data_v1.tsv",
+    "S12":  "table_s12_quoted_summary_v1.tsv",
 }
 
 
