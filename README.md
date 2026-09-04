@@ -87,7 +87,7 @@ reproducible on CPU with network access.
 make setup     # install pinned dependencies  (needs Python >= 3.12)
 make fetch     # download registered assays + reference genome, build hash manifest
 make freeze    # map to GRCh38 (Mutalyzer + Ensembl), build the frozen matrix
-make test      # 165 collected. 141 pass from a clean extract of the release
+make test      # 165 collected. 142 pass from a clean extract of the release
                # archive; a bare clone runs 110 and skips 55 for want of data.
 ```
 

@@ -3,12 +3,12 @@
  "guardrail_tests_collected": 165,
  "guardrail_tests_passing": 164,
  "guardrail_tests_skipped_without_denylist": 1,
- "guardrail_tests_passing_from_archive": 141,
- "archive_measured_for_version": "v2.4.0-rc4 (461 files), measured as a reader sees it: the submission-package checks need the author's own deliverables and skip without them, so the count does not depend on whose machine runs it",
+ "guardrail_tests_passing_from_archive": 142,
+ "archive_measured_for_version": "v2.4.0 (461 files), measured as a reader sees it: the submission-package checks need the author's own deliverables and skip without them, so the count does not depend on whose machine runs it. Measured with HOME pointed at an empty directory; on this machine the same extract gives 154 passed, 3 failed and 8 skipped, and that difference is the reason the reader's figure is the one recorded",
  "tests_covering_the_analyses_introduced_here": 26,
- "guardrail_tests_skipped_from_archive": 24,
+ "guardrail_tests_skipped_from_archive": 23,
  "guardrail_tests_passing_from_bare_clone": 110,
  "guardrail_tests_skipped_from_bare_clone": 55,
- "bare_clone_measured_for": "HEAD at the v2.4.0-rc4 build; results/, data/ and the package absent",
+ "bare_clone_measured_for": "HEAD at the v2.4.0 release build; results/, data/ and the package absent",
  "release_version": "2.4.0"
 }
