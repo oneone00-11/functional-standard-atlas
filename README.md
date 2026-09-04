@@ -34,7 +34,7 @@ where each stops.
 
 | Tier | You have | You can | Wall clock | Disk |
 |---|---|---|---|---|
-| 1 | git clone | run the 110 code-only guardrails (55 skip without data) | ~25 s | 20 MB |
+| 1 | git clone | run the 115 code-only guardrails (55 skip without data) | ~25 s | 20 MB |
 | 2 | **+ Zenodo archive** | **regenerate every figure and table in the paper** | **< 1 min** | 60 MB |
 | 3 | + network | rebuild the frozen matrix from MaveDB | ~20 min | 2.2 GB |
 | 4 | + API key + GPU | re-score every predictor from scratch | ~40 h | 6 GB |
@@ -87,8 +87,8 @@ reproducible on CPU with network access.
 make setup     # install pinned dependencies  (needs Python >= 3.12)
 make fetch     # download registered assays + reference genome, build hash manifest
 make freeze    # map to GRCh38 (Mutalyzer + Ensembl), build the frozen matrix
-make test      # 165 collected. 142 pass from a clean extract of the release
-               # archive; a bare clone runs 110 and skips 55 for want of data.
+make test      # 170 collected. 147 pass from a clean extract of the release
+               # archive; a bare clone runs 115 and skips 55 for want of data.
 ```
 
 **Python >= 3.12 is required** — numpy 2.5.1 and scipy 1.18.0 both declare it.
