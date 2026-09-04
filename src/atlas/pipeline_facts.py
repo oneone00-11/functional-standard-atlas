@@ -49,28 +49,43 @@ def load() -> dict:
     return json.loads(FACTS.read_text()) if FACTS.exists() else {}
 
 
+# Measured by running the suite from a clean extract of the release archive and
+# from a bare clone -- the only numbers that make the manuscript's "from a clean
+# extract" true, and the only ones this command cannot compute. They are carried
+# through rather than recomputed. They used to be dropped: write() rebuilt the
+# file from a fixed key list that predated the bare-clone fields, so running the
+# documented `make facts` deleted five of them, and atlas.release_state, which
+# skips any key the facts file does not hold, would have silently stopped
+# checking every count they carried.
+MEASURED_AT_RELEASE = (
+    "guardrail_tests_passing_from_archive",
+    "guardrail_tests_skipped_from_archive",
+    "archive_measured_for_version",
+    "guardrail_tests_passing_from_bare_clone",
+    "guardrail_tests_skipped_from_bare_clone",
+    "bare_clone_measured_for",
+    "release_version",
+)
+
+
 def write() -> dict:
     d = load()
     skipped = int(d.get("guardrail_tests_skipped_without_denylist", 1))
     n = collected_tests()
-    d = {
+    out = {
         "note": NOTE,
         "guardrail_tests_collected": n,
         "guardrail_tests_passing": n - skipped,
         "guardrail_tests_skipped_without_denylist": skipped,
-        # Measured by running the suite from a clean extract of the release
-        # archive -- the only number that makes the manuscript's "from a clean
-        # extract" true. Re-measure at every release; `--write` preserves it.
-        "guardrail_tests_passing_from_archive":
-            int(d.get("guardrail_tests_passing_from_archive", 0)) or None,
-        "archive_measured_for_version":
-            d.get("archive_measured_for_version"),
         "tests_covering_the_analyses_introduced_here":
             int(d.get("tests_covering_the_analyses_introduced_here", 26)),
     }
+    for k in MEASURED_AT_RELEASE:
+        if k in d:
+            out[k] = d[k]
     FACTS.parent.mkdir(parents=True, exist_ok=True)
-    FACTS.write_text(json.dumps(d, indent=1) + "\n")
-    return d
+    FACTS.write_text(json.dumps(out, indent=1) + "\n")
+    return out
 
 
 def check() -> list[str]:
