@@ -25,6 +25,7 @@ Usage (PYTHONPATH=src):
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
 import subprocess
@@ -106,6 +107,53 @@ def deposit(docx_path: Path, listing: list[str], repo: Path = REPO) -> dict:
 # 128/126/91/37 for three releases after those numbers stopped being true.
 DECLARATION_FILES = ("README.md", "CITATION.cff", ".zenodo.json")
 
+# Those three were not the whole of it either. The supplement's Note S12 states
+# the suite size in prose, and it ships twice: as `results/Supplemental_Note.md`
+# inside the archive, and as the string constant in `atlas.supplement` that
+# generates it. Both said "83 guardrail tests" while the archive they describe
+# runs 142, and no check looked at either -- the count was found by reading.
+# So the scan covers the generators and the generated prose that ships with them.
+SCANNED_SOURCE = "src"
+SCANNED_PROSE = "results"
+
+
+def _python_prose(path: Path) -> str:
+    """The docstrings and string constants of a module, and nothing else.
+
+    Deliberately not the raw file. This module's own patterns are literals that
+    would match themselves, and the comments around them quote counts that are
+    stale on purpose -- "the README carried 128/126/91/37" is documentation, not
+    a declaration. What a reader can end up holding is the prose, so the prose
+    is what is held to the facts.
+    """
+    try:
+        tree = ast.parse(path.read_text(errors="ignore"))
+    except (OSError, SyntaxError):
+        return ""
+    return "\n".join(n.value for n in ast.walk(tree)
+                     if isinstance(n, ast.Constant) and isinstance(n.value, str))
+
+
+def declaration_texts(repo: Path = REPO) -> list[tuple[str, str]]:
+    """(path, text) for every declaration this check reads."""
+    out: list[tuple[str, str]] = []
+    for rel in DECLARATION_FILES:
+        f = repo / rel
+        if f.exists():
+            out.append((rel, f.read_text(errors="ignore")))
+    for p in sorted((repo / SCANNED_SOURCE).rglob("*.py")):
+        if "__pycache__" in p.parts:
+            continue
+        prose = _python_prose(p)
+        if prose:
+            out.append((p.relative_to(repo).as_posix(), prose))
+    for p in sorted((repo / SCANNED_PROSE).rglob("*.md")):
+        if "_scratch" in p.parts:      # development output; never ships
+            continue
+        out.append((p.relative_to(repo).as_posix(), p.read_text(errors="ignore")))
+    return out
+
+
 DECLARED_COUNTS = {
     r"(\d{2,4})\s+collected": "guardrail_tests_collected",
     r"(\d{2,4})\s+pass(?:es)? from a clean extract": "guardrail_tests_passing_from_archive",
@@ -114,6 +162,11 @@ DECLARED_COUNTS = {
     r"bare clone runs (\d{2,4})": "guardrail_tests_passing_from_bare_clone",
     r"\((\d{1,3}) skip without data\)": "guardrail_tests_skipped_from_bare_clone",
     r"skips (\d{1,3}) for want of data": "guardrail_tests_skipped_from_bare_clone",
+    # Naming the checkout each figure belongs to is the point of the wording;
+    # these two make the archive's pair checkable rather than merely stated.
+    r"release archive runs (\d{2,4})": "guardrail_tests_passing_from_archive",
+    r"release archive runs \d{2,4} and skips (\d{1,3})":
+        "guardrail_tests_skipped_from_archive",
 }
 
 
@@ -128,11 +181,7 @@ def declarations(repo: Path = REPO, docx_path: Path | None = None) -> list[dict]
     facts = json.loads(facts_path.read_text()) if facts_path.exists() else {}
     cited = set(cited_dois(docx_path)) if docx_path else set()
     bad: list[dict] = []
-    for rel in DECLARATION_FILES:
-        f = repo / rel
-        if not f.exists():
-            continue
-        text = f.read_text(errors="ignore")
+    for rel, text in declaration_texts(repo):
         for pat, key in DECLARED_COUNTS.items():
             want = facts.get(key)
             if want is None:

@@ -432,8 +432,15 @@ def build_note() -> str:
 
     # ---- S12 ------------------------------------------------------------
     A("\n## S12. Repository and reproduction\n")
-    A("One-command reproduction from a clean clone: `make fetch && make test` (fetch, "
-      "freeze and 83 guardrail tests, 26 of them covering the analyses introduced here). "
+    # How many tests pass depends on what the checkout carries, so each figure
+    # names its checkout. The previous wording -- "a clean clone: make fetch &&
+    # make test (fetch, freeze and 83 guardrail tests)" -- named no state that
+    # was ever measured: a bare clone runs 110 and an extract of the archive
+    # runs 142. atlas.release_state now holds this sentence to the facts file.
+    A("One-command reproduction from a clean clone: `make fetch && make test`. "
+      "The pipeline is covered by 165 collected guardrail tests, 26 of them covering "
+      "the analyses introduced here. A bare clone runs 110 and skips 55 for want of "
+      "data; a clean extract of the release archive runs 142 and skips 23. "
       "Frozen data are immutable under `data/{raw,frozen}/` with SHA-256 manifests; every "
       "figure, table and number in the manuscript is produced by a committed script.\n")
     A("\nAnalysis modules added for this work: `atlas.assay_aux`, `atlas.consequence`, "
