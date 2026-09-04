@@ -40,6 +40,17 @@ def _spec():
     return spec
 
 
+def _needs_package(spec, pkg):
+    """A reviewer running the release archive has the code but not the author's
+    submission directory, and ~/Desktop exists on their machine too -- so testing
+    for the directory is not enough. Without the manuscript these checks have
+    nothing to check, and must skip rather than report every deliverable missing.
+    """
+    root = sp.package_root(spec)
+    if not (root / spec["packages"][pkg]["manuscript"]).exists():
+        pytest.skip(f"the {pkg} manuscript is not on this machine")
+
+
 def test_the_manifest_is_well_formed():
     spec = _spec()
     for name, pkg in spec["packages"].items():
@@ -54,6 +65,7 @@ def test_the_manifest_is_well_formed():
 @pytest.mark.parametrize("pkg", PACKAGES)
 def test_every_declared_file_exists(pkg):
     spec = _spec()
+    _needs_package(spec, pkg)
     missing = [m for m in sp.inventory(spec, pkg)["missing"]
                if Path(m).name not in KNOWN_ABSENT]
     assert not missing, missing
@@ -64,6 +76,7 @@ def test_nothing_undeclared_sits_in_the_package_directories(pkg):
     """An old export of the related manuscript survived two submissions by
     sitting in the directory with nobody listing it."""
     spec = _spec()
+    _needs_package(spec, pkg)
     inv = sp.inventory(spec, pkg)
     assert not inv["undeclared"], (
         "undeclared files in the package:\n  " + "\n  ".join(inv["undeclared"]))
@@ -75,6 +88,7 @@ def test_a_quantity_stated_twice_agrees(pkg):
     cover letter and 83 in Note S12; the deep-intronic minimum detectable rho
     is 0.107 in the manuscript and 0.197 in Note S6."""
     spec = _spec()
+    _needs_package(spec, pkg)
     bad = sp.quantities(spec, pkg)
     assert not bad, "quantities stated inconsistently:\n  " + "\n  ".join(
         f"{q['quantity']}: {', '.join(q['values'])}" for q in bad)
@@ -86,6 +100,7 @@ def test_every_cited_item_is_in_the_file_the_text_names(pkg):
     Note S11 exists -- in Additional file 2 -- which is why a check that pooled
     items across the package saw nothing wrong."""
     spec = _spec()
+    _needs_package(spec, pkg)
     refs = sp.references(spec, pkg)
     assert not refs["cited_but_absent"], refs["cited_but_absent"]
     assert not refs["misdirected"], "\n  ".join(
