@@ -41,7 +41,7 @@ def _spec():
 
 
 def _needs_package(spec, pkg):
-    """A reviewer running the release archive has the code but not the author's
+    """A reader running the release archive has the code but not the author's
     submission directory, and ~/Desktop exists on their machine too -- so testing
     for the directory is not enough. Without the manuscript these checks have
     nothing to check, and must skip rather than report every deliverable missing.
