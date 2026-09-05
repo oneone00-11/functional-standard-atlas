@@ -10,5 +10,5 @@
  "guardrail_tests_passing_from_bare_clone": 124,
  "guardrail_tests_skipped_from_bare_clone": 57,
  "bare_clone_measured_for": "a fresh clone of main at the v2.4.1 signature commit, measured on 2026-09-05 with HOME pointed at an empty directory: 124 passed, 57 skipped; results/, data/ and the package absent",
- "release_version": "2.4.1"
+ "release_version": "2.4.2"
 }
