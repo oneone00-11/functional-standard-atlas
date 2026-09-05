@@ -10,5 +10,5 @@
  "guardrail_tests_passing_from_bare_clone": 124,
  "guardrail_tests_skipped_from_bare_clone": 57,
  "bare_clone_measured_for": "a fresh clone of the working tree after v2.4.0 with the default-matrix fix; results/, data/ and the package absent",
- "release_version": "2.4.0"
+ "release_version": "2.4.1"
 }
