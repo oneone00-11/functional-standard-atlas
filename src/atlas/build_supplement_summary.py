@@ -116,6 +116,21 @@ def rows() -> list[dict]:
                     add(f"{e['model']} pooled rho, {axis} axis",
                         f"{e[key]['rho']:.4f}", "rna_readout_v1.json",
                         f"DerSimonian-Laird over {e[key]['k']} genes")
+    # --- Table 2's splice-region ceiling ------------------------------------
+    # Table 2 quotes one number for the whole splice region: the median of the
+    # per-gene validated ceilings on the splice_region stratum. Compute it from
+    # the reliability table rather than transcribing it, and record which rows
+    # went in so the quoted source is auditable.
+    rel = pd.read_csv(RESULTS / "reliability_v1.tsv", sep="\t")
+    sv = rel[(rel.stratum == "splice_region") & (rel.status == "validated")]
+    sv = sv.sort_values("gene")
+    per_gene = ", ".join(f"{g} {c:.4f}" for g, c in zip(sv.gene, sv.ceiling))
+    add("Splice region (any offset) attenuation ceiling quoted in Table 2",
+        f"{sv.ceiling.median():.2f}",
+        f"results/reliability_v1.tsv (median of the three validated "
+        f"splice-region rows: {per_gene})",
+        "median of per-gene validated attenuation ceilings over the whole "
+        "splice region")
     return out
 
 
