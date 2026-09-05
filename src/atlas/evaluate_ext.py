@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -78,6 +79,13 @@ def stratum_masks(df: pd.DataFrame) -> dict[str, pd.Series]:
 def evaluate_grid(df: pd.DataFrame) -> pd.DataFrame:
     masks = stratum_masks(df)
     rows = []
+    # A model declared in MODELS but absent from the matrix used to be skipped
+    # in silence: with the old v1 default the delivered 19 x 16 grid came out
+    # missing all seven dbNSFP meta-predictors and nothing said so.
+    absent = [m for m in MODELS if m not in df.columns]
+    if absent:
+        print(f"[evaluate_ext] WARNING: {len(absent)} declared models are not in "
+              f"this matrix and are omitted: {', '.join(absent)}", file=sys.stderr)
     for model in MODELS:
         if model not in df.columns:
             continue
@@ -124,7 +132,11 @@ def load(matrix: Path, consequence: Path, clinvar: Path) -> pd.DataFrame:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v1.parquet"))
+    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
+    # v1, so a default run produced a 193-row grid missing those models instead
+    # of the delivered 304-row one. v1 is kept only as the auditable
+    # pre-rescore matrix (see atlas.matrix_v2).
+    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
     ap.add_argument("--consequence", default=str(RESULTS / "consequence_v1.parquet"))
     ap.add_argument("--clinvar",
                     default=str(REPO / "data/external/clinvar_recorded_ids.parquet"))

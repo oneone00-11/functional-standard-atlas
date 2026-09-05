@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -145,11 +146,20 @@ def logo_strategies(df: pd.DataFrame) -> pd.DataFrame:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v1.parquet"))
+    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
+    # v1, so a default run silently omitted those candidates from the ensemble
+    # tables. v1 is kept only as the auditable pre-rescore matrix
+    # (see atlas.matrix_v2).
+    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
     ap.add_argument("--out", default="results")
     args = ap.parse_args(argv)
 
     df = pd.read_parquet(args.matrix)
+    # A declared candidate absent from the matrix used to be skipped in silence.
+    absent = [m for m in CANDIDATES if m not in df.columns]
+    if absent:
+        print(f"[ensemble] WARNING: {len(absent)} declared candidates are not in "
+              f"this matrix and are omitted: {', '.join(absent)}", file=sys.stderr)
     df["region"] = df["hgvs_c"].map(classify_region)
     df = add_rank_ensembles(df)
 

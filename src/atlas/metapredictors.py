@@ -136,7 +136,11 @@ def fetch(df: pd.DataFrame, sleep: float = 0.2) -> pd.DataFrame:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v1.parquet"))
+    # Only the variant-key columns are read and v1/v2 carry identical rows, so
+    # either matrix yields the same fetch list; the default is v2 for
+    # consistency with every other entry point (v1 is the auditable
+    # pre-rescore matrix, see atlas.matrix_v2).
+    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
     ap.add_argument("--out", default="results")
     ap.add_argument("--sleep", type=float, default=0.2)
     args = ap.parse_args(argv)

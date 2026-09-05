@@ -34,7 +34,7 @@ where each stops.
 
 | Tier | You have | You can | Wall clock | Disk |
 |---|---|---|---|---|
-| 1 | git clone | run the 115 code-only guardrails (55 skip without data) | ~25 s | 20 MB |
+| 1 | git clone | run the 124 code-only guardrails (57 skip without data) | ~25 s | 20 MB |
 | 2 | **+ Zenodo archive** | **regenerate every figure and table in the paper** | **< 1 min** | 60 MB |
 | 3 | + network | rebuild the frozen matrix from MaveDB | ~20 min | 2.2 GB |
 | 4 | + API key + GPU | re-score every predictor from scratch | ~40 h | 6 GB |
@@ -63,6 +63,16 @@ PYTHONPATH=src python -m atlas.simulate_attenuation # 151,200-trial validation, 
 PYTHONPATH=src python -m atlas.definition_sweep     # reads the cached sweep
 ```
 
+**Every analysis entry point reads `results/score_matrix_atlas_v2.parquet` by
+default** — the 19-predictor matrix the paper is built from — so the commands
+above regenerate the delivered tables as-is, with no flags. The older
+`score_matrix_atlas_v1.parquet` ships in the archive only as the auditable
+pre-rescore matrix (it lacks the seven dbNSFP meta-predictors and carries the
+CLI-rounded splice scores; see `atlas.matrix_v2`). Pass
+`--matrix results/score_matrix_atlas_v1.parquet` only if you are studying that
+earlier state; the output will then differ from the delivered tables by
+design.
+
 ### What needs credentials, and what a reviewer without them loses
 
 Tier 4 needs two things this repository cannot ship:
@@ -87,8 +97,8 @@ reproducible on CPU with network access.
 make setup     # install pinned dependencies  (needs Python >= 3.12)
 make fetch     # download registered assays + reference genome, build hash manifest
 make freeze    # map to GRCh38 (Mutalyzer + Ensembl), build the frozen matrix
-make test      # 170 collected. 147 pass from a clean extract of the release
-               # archive; a bare clone runs 115 and skips 55 for want of data.
+make test      # 181 collected. 158 pass from a clean extract of the release
+               # archive; a bare clone runs 124 and skips 57 for want of data.
 ```
 
 **Python >= 3.12 is required** — numpy 2.5.1 and scipy 1.18.0 both declare it.

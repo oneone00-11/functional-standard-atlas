@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -209,12 +210,21 @@ def evaluate(mat: pd.DataFrame, labels: pd.DataFrame) -> pd.DataFrame:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v1.parquet"))
+    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
+    # v1, so a default run silently omitted those models from the delivered
+    # table. v1 is kept only as the auditable pre-rescore matrix
+    # (see atlas.matrix_v2).
+    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
     ap.add_argument("--aux", default=str(RESULTS / "assay_aux_v1.parquet"))
     ap.add_argument("--out", default="results")
     args = ap.parse_args(argv)
 
     mat = pd.read_parquet(args.matrix)
+    # A declared model absent from the matrix used to be skipped in silence.
+    absent = [m for m in MODELS if m not in mat.columns]
+    if absent:
+        print(f"[clinical_evidence] WARNING: {len(absent)} declared models are not "
+              f"in this matrix and are omitted: {', '.join(absent)}", file=sys.stderr)
     aux = pd.read_parquet(args.aux)
     labels = binarise(aux)
     res = evaluate(mat, labels)

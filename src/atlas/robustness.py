@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -296,7 +297,11 @@ def logo(mat: pd.DataFrame) -> pd.DataFrame:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v1.parquet"))
+    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
+    # v1, so a default run silently dropped those models from every check and
+    # could not reproduce the delivered tables. v1 is kept only as the
+    # auditable pre-rescore matrix (see atlas.matrix_v2).
+    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
     ap.add_argument("--consequence", default=str(RESULTS / "consequence_v1.parquet"))
     ap.add_argument("--out", default="results")
     ap.add_argument("--n-boot", type=int, default=4000)
@@ -307,6 +312,11 @@ def main(argv: list[str] | None = None) -> int:
     if "consequence" not in mat.columns and cons_path.exists():
         mat = mat.merge(pd.read_parquet(cons_path)[["variant_id", "consequence"]],
                         on="variant_id", how="left")
+    # A declared model absent from the matrix used to be skipped in silence.
+    absent = sorted(m for m in set(MODELS) if m not in mat.columns)
+    if absent:
+        print(f"[robustness] WARNING: {len(absent)} declared models are not in this "
+              f"matrix and are omitted: {', '.join(absent)}", file=sys.stderr)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 

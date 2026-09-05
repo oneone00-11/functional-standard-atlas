@@ -438,9 +438,9 @@ def build_note() -> str:
     # was ever measured: a bare clone runs 110 and an extract of the archive
     # runs 142. atlas.release_state now holds this sentence to the facts file.
     A("One-command reproduction from a clean clone: `make fetch && make test`. "
-      "The pipeline is covered by 170 collected guardrail tests, 26 of them covering "
-      "the analyses introduced here. A bare clone runs 115 and skips 55 for want of "
-      "data; a clean extract of the release archive runs 147 and skips 23. "
+      "The pipeline is covered by 181 collected guardrail tests, 28 of them covering "
+      "the analyses introduced here. A bare clone runs 124 and skips 57 for want of "
+      "data; a clean extract of the release archive runs 158 and skips 23. "
       "Frozen data are immutable under `data/{raw,frozen}/` with SHA-256 manifests; every "
       "figure, table and number in the manuscript is produced by a committed script.\n")
     A("\nAnalysis modules added for this work: `atlas.assay_aux`, `atlas.consequence`, "
