@@ -6,9 +6,9 @@
  "tests_covering_the_analyses_introduced_here": 28,
  "guardrail_tests_passing_from_archive": 158,
  "guardrail_tests_skipped_from_archive": 23,
- "archive_measured_for_version": "working tree after v2.4.0 with the default-matrix fix and its 11 regression tests, measured as a reader sees it: the submission-package checks need the author's own deliverables and skip without them, so the count does not depend on whose machine runs it. Measured with HOME pointed at an empty directory: 158 passed, 23 skipped. On the day of measurement Ensembl REST returned 503, so its one live-service test skipped too and the run reported 157 passed, 24 skipped; the recorded figures are with that service up. On the author's machine the same extract additionally runs the package checks and gives 178 passed, 1 failed and 2 skipped, the failure being the deferred guardrail count in the cover letter, and that difference is the reason the reader's figure is the one recorded",
+ "archive_measured_for_version": "the v2.4.1 release archive (463 files), measured as a reader sees it: the submission-package checks need the author's own deliverables and skip without them, so the count does not depend on whose machine runs it. Measured on 2026-09-05 with HOME pointed at an empty directory: 158 passed, 23 skipped, 0 failed, with Ensembl REST reachable. On the author's machine the same tree additionally runs the package checks and gives 178 passed, 1 failed and 2 skipped, the failure being the deferred guardrail count in the cover letter, and that difference is the reason the reader's figure is the one recorded",
  "guardrail_tests_passing_from_bare_clone": 124,
  "guardrail_tests_skipped_from_bare_clone": 57,
- "bare_clone_measured_for": "a fresh clone of the working tree after v2.4.0 with the default-matrix fix; results/, data/ and the package absent",
+ "bare_clone_measured_for": "a fresh clone of main at the v2.4.1 signature commit, measured on 2026-09-05 with HOME pointed at an empty directory: 124 passed, 57 skipped; results/, data/ and the package absent",
  "release_version": "2.4.1"
 }
