@@ -136,6 +136,16 @@ re-run `make fetch`. `CONVENTIONS.md` states the rules that keep results trustwo
 read from pipeline outputs rather than transcribed, and every figure comes from
 a committed script.
 
+## Author
+
+**Ningyi Zhang** — Department of Biological Sciences, National University of
+Singapore · cliffzhang@u.nus.edu ·
+[ORCID 0009-0004-3020-4044](https://orcid.org/0009-0004-3020-4044)
+
+Development was AI-assisted (Claude, Anthropic) under the author's direction;
+the author designed the study, verified all reported numbers, and takes full
+responsibility for the content.
+
 ## Licence
 
 MIT for code (`LICENSE`). Data terms are in `LICENSE-DATA`, and they are not
