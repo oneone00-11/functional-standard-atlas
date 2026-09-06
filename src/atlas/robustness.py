@@ -186,7 +186,19 @@ def power_table(mat: pd.DataFrame) -> pd.DataFrame:
 # 3. head-to-head: Steiger's dependent-correlation test, DL-pooled
 # --------------------------------------------------------------------------
 def steiger_z_diff(r_ay: float, r_by: float, r_ab: float, n: int) -> tuple[float, float]:
-    """(z_a - z_b, variance) for two correlations sharing the variable y."""
+    """(z_a - z_b, variance) for two correlations sharing the variable y.
+
+    Applicability: the variance is Steiger's *Pearson* form,
+    var(z_a - z_b) = 2(1 - r_ab)h / (n - 3), derived under bivariate normality.
+    It is applied here to Spearman rank correlations WITHOUT the Spearman
+    correction factor (multiplying the variance by ~1.060 for n in the
+    hundreds, per Fieller & Pearson 1961's correction of Spearman's rho
+    moments); the rank transform makes the nominal variance mildly optimistic,
+    so the Steiger P values this function feeds are mildly anti-conservative.
+    That is exactly why head_to_head pairs every Steiger P with a gene-cluster
+    bootstrap P computed on the rho scale: where the two disagree, the
+    bootstrap is the one to quote.
+    """
     za, _ = fisher_z(r_ay, n)
     zb, _ = fisher_z(r_by, n)
     r2 = (r_ay ** 2 + r_by ** 2) / 2.0
@@ -195,6 +207,22 @@ def steiger_z_diff(r_ay: float, r_by: float, r_ab: float, n: int) -> tuple[float
     h = (1 - f * r2) / (1 - r2) if r2 < 1 else 1.0
     var = 2 * (1 - r_ab) * h / (n - 3)
     return za - zb, max(var, 1e-12)
+
+
+def bootstrap_p_two_sided(deltas: np.ndarray) -> float:
+    """Two-sided bootstrap P that the difference is zero, from the stored
+    bootstrap replicate deltas: twice the smaller tail fraction past zero.
+
+    Read directly off the replicates (no parametric smoothing); the value is 0
+    when every replicate lands on one side of zero, which should be quoted as
+    P < 1/n_boot.
+    """
+    d = np.asarray(deltas, dtype=float)
+    d = d[np.isfinite(d)]
+    if len(d) == 0:
+        return float("nan")
+    p = 2.0 * min(float((d <= 0).mean()), float((d >= 0).mean()))
+    return min(p, 1.0)
 
 
 def head_to_head(mat: pd.DataFrame, n_boot: int = 4000, seed: int = 20260803) -> pd.DataFrame:
@@ -250,6 +278,7 @@ def head_to_head(mat: pd.DataFrame, n_boot: int = 4000, seed: int = 20260803) ->
             "median_r_ab": float(pg["r_ab"].median()),
             "steiger_pooled_dz": pooled["pooled"],
             "steiger_p": p,
+            "boot_p": bootstrap_p_two_sided(deltas),
             "i2_pct": pooled["i2_pct"],
         })
     return pd.DataFrame(rows)
@@ -326,6 +355,14 @@ def main(argv: list[str] | None = None) -> int:
     pw.to_csv(out / "power_v1.tsv", sep="\t", index=False)
     h2h = head_to_head(mat, n_boot=args.n_boot)
     h2h.to_csv(out / "head_to_head_v1.tsv", sep="\t", index=False)
+    # Steiger-vs-bootstrap P comparison for every claimed pair, so the two
+    # tests' agreement (or not) is checkable pair by pair rather than in prose.
+    pvals = h2h[["model_a", "model_b", "stratum", "k_genes", "n_paired",
+                 "rho_a", "rho_b", "delta_rho", "steiger_p", "boot_p"]].copy()
+    pvals["sig_steiger_0.05"] = pvals["steiger_p"] < 0.05
+    pvals["sig_bootstrap_0.05"] = pvals["boot_p"] < 0.05
+    pvals["agree_at_0.05"] = pvals["sig_steiger_0.05"] == pvals["sig_bootstrap_0.05"]
+    pvals.to_csv(out / "head_to_head_pvalues_v1.tsv", sep="\t", index=False)
     lo = logo(mat)
     lo.to_csv(out / "logo_v1.tsv", sep="\t", index=False)
 
@@ -345,8 +382,13 @@ def main(argv: list[str] | None = None) -> int:
 
     print("\nHead-to-head (paired, Steiger + gene-cluster bootstrap):")
     print(h2h[["model_a", "model_b", "stratum", "k_genes", "n_paired", "rho_a", "rho_b",
-               "delta_rho", "boot_ci_lo", "boot_ci_hi", "steiger_p"]]
+               "delta_rho", "boot_ci_lo", "boot_ci_hi", "steiger_p", "boot_p"]]
           .to_string(index=False, float_format=lambda x: f"{x:.3f}"))
+    disagree = pvals[~pvals["agree_at_0.05"]]
+    print(f"\n  Steiger vs bootstrap P: agree at 0.05 on "
+          f"{int(pvals['agree_at_0.05'].sum())}/{len(pvals)} pairs"
+          + ("" if disagree.empty else
+             f"; disagree on {', '.join(disagree['model_a'] + ' vs ' + disagree['model_b'])}"))
 
     print("\nLargest leave-one-gene-out swings:")
     print(lo.sort_values("logo_range", ascending=False).head(10)
@@ -358,6 +400,8 @@ def main(argv: list[str] | None = None) -> int:
         "n_boot": args.n_boot,
         "tie_limited_cells": int((ties["rho_ceiling_ties"] < 0.95).sum()),
         "head_to_head_significant": int((h2h["steiger_p"] < 0.05).sum()),
+        "head_to_head_bootstrap_significant": int((h2h["boot_p"] < 0.05).sum()),
+        "head_to_head_tests_agree_at_0.05": int(pvals["agree_at_0.05"].sum()),
         "head_to_head_tested": int(len(h2h)),
     }, indent=2) + "\n")
     return 0

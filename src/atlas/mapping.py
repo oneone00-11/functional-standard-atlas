@@ -21,6 +21,19 @@ Sources used:
 Orientation rule (CONVENTIONS.md; "larger = more damaging"):
   functional_pathogenicity = -score   (SGE: higher raw score = fitter/normal)
 
+Version pinning (added post-review):
+  The Ensembl and Mutalyzer endpoints above are queried LIVE and are not
+  version-pinned by the API: the mapping used whatever Ensembl release was
+  current at query time. The frozen matrix this module produced was mapped
+  against the then-current Ensembl release, and the Mutalyzer3 queries were
+  made on 2026-07-25 (``generated_at`` in results/mapping_summary_v1.json,
+  2026-07-25T16:46:35+00:00). Ensembl is at release 116 as of the 2026-09
+  review; the downstream scorers hold their own pins (Pangolin runs on the
+  Ensembl release-112 FASTA/GTF — models/pangolin/NOTES.md), so the atlas's
+  coordinates and the scorers' annotations never shared a release in the
+  first place and the live-mapping choice changes nothing downstream.
+  ``results/mapping_summary_v1.json`` records the endpoints actually used.
+
 Coordinate conventions in the frozen matrix:
   - ``chrom`` is the GRCh38 chromosome name (e.g. "17"), ``pos`` is 1-based.
   - SNVs: ``pos`` is the substituted base.
