@@ -25,9 +25,9 @@ CONFIG = REPO / "config" / "submission_package.yaml"
 # inventory, no cross-file number check and no reference closure at all.
 PACKAGES = ("atlas", "bib")
 
-# The companion cover letter is rewritten per submission and the venue is
-# undecided, so it is declared and absent on purpose.
-KNOWN_ABSENT = {"BiB_cover_letter.pdf"}
+# Both cover letters are rewritten per submission and the venues are undecided,
+# so they are declared and absent on purpose.
+KNOWN_ABSENT = {"BiB_cover_letter.pdf", "GBcoverletter.pdf"}
 
 
 def _spec():

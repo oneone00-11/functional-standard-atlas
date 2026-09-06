@@ -80,7 +80,7 @@ def test_no_unresolved_gaps():
     assert not gaps, "manuscript claims with nothing behind them:\n  " + "\n  ".join(gaps)
 
 
-MANUSCRIPT = Path.home() / "Desktop" / "functional-standard-atlas_manuscript-gb.docx"
+MANUSCRIPT = Path.home() / "Desktop" / "functional-standard-atlas.docx"
 
 
 def test_every_claim_carries_an_anchor():

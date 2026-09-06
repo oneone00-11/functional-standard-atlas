@@ -147,7 +147,7 @@ def test_value_checks_alone_would_not_have_caught_it(tmp_path):
     numbers in that sentence all correspond to real cells, scoped or not."""
     import numpy as np
     from atlas.check_manuscript_numbers import claim_scopes, scoped_values
-    manuscript = Path.home() / "Desktop" / "functional-standard-atlas_manuscript-gb.docx"
+    manuscript = Path.home() / "Desktop" / "functional-standard-atlas.docx"
     if not manuscript.exists():
         pytest.skip("manuscript not available in this checkout")
     # Scopes are keyed by where the anchor lands, not by a paragraph number.

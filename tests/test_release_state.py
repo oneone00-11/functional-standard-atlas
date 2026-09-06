@@ -19,7 +19,7 @@ sys.path.insert(0, str(REPO / "src"))
 
 from atlas import release_state as rd   # noqa: E402
 
-MANUSCRIPT = Path.home() / "Desktop" / "functional-standard-atlas_manuscript-gb.docx"
+MANUSCRIPT = Path.home() / "Desktop" / "functional-standard-atlas.docx"
 
 
 def _needs_git():

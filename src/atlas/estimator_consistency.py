@@ -105,8 +105,8 @@ def run(results: Path) -> tuple[pd.DataFrame, dict]:
                                  for _, r in cross.iterrows()},
             "note": ("ceiling_se - ceiling_replicates; positive everywhere, so the "
                      "SE-derived ceiling overstates reproducibility relative to the "
-                     "replicate chain (manuscript range 0.050-0.062 on the strata "
-                     "quoted there; coding_or_utr is 0.049)"),
+                     "replicate chain (manuscript range 0.049-0.062 across the "
+                     "strata quoted there)"),
         },
         "matched_realisation_ratio": {
             "published_brca1_replicates": ratios["published_brca1_replicates"]["median_ratio"],

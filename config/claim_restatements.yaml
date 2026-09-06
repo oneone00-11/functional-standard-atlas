@@ -16,7 +16,7 @@
 
 manuscripts:
   atlas:
-    file: functional-standard-atlas_manuscript-gb.docx
+    file: functional-standard-atlas.docx
     claims:
       - id: reliability-prescription
         says: report a per-stratum reliability estimate, or say the assay permits none
@@ -38,7 +38,7 @@ manuscripts:
         pattern: 'seventh, eighth and ninth|worst in coding|weakest against fitness|worst overall in coding'
 
   splice-fusion:
-    file: draft_reframed_BiB.docx
+    file: calibration_draft.docx
     claims:
       - id: evidence-strength-not-improved
         says: the calibration advantage does not survive translation into evidence strength

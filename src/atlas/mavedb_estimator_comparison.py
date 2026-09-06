@@ -19,7 +19,7 @@ overstates the ceiling and understates how much correction is due.
 
 BRCA1 is carried as a calibration point. It deposits no error column, so the
 primary analysis derives one as sd(replicates)/sqrt(2); the manuscript reports
-that this raises its ceiling by 0.050-0.062. Reproducing that here is a
+that this raises its ceiling by 0.049-0.062. Reproducing that here is a
 regression check that this module and the main pipeline agree.
 
 Usage (with PYTHONPATH=src):
@@ -123,9 +123,9 @@ def main(argv: list[str] | None = None) -> int:
     b = d[d.urn == BRCA1]
     if len(b) and pd.notna(b.delta.iloc[0]):
         v = float(b.delta.iloc[0])
-        ok = 0.050 <= v <= 0.062
+        ok = 0.049 <= v <= 0.062
         print(f"\n  BRCA1 calibration delta = {v:+.4f}  "
-              f"({'within' if ok else 'OUTSIDE'} the manuscript's 0.050-0.062)")
+              f"({'within' if ok else 'OUTSIDE'} the manuscript's 0.049-0.062)")
     print()
     print(d[["urn", "n_variants", "ceiling_replicate", "ceiling_error", "delta",
              "error_rule"]].to_string(index=False, float_format=lambda x: f"{x:.4f}"))

@@ -190,7 +190,7 @@ def build_note() -> str:
     piv.insert(0, "Stratum", piv.index)
     A("\n" + md_table(piv.reset_index(drop=True)) + "\n")
     A("\n**Cross-check.** BRCA1 carries both estimators. The SE-based estimator returns a "
-      "ceiling 0.050–0.062 higher than the replicate-based one in every stratum:\n")
+      "ceiling 0.049–0.062 higher than the replicate-based one in every stratum:\n")
     cr = pd.DataFrame(relj["cross_check_replicates_vs_se"])
     cr = cr.rename(columns={"stratum": "Stratum", "replicates": "Ceiling (replicates)",
                             "se": "Ceiling (SE)", "se_minus_replicates": "Difference"})
@@ -438,8 +438,8 @@ def build_note() -> str:
     # was ever measured: a bare clone runs 110 and an extract of the archive
     # runs 142. atlas.release_state now holds this sentence to the facts file.
     A("One-command reproduction from a clean clone: `make fetch && make test`. "
-      "The pipeline is covered by 181 collected guardrail tests, 28 of them covering "
-      "the analyses introduced here. A bare clone runs 124 and skips 57 for want of "
+      "The pipeline is covered by 202 collected guardrail tests, 43 of them covering "
+      "the analyses introduced here. A bare clone runs 130 and skips 72 for want of "
       "data; a clean extract of the release archive runs 158 and skips 23. "
       "Frozen data are immutable under `data/{raw,frozen}/` with SHA-256 manifests; every "
       "figure, table and number in the manuscript is produced by a committed script.\n")
@@ -531,7 +531,10 @@ TABLES = {
 }
 _NUMWORD = {9: "Nine", 10: "Ten", 11: "Eleven", 12: "Twelve", 13: "Thirteen",
             14: "Fourteen", 15: "Fifteen", 16: "Sixteen", 17: "Seventeen",
-            18: "Eighteen", 19: "Nineteen", 20: "Twenty"}
+            18: "Eighteen", 19: "Nineteen", 20: "Twenty", 21: "Twenty-one",
+            22: "Twenty-two", 23: "Twenty-three", 24: "Twenty-four",
+            25: "Twenty-five", 26: "Twenty-six", 27: "Twenty-seven",
+            28: "Twenty-eight", 29: "Twenty-nine", 30: "Thirty"}
 
 EXTRA = ["mavedb_survey_v1.tsv", "mavedb_survey_audit_v1.tsv", "mavedb_ceilings_v1.tsv",
          "mavedb_estimator_comparison_v1.tsv", "protease_agreement_v1.tsv",
@@ -541,7 +544,10 @@ EXTRA = ["mavedb_survey_v1.tsv", "mavedb_survey_audit_v1.tsv", "mavedb_ceilings_
          "clinical_evidence_v1.tsv", "ensemble_pooled_v1.tsv",
          "model_correlation_all_v1.tsv", "model_correlation_coding_or_utr_v1.tsv",
          "model_correlation_splice_region_v1.tsv", "predictor_resources_v1.tsv",
-         "mapping_report_v1.md"]
+         "mapping_report_v1.md",
+         "estimator_consistency_v1.tsv", "matched_realisation_loo_v1.tsv",
+         "mavedb_accounting_v1.tsv", "mavedb_ceiling_k_sensitivity_v1.tsv",
+         "head_to_head_pvalues_v1.tsv", "attenuation_simulation_v2.tsv"]
 
 EXTRA_DESCR = {
     "mavedb_survey_v1.tsv":
@@ -611,6 +617,31 @@ EXTRA_DESCR = {
         "versus Ensembl exon-model agreement, VEP cross-validation pass rates and "
         "the orientation check behind the frozen matrix (Methods; the machine-readable "
         "counterpart is mapping_summary_v1.json)",
+    "estimator_consistency_v1.tsv":
+        "the BRCA1 estimator cross-check behind Table S14: per-stratum reliability and "
+        "ceiling under the replicate chain and under the SE estimator, with the "
+        "difference between them",
+    "matched_realisation_loo_v1.tsv":
+        "leave-one-gene-out forms of the matched coding-versus-splice ratio behind "
+        "Table S13: median coding and splice ±1–2 realisations and their ratio with "
+        "each ceiling-bearing gene dropped in turn",
+    "mavedb_accounting_v1.tsv":
+        "the MaveDB deposit ledger behind Table S16's accounting: every counting "
+        "definition from 2,803 published score sets down to the 674 computable "
+        "ceilings, with the denominator and fraction for each",
+    "mavedb_ceiling_k_sensitivity_v1.tsv":
+        "sensitivity of the MaveDB ceiling distribution to treating a deposited "
+        "standard deviation as the error of a mean of k replicates, for k = 1, 2, 3 "
+        "(Table S16)",
+    "head_to_head_pvalues_v1.tsv":
+        "Steiger and gene-cluster bootstrap P values side by side for all eighteen "
+        "claimed orderings, with the significance verdict under each and whether they "
+        "agree (Table S17)",
+    "attenuation_simulation_v2.tsv":
+        "the hardened attenuation simulation behind Table S15: every noise scenario x "
+        "estimator x stratum x reliability target cell with bias and RMSE before and "
+        "after correction (1,800 rows; the v1 grid is untouched in "
+        "attenuation_simulation_v1.tsv)",
 }
 
 # The six main-text figures, in manuscript order. Position is load-bearing:

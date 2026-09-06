@@ -19,9 +19,9 @@ root: ~/Desktop
 
 packages:
   atlas:
-    manuscript: functional-standard-atlas_manuscript-gb.docx
+    manuscript: functional-standard-atlas.docx
     files:
-      - path: functional-standard-atlas_manuscript-gb.docx
+      - path: functional-standard-atlas.docx
         role: manuscript
         maintained_by_hand: true
       - path: GB_additional_files/Additional_file_1.xlsx
@@ -38,10 +38,15 @@ packages:
       - path: GB_additional_files/GBcoverletter.pdf
         role: cover letter
         maintained_by_hand: true
+        note: >-
+          Deferred: it is rewritten per submission and the venue is undecided,
+          so it is declared and currently absent, exactly as the companion's
+          cover letter is. The gate reporting it missing is a true statement
+          about whether the package is complete.
       - path: GB_additional_files/Supplemental_Related_Manuscript_1.pdf
         role: related manuscript
         maintained_by_hand: true
-        exported_from: ~/Desktop/draft_reframed_BiB.docx
+        exported_from: ~/Desktop/calibration_draft.docx
         note: >-
           Exported from the companion manuscript by hand. `exported_from` lets
           the freshness check compare the two; without it the delivered PDF sat
@@ -69,9 +74,9 @@ packages:
         is_directory: true
 
   bib:
-    manuscript: draft_reframed_BiB.docx
+    manuscript: calibration_draft.docx
     files:
-      - path: draft_reframed_BiB.docx
+      - path: calibration_draft.docx
         role: manuscript
         maintained_by_hand: true
       - path: BiB supplementary_material.docx
