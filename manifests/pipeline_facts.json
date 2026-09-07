@@ -4,11 +4,11 @@
  "guardrail_tests_passing": 201,
  "guardrail_tests_skipped_without_denylist": 1,
  "tests_covering_the_analyses_introduced_here": 43,
- "guardrail_tests_passing_from_archive": 158,
+ "guardrail_tests_passing_from_archive": 179,
  "guardrail_tests_skipped_from_archive": 23,
- "archive_measured_for_version": "the v2.4.2 release archive (463 files), measured as a reader sees it: the submission-package checks need the author's own deliverables and skip without them, so the count does not depend on whose machine runs it. Measured on 2026-09-05 with HOME pointed at an empty directory: 158 passed, 23 skipped, 0 failed, with Ensembl REST reachable. On the author's machine the same tree additionally runs the package checks and gives 178 passed, 1 failed and 2 skipped, the failure being the deferred guardrail count in the cover letter, and that difference is the reason the reader's figure is the one recorded",
+ "archive_measured_for_version": "the v2.4.3 release archive (477 files), measured as a reader sees it: the submission-package checks need the author's own deliverables and skip without them, so the count does not depend on whose machine runs it. Measured on 2026-09-07 with HOME pointed at an empty directory: 178 passed, 24 skipped, 0 failed while Ensembl REST was intermittently returning 5xx; the single Ensembl-dependent live check (tests/test_mapping.py::test_ref_alleles_match_grch38_live) passes when the service answers (14/14 for tests/test_mapping.py in the same tree the same day), so with Ensembl REST reachable the pair is 179 passed, 23 skipped, which is the figure recorded, following the v2.4.2 convention",
  "guardrail_tests_passing_from_bare_clone": 130,
  "guardrail_tests_skipped_from_bare_clone": 72,
- "bare_clone_measured_for": "a fresh clone of main at the post-release commit carrying the reviewer-response analyses (998c885), measured on 2026-09-07 with HOME pointed at an empty directory: 130 passed, 72 skipped; results/, data/ and the package absent. At the v2.4.2 signature commit the pair was 124 passed, 57 skipped, measured on 2026-09-05",
- "release_version": "2.4.2"
+ "bare_clone_measured_for": "a fresh clone of main at 7c4cea4, measured on 2026-09-07 with HOME pointed at an empty directory: 130 passed, 72 skipped; results/, data/ and the package absent. The v2.4.3 release commit changes version strings and this file only, so the pair is unchanged at the release commit. At the v2.4.2 signature commit the pair was 124 passed, 57 skipped, measured on 2026-09-05",
+ "release_version": "2.4.3"
 }

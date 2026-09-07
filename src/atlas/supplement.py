@@ -440,7 +440,7 @@ def build_note() -> str:
     A("One-command reproduction from a clean clone: `make fetch && make test`. "
       "The pipeline is covered by 202 collected guardrail tests, 43 of them covering "
       "the analyses introduced here. A bare clone runs 130 and skips 72 for want of "
-      "data; a clean extract of the release archive runs 158 and skips 23. "
+      "data; a clean extract of the release archive runs 179 and skips 23. "
       "Frozen data are immutable under `data/{raw,frozen}/` with SHA-256 manifests; every "
       "figure, table and number in the manuscript is produced by a committed script.\n")
     A("\nAnalysis modules added for this work: `atlas.assay_aux`, `atlas.consequence`, "
