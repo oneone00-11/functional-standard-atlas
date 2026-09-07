@@ -44,3 +44,13 @@ scoring_window_sizes:
     results/ file produces. Listed as two values rather than exempting the
     model-scoring paragraph, which also states measured coverage.
   values: ["6,000", "8,192"]
+
+companion_analysis_set_size:
+  reason: >
+    The companion calibration manuscript's analysis-set size (21,410 SNVs) is a
+    property of the companion's frozen matrix (variant-functional-atlas tag
+    frozen-matrix-v1), not of this atlas's pipeline, so no results/ file can
+    carry it. It is stated once, in the boundary paragraph reconciling the two
+    frozen products' overlap (21,394 shared; the sixteen unshared are RAD51C
+    rows absent from the RAD51C deposit used here).
+  values: ["21,410"]
