@@ -304,6 +304,8 @@ def build_note() -> str:
         A(f"- {g}: n = {int(d['size']):,}, abnormal = {int(d['sum']):,} "
           f"({d['sum'] / d['size']:.1%})\n")
     A("\nAUROC and positive likelihood ratio at 95% specificity, by territory:\n")
+    A("\nThe ACMG band column applies the Tavtigian point system at a prior of "
+      "0.10 for orientation only; it is not a ClinGen-grade calibration.\n")
     for s in ["all", "coding_or_utr", "splice_region", "splice_3_10"]:
         sub = ce[ce["stratum"] == s].sort_values("auroc", ascending=False)
         if sub.empty:
