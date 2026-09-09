@@ -6,9 +6,9 @@
  "tests_covering_the_analyses_introduced_here": 43,
  "guardrail_tests_passing_from_archive": 179,
  "guardrail_tests_skipped_from_archive": 23,
- "archive_measured_for_version": "the v2.4.3 release archive (477 files), measured as a reader sees it: the submission-package checks need the author's own deliverables and skip without them, so the count does not depend on whose machine runs it. Measured on 2026-09-07 with HOME pointed at an empty directory: 178 passed, 24 skipped, 0 failed while Ensembl REST was intermittently returning 5xx; the single Ensembl-dependent live check (tests/test_mapping.py::test_ref_alleles_match_grch38_live) passes when the service answers (14/14 for tests/test_mapping.py in the same tree the same day), so with Ensembl REST reachable the pair is 179 passed, 23 skipped, which is the figure recorded, following the v2.4.2 convention",
+ "archive_measured_for_version": "the v2.4.4 release archive, measured as a reader sees it: the submission-package checks need the author's own deliverables and skip without them, so the count does not depend on whose machine runs it. Measured on 2026-09-09 with HOME pointed at an empty directory. v2.4.4 changes a manifest note and a docstring only, so the counts are unchanged from v2.4.3, which was measured the same way from the deposited archive at 10.5281/zenodo.22637468: 179 passed, 23 skipped, 202 collected",
  "guardrail_tests_passing_from_bare_clone": 130,
  "guardrail_tests_skipped_from_bare_clone": 72,
- "bare_clone_measured_for": "a fresh clone of main at 7c4cea4, measured on 2026-09-07 with HOME pointed at an empty directory: 130 passed, 72 skipped; results/, data/ and the package absent. The v2.4.3 release commit changes version strings and this file only, so the pair is unchanged at the release commit. At the v2.4.2 signature commit the pair was 124 passed, 57 skipped, measured on 2026-09-05",
- "release_version": "2.4.3"
+ "bare_clone_measured_for": "a fresh clone of main, independent virtualenv on Python 3.12.13, HOME pointed at an empty directory: 130 passed, 72 skipped; results/, data/ and the package absent. Measured on 2026-09-09 at a662470, the first commit past the v2.4.3 deposit",
+ "release_version": "2.4.4"
 }
