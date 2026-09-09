@@ -67,6 +67,15 @@ packages:
       - path: functional-standard-atlas_supplement_v5/Supplementary_Information.pdf
         role: supplementary information (parallel copy)
         maintained_by_hand: true
+        note: >-
+          A byte-identical copy of GB_additional_files/Additional_file_2.pdf, and
+          nothing else. The two drifted once: this copy was a build behind, so it
+          gave 0.050-0.062 where the submitted file and the generator both give
+          0.049-0.062, and it lacked the ACMG-band caveat added in the Note. Two
+          copies of one document is the hazard; keeping it is only justified while
+          the submission directory and the supplement directory are assembled
+          separately. Refresh it from Additional_file_2.pdf whenever that is
+          rebuilt, or delete it and keep one.
       - path: functional-standard-atlas_supplement_v5/tables
         role: supplementary tables, one workbook each (parallel copy)
         generated_by: src/atlas/build_additional_file_1.py
