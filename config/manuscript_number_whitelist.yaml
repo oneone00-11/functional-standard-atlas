@@ -54,3 +54,12 @@ companion_analysis_set_size:
     frozen products' overlap (21,394 shared; the sixteen unshared are RAD51C
     rows absent from the RAD51C deposit used here).
   values: ["21,410"]
+
+steiger_variance_correction:
+  reason: >-
+    The 1.060 variance correction proposed for Spearman correlations in
+    Steiger's test. It is a constant from the cited literature, and the
+    Methods state that it was NOT applied -- the test is used in its original
+    1980 form. A value the analysis deliberately does not use has no output
+    file behind it, and should not acquire one.
+  values: ["1.060"]
