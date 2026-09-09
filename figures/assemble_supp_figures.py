@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
-"""Assemble supplementary figures S1-S18 from pipeline PNGs in results/.
+"""Assemble supplementary figure sheets S1-S13 from pipeline PNGs in results/.
 
 S1-S12 : per-predictor forest-plot sheets (montage of results/forest_<model>_*.png)
 S13    : concordance-scatter sheet (results/concordance_*.png)
-S14-S18: single existing figures renumbered for the supplement.
 
 Only the canonical stratum panels are montaged for each predictor. AlphaGenome
 has an extra splice-restricted panel set (forest_alphagenome_splice_*) which is
 omitted here; the files remain in results/ and the Zenodo archive.
 
+This script does NOT produce S14-S17. Those are whole figures demoted from the
+main set, and `atlas.supplement` copies them straight from results/ under their
+supplemental names (DEMOTED_FIGS); `SINGLES` below is empty for that reason.
+`atlas.supplement` is also what renames the sheets written here into the
+delivered `Supplemental_Fig_S1..S13`, so the two commands together produce all
+seventeen supplemental figures and neither needs a manual step.
+
+An earlier version of this docstring claimed S1-S18 and an S14-S18 branch that
+`SINGLES = {}` has not implemented for some time.
+
 Usage (PYTHONPATH=src):  python figures/assemble_supp_figures.py
-Outputs: results/supp_fig_S01.png ... results/supp_fig_S18.png
+Outputs: results/supp_fig_S01.png ... results/supp_fig_S13.png (and .pdf)
 """
 from __future__ import annotations
 
