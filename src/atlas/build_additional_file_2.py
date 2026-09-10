@@ -23,7 +23,13 @@ import sys
 from pathlib import Path
 
 N_FIGURES = 17
-EXPECTED_PAGES = 32
+# The Notes PDF is 16 pages and each of the seventeen figures is one, so a
+# complete file is 33. This was 32, one short, and the check therefore exited 1
+# on the file that actually ships -- a gate red against a correct artefact,
+# which teaches everyone to ignore it. Note length is what moves this number,
+# so it is stated rather than derived: if the Notes grow a page, that is a fact
+# worth being told about rather than absorbing silently.
+EXPECTED_PAGES = 33
 
 
 def figure_paths(figures: Path) -> list[Path]:

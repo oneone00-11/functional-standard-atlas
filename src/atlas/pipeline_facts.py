@@ -25,12 +25,17 @@ FACTS = REPO / "manifests" / "pipeline_facts.json"
 NOTE = ("Quantities the manuscript cites that are derived from the pipeline but appear "
         "inside no results/ file. Regenerate with `make facts`. "
         "atlas.check_manuscript_numbers compares the manuscript's stated guardrail count "
-        "against guardrail_tests_collected rather than looking it up in the value pool: "
-        "both 102 and 118 -- the counts this manuscript carried before -- match exactly "
-        "one unrelated pipeline value each, so a stale count would be reported as "
-        "verified. How many tests PASS depends on the checkout (a release archive ships "
-        "data/ and results/, a git archive does not), so the passing count must be "
-        "measured from the release at release time.")
+        "against guardrail_tests_passing_from_archive rather than looking it up in the "
+        "value pool: both 102 and 118 -- the counts this manuscript carried before -- "
+        "match exactly one unrelated pipeline value each, so a stale count would be "
+        "reported as verified. How many tests PASS depends on the checkout (a release "
+        "archive ships data/ and results/, a git archive does not), so the passing count "
+        "must be measured from the release at release time. It also depends on whether "
+        "the machine running them can reach the network: one test verifies mapped "
+        "reference bases against the Ensembl REST API and skips without it, so the "
+        "archive figure is the offline one -- what a reader without network access "
+        "reproduces -- and archive_measured_for_version records the reachable "
+        "figure alongside it so neither can be quoted without the other.")
 
 
 def collected_tests() -> int:

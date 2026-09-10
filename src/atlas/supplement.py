@@ -442,7 +442,12 @@ def build_note() -> str:
     A("One-command reproduction from a clean clone: `make fetch && make test`. "
       "The pipeline is covered by 202 collected guardrail tests, 43 of them covering "
       "the analyses introduced here. A bare clone runs 130 and skips 72 for want of "
-      "data; a clean extract of the release archive runs 179 and skips 23. "
+      "data; a clean extract of the release archive runs 178 and skips 24 with no "
+      "network access. Twenty-three of those skips are the same on any machine: they "
+      "need a git checkout, the author's submission directory, or the hygiene denylist, "
+      "which is deliberately not archived. The twenty-fourth is not -- it verifies the "
+      "mapped reference bases against the Ensembl REST API, so it runs only where that "
+      "service is reachable, and the same extract then passes one more. "
       "Frozen data are immutable under `data/{raw,frozen}/` with SHA-256 manifests; every "
       "figure, table and number in the manuscript is produced by a committed script.\n")
     A("\nAnalysis modules added for this work: `atlas.assay_aux`, `atlas.consequence`, "

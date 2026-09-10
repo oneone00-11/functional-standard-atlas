@@ -97,8 +97,11 @@ reproducible on CPU with network access.
 make setup     # install pinned dependencies  (needs Python >= 3.12)
 make fetch     # download registered assays + reference genome, build hash manifest
 make freeze    # map to GRCh38 (Mutalyzer + Ensembl), build the frozen matrix
-make test      # 202 collected. 179 pass from a clean extract of the release
-               # archive; a bare clone runs 130 and skips 72 for want of data.
+make test      # 202 collected. 178 pass from a clean extract of the release
+               # archive with no network access; a 179th verifies the mapped
+               # reference bases against the Ensembl REST API and skips where
+               # that service is unreachable. A bare clone runs 130 and
+               # skips 72 for want of data.
 ```
 
 **Python >= 3.12 is required** — numpy 2.5.1 and scipy 1.18.0 both declare it.
