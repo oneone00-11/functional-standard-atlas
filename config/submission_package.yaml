@@ -35,6 +35,10 @@ packages:
           Pages 16-32 were repaired by hand after a font-overlap problem; the
           delivered PDF is not what the generator produces. Registered as
           hand-maintained rather than regenerated, so the repair is not lost.
+          Note S15 (2026-09-14) was added the same way: one page, rendered
+          from the generator's S15 text and inserted after Note S14, with
+          every other page's content stream unchanged; the Contents list on
+          page 1 still ends at S14.
       - path: GB_additional_files/GBcoverletter.pdf
         role: cover letter
         maintained_by_hand: true

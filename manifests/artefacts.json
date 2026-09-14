@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 213,
+ "n_files": 216,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 49
+  "supp_table": 52
  },
  "files": {
   "results/attenuation_simulation_v1.json": {
@@ -772,6 +772,21 @@
    "role": "supp_table",
    "sha256": "894ef2e197904e15a580a9c5b5a0970d9ef22a70f90bc8275362bc2bf0b97735",
    "bytes": 10784
+  },
+  "results/lr_basis_check_genes_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "9860a96a46186b2a5527e7ec65726b4c6f71ebe5d6c2c0db2706e86b46529214",
+   "bytes": 24265
+  },
+  "results/lr_basis_check_v1.json": {
+   "role": "supp_table",
+   "sha256": "77cc50621849c88edfcf55d63f96aa535f608888d5e1ac6597a8caf153afa296",
+   "bytes": 2274
+  },
+  "results/lr_basis_check_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "623efd7d7a24945c95122f8f397b64c568ffaf93a9ae9bd22e5a1a6b1ad14fc9",
+   "bytes": 9974
   },
   "results/matched_realisation_loo_v1.tsv": {
    "role": "supp_table",

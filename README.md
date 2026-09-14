@@ -61,6 +61,7 @@ PYTHONPATH=src python -m atlas.evaluate_ext         # the 19 x 16 grid
 PYTHONPATH=src python -m atlas.robustness           # ties, power, paired tests
 PYTHONPATH=src python -m atlas.simulate_attenuation # 151,200-trial validation, ~4 min
 PYTHONPATH=src python -m atlas.definition_sweep     # reads the cached sweep
+PYTHONPATH=src python -m atlas.lr_basis_check      # LR+ scanned vs exactly 95% specificity (Note S15)
 ```
 
 **Every analysis entry point reads `results/score_matrix_atlas_v2.parquet` by

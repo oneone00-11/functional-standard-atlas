@@ -503,6 +503,36 @@ def build_note() -> str:
           "reproduce the score are listed as `replicates_unverified` and are not counted. The "
           "per-deposit table, including the column names matched in each case, is the TSV "
           "named above.\n")
+
+    # ---- S15 likelihood ratios on two bases ---------------------------------
+    lrb = RESULTS / "lr_basis_check_v1.json"
+    if lrb.exists():
+        j = json.loads(lrb.read_text())
+        A("\n## S15. Likelihood ratios at 95% specificity on two bases\n")
+        A("`results/lr_basis_check_v1.tsv`, `results/lr_basis_check_genes_v1.tsv`\n")
+        A("\nThe four likelihood ratios quoted in the Results, at the observed threshold this study "
+          "reports and interpolated to exactly 95% specificity:\n")
+        tab = pd.DataFrame([{
+            "Predictor · territory": f"{LABEL[c['model']]} · {STRAT[c['stratum']]}",
+            "Scanned LR+": f"{c['lr_scanned_median']:.2f}",
+            "Realised spec.": f"{100 * c['specificity_realised_min']:.2f}–{100 * c['specificity_realised_max']:.2f}%",
+            "Interp. LR+ (95%)": f"{c['lr_interpolated_median']:.2f}",
+            "Band": (c["band_scanned"] if c["band_scanned"] == c["band_interpolated"]
+                     else f"{c['band_scanned']} → {c['band_interpolated']}")} for c in j["quoted_cells"]])
+        A("\n" + md_table(tab) + "\n")
+        A("\nPositive likelihood ratios in this study are read at the most sensitive observed score "
+          "threshold that reaches 95% specificity; the companion splice-region study interpolates to "
+          "exactly 95% specificity on the empirical ROC. For the well-resolved predictors above the two "
+          f"bases differ by at most {j['quoted_max_abs_change']:.2f} and agree on the evidence band. For "
+          "coarsely quantised scores (phastCons and the two gnomAD allele-frequency columns) no observed "
+          "threshold reaches 95% specificity in several territories, because the top score value is itself "
+          "a tie group holding more than 5% of the normal variants. An interpolated value there would be "
+          "read on the ROC segment between calling no variant positive and calling that whole tie group "
+          "positive, which no single score threshold achieves; those cells are therefore reported as not "
+          "evaluable, and cells where a threshold does reach 95% specificity at the operating point it "
+          "achieves, not interpolated. The full scanned-and-interpolated comparison for all "
+          f"{j['cells']} cells is in the deposited analysis (`docs/lr-basis-check.md`, written by "
+          "`atlas.lr_basis_check`).\n")
     return "".join(out)
 
 
