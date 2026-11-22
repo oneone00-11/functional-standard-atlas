@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 216,
+ "n_files": 218,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 52
+  "supp_table": 54
  },
  "files": {
   "results/attenuation_simulation_v1.json": {
@@ -132,6 +132,16 @@
    "role": "supp_table",
    "sha256": "c5171cb6abf382252fb0fb2cf4588ec61e437807017b402af739eeb4666c34c9",
    "bytes": 26745
+  },
+  "results/external_reliability_v1.json": {
+   "role": "supp_table",
+   "sha256": "9f12f650bef54f94c87654a2caeb7338f80d2126ee9c064f3cbe56b75df0ad10",
+   "bytes": 24225
+  },
+  "results/external_reliability_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "64eed9e54e1a7c0887b5253aaf4be675e0ea839c3c2b4cfbc126a68aa0ff9c49",
+   "bytes": 6659
   },
   "results/fdr_grid_v1.tsv": {
    "role": "supp_table",
