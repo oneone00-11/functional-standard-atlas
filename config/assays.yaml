@@ -53,9 +53,9 @@ assays:
     tier: expansion
     variant_classes: [splice]
     notes: >
-      Funk et al. 2025 splice SGE used as held-out external validation
-      in the companion BiB manuscript. MaveDB search API checked 2026-07-24
-      (queries TP53, Funk, splice) returned no deposit -- data likely lives in
-      the paper's supplementary material. Preferred source: reuse the
-      provenance-documented TP53 scores from the companion repo
-      the companion benchmark repository and record provenance in NOTES.md.
+      Funk et al. 2025 splice SGE. Now deposited on MaveDB as
+      urn:mavedb:00001277-a-1 (fetched by atlas.external_reliability into
+      data/raw/mavedb_external/). It is used only for the reliability bounds of
+      that module (its score is the median of three replicates) and does not
+      enter the frozen atlas, so urn stays null here: fetch and mapping read
+      this registry, and a URN would pull the deposit into the frozen matrix.

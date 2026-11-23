@@ -61,3 +61,28 @@ def test_the_attenuation_table_covers_the_meta_predictors():
             "vest4", "esm1b"}
     present = meta & set(d.model)
     assert present == meta, f"missing from the attenuation table: {sorted(meta - present)}"
+
+
+def test_the_replicate_ceiling_is_preferred_where_both_are_validated(monkeypatch):
+    """The comment always said so; sorting the method names kept the standard-error
+    estimate. v5's data has no gene x stratum with both validated."""
+    import pandas as pd
+    from atlas import external_reliability, reliability as r
+
+    rel = pd.DataFrame([
+        {"gene": "G", "stratum": "all", "method": "se", "n": 100, "ceiling": 0.5,
+         "reliability": 0.25, "status": "validated"},
+        {"gene": "G", "stratum": "all", "method": "replicates", "n": 100, "ceiling": 0.8,
+         "reliability": 0.64, "status": "validated"},
+        {"gene": "H", "stratum": "all", "method": "se", "n": 100, "ceiling": 0.7,
+         "reliability": 0.49, "status": "validated"},
+    ])
+    monkeypatch.setattr(r, "MODELS", ["m"])
+    monkeypatch.setattr(r, "per_gene_rho", lambda mat, model: pd.DataFrame(
+        {"gene": ["G", "H"], "stratum": ["all", "all"], "model": [model] * 2,
+         "n": [100, 100], "rho": [0.4, 0.35]}))
+    for order in (rel, rel.iloc[::-1]):
+        out = r.realisation_table(pd.DataFrame({"m": [1.0]}), order).set_index("gene")
+        assert out.loc["G", "method"] == "replicates" and out.loc["G", "ceiling"] == 0.8
+        assert out.loc["H", "method"] == "se" and out.loc["H", "realisation"] == 0.35 / 0.7
+    assert external_reliability.METHOD_PREFERENCE is r.METHOD_PREFERENCE

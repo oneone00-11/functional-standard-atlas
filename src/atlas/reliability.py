@@ -55,6 +55,10 @@ MODELS = [
 
 MIN_N = 30
 
+# Where one gene x stratum has both estimates validated, the replicate estimate is the
+# primary one. An explicit order: sorting the method names happens to put "se" first.
+METHOD_PREFERENCE = {"replicates": 0, "se": 1}
+
 
 def spearman_brown(r: float, k: int = 2) -> float:
     """Reliability of a k-fold mean given the reliability of one measurement."""
@@ -174,9 +178,10 @@ def per_gene_rho(mat: pd.DataFrame, model: str) -> pd.DataFrame:
 
 def realisation_table(mat: pd.DataFrame, rel: pd.DataFrame) -> pd.DataFrame:
     """Observed ρ as a fraction of the attenuation ceiling, per gene × stratum × model."""
-    primary = rel[rel["status"] == "validated"]
-    # one ceiling per gene × stratum: prefer the replicate estimate where both exist
-    primary = (primary.sort_values("method", ascending=False)  # 'se' < 'replicates'
+    primary = rel[rel["status"] == "validated"].copy()
+    # one ceiling per gene × stratum: the replicate estimate where both exist
+    primary["_order"] = primary["method"].map(METHOD_PREFERENCE).fillna(len(METHOD_PREFERENCE))
+    primary = (primary.sort_values(["gene", "stratum", "_order"], kind="stable")
                       .drop_duplicates(["gene", "stratum"], keep="first"))
     ceil = primary.set_index(["gene", "stratum"])[["ceiling", "reliability", "method"]]
 

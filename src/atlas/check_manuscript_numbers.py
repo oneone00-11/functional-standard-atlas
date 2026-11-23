@@ -67,6 +67,13 @@ def _tolerance(tok: str) -> float:
     return 0.5 * 10 ** (-len(frac)) + 1e-12
 
 
+def _in_scratch(path: Path, results: Path) -> bool:
+    """Development output (results/_scratch/) is no pipeline value: CONVENTIONS.md rule 6
+    says nothing downstream may read it. A trial's inputs there once added three
+    million values to the pool, enough to "find" almost any number."""
+    return "_scratch" in path.relative_to(results).parts
+
+
 def pipeline_values(results: Path = RESULTS) -> np.ndarray:
     """Every numeric value appearing under results/, plus the row count of each
     table -- counts like "2,452 of 2,803 score sets" are genuine pipeline
@@ -80,6 +87,8 @@ def pipeline_values(results: Path = RESULTS) -> np.ndarray:
     vals: set[float] = set()
     for p in sorted(results.rglob("*")):
         if not p.is_file() or p.suffix.lower() not in {".tsv", ".csv", ".json"}:
+            continue
+        if _in_scratch(p, results):
             continue
         try:
             text = p.read_text(encoding="utf-8", errors="ignore")
@@ -100,6 +109,8 @@ def pipeline_values(results: Path = RESULTS) -> np.ndarray:
     # and shape is often exactly what the manuscript quotes ("10,888 calls in
     # total" is the row count of the definition sweep).
     for p in sorted(results.rglob("*.parquet")):
+        if _in_scratch(p, results):
+            continue
         try:
             import pyarrow.parquet as pq
             md = pq.ParquetFile(p).metadata

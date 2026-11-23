@@ -201,3 +201,17 @@ def test_a_stale_count_would_otherwise_pass_as_verified(tmp_path):
         assert np.any(np.abs(pool - stale) <= 0.5), (
             f"{stale} no longer coincides with a pipeline value; the rationale "
             "recorded here may need revisiting")
+
+
+def test_scratch_output_stays_out_of_the_pool(tmp_path):
+    """results/_scratch/ is development output that nothing downstream may read
+    (CONVENTIONS.md rule 6); a trial's inputs there once put three million values
+    into the pool, enough to "find" almost any number."""
+    (tmp_path / "kept_v1.tsv").write_text("a\tb\n4321.125\t1\n")
+    scratch = tmp_path / "_scratch" / "trial"
+    scratch.mkdir(parents=True)
+    (scratch / "inputs.tsv").write_text("a\n8765.375\n" + "1\n" * 6)
+    (scratch / "summary.json").write_text('{"x": 5432.625}')
+    pool = pipeline_values(tmp_path)
+    assert np.any(pool == 4321.125)
+    assert not np.any(pool == 8765.375) and not np.any(pool == 5432.625)

@@ -259,7 +259,7 @@ def external_table(raw: Path = RAW) -> tuple[pd.DataFrame, dict]:
 # --------------------------------------------------------------------------
 # combining with v5
 # --------------------------------------------------------------------------
-METHOD_PREFERENCE = {"replicates": 0, "se": 1}
+from atlas.reliability import METHOD_PREFERENCE  # noqa: E402  (one order, shared)
 
 
 def v5_primary(v5: pd.DataFrame) -> pd.DataFrame:
