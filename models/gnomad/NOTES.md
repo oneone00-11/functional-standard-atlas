@@ -22,3 +22,21 @@
   ultra-rare or unobserved in population databases, which is itself the
   point of the functional-vs-population comparison.
 - **Date scored (atlas full matrix)**: see `run_log_<col>.json`.
+
+## External genes (2026-11-22)
+
+`python -m atlas.external_scores lookups` runs this folder's `score.py` on the 5,095
+intronic SNVs of CTCF, SFPQ, RAD51D, XRCC2 and SBDS, unchanged, from a byte-identical
+copy in `cache/external_v1/` (sha256 checked), so that the run log it writes beside
+itself does not overwrite the record of the core-gene run here. The companion release
+scored no gnomAD column for these genes, so the definition, scorer and dataset
+(gnomad_r4) are the core genes'; the environment is the lookup environment the release
+recorded for its CADD, GPN-MSA and conservation columns, which holds this scorer's pins
+(requests 2.32.5, pandas 3.0.5, pyarrow 21.0.0). The remote source is recorded before
+scoring (`data/raw/external_v1/lookups.sources.json`). Output and run log:
+`cache/external_v1/`; the delivered column is in `results/external_scores_v1.parquet`,
+whose provenance record carries the dates and counts.
+
+Run 2026-11-22T15:35Z: 1,316 of the 5,095 found in gnomAD and scored (global and
+popmax); the other 3,779 are not in gnomAD and stay unscored, not filled. The release has
+no column to compare.

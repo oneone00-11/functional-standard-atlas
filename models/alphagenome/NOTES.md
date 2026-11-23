@@ -51,3 +51,33 @@ evaluation is Spearman rank-based and therefore robust to monotone scorer
 changes. As a robustness note for the paper, run an old-vs-new concordance
 check on ~200 splice variants (old scores from variant-fm-benchmark vs new
 scores from this pipeline) and report their Spearman; target > 0.9.
+
+## Official definition (2026-11-22)
+
+- `score_official.py` scores the official variant-scoring notebook's merged splicing
+  score, ported from the companion release's `scripts/stage_E17/score_official.py`
+  (tag v3.1.0-submission). The code runs from the release's `NOTEBOOK_SOURCE.json`
+  (copied to `data/raw/companion_v3.1.0/` by `python -m atlas.external_scores
+  companion`; sha256 checked): cells 5, 9 and 13 as written, and cell 15's lines for one
+  variant (a 1 Mb interval centred on it, the three scorers). The merged score is the
+  column `alphagenome_official`, apart from this folder's `alphagenome` column (the
+  older definition above); the three scorers are kept beside it.
+- Environment: this folder's `.venv`, client `alphagenome==0.10.0`, installed from
+  `requirements_official.txt` (the release's requirements file, byte for byte) with
+  `--require-hashes --no-deps`; pip freeze identical to the release's record.
+- Key: only through `read_key()` (the environment variable, or
+  `~/.config/alphagenome/key` with permissions 0600). Never printed or written; records
+  say only whether a key was found and where.
+- Guards: two threads at most; doubling pauses between attempts; stop on an
+  authentication error, on three variants in a row out of attempts, on a negative raw
+  score. `--check-start` scores the release's ten drift-check variants afresh and
+  compares them with the release; `--external` scores the variants; `--check-end`
+  scores the ten again and must equal `--check-start` to the last bit. `--mock` runs
+  offline for the tests.
+- Research use only; the scores train no other model. Outputs in `cache/official_v1/`;
+  the delivered columns are in `results/external_scores_v1.parquet`.
+- Run: the start's drift check equal to the release on all ten variants, to the last
+  bit; the 5,095 variants 2026-11-22T15:31:03Z to 16:21:45Z on two threads, 0 retries,
+  0 failures; the end's drift check equal to the start's, to the last bit. On the 4,522
+  rows the release scored, the merged score and the three scorers equal the release's
+  on every row.

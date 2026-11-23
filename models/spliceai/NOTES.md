@@ -30,3 +30,22 @@
 - **Benchmark verification**: first 300 variants all scored; UTR variants
   return 0.0 deltas, matching the companion matrix exactly.
 - **Date scored (atlas full matrix)**: see `run_log.json` after the full run.
+
+## External genes (2026-11-22)
+
+- `score_external.py` runs `score_fullprec.py` unchanged (its sha256 checked with
+  `--expect-sha256` and recorded) on a table of variants: here the 5,095 intronic SNVs
+  of CTCF, SFPQ, RAD51D, XRCC2 and SBDS (`data/raw/external_v1/score_input.parquet`,
+  written by `python -m atlas.external_scores check`).
+- Reference `data/refs/grch38_external.fa`: Ensembl release 112, chromosomes 1, 7, 16
+  and 17, built and checked by `models/pangolin/build_external_refs.py`. SpliceAI's
+  bundled `grch38` annotation, `-D 50`, mask 0, full precision: as for the core genes.
+- Environment: this folder's `.venv`, the one the companion release (tag
+  v3.1.0-submission) recorded for its external columns; pip freeze identical. One
+  process, values cached per variant (`cache/external_v1/spliceai.tsv`), resumable.
+- Output `cache/external_v1/spliceai.parquet` and its `.environment.json`; the
+  delivered column is `spliceai_ds` of `results/external_scores_v1.parquet`, whose
+  provenance record carries the dates and counts.
+- Run 2026-11-22T15:29:57Z to 2026-11-23T09:34:43Z (the machine slept from 2026-11-22T18:14Z to 2026-11-23T09:15Z and the run went on from its cache): 5,095 scored, 0 NaN,
+  0 exceptions. On the 4,522 rows the release scored (3-50 bp) every value equals the
+  release's (largest absolute difference 0).

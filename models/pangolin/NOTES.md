@@ -60,3 +60,27 @@ companion verification.
 `models/pangolin/run_full.sh` (user terminal; multi-hour torch CPU job).
 Then concordance vs companion `pangolin_score` (expected ρ=1.0), evaluate,
 assemble, heatmap — same as SpliceAI flow.
+
+## External genes (2026-11-22)
+
+- `build_external_refs.py` builds `data/refs/grch38_external.fa` (+ `.fai`),
+  `grch38_external.gtf` and `grch38_external.gtf.db`: Ensembl release 112, chromosomes
+  1, 7, 16 and 17, by the recipe above; `grch38_subset.*` is untouched. It checks
+  chromosomes 1 and 7 (FASTA and GTF rows) byte for byte against what the companion
+  release (tag v3.1.0-submission) scored on, reading the hashes from the release's run
+  logs, and chromosomes 16 and 17 against `grch38_subset.fa`; record:
+  `data/refs/grch38_external.build.json`.
+- `score_external.py` runs `score_fullprec.py` unchanged (sha256 checked with
+  `--expect-sha256` and recorded) on a table of variants, here the 5,095 intronic SNVs
+  of the five external genes, with that reference and database. **One thread per
+  process** (`OMP_NUM_THREADS=MKL_NUM_THREADS=1`, `torch.set_num_threads(1)`): the
+  companion release found the scorer reproduces its anchors bit for bit on one thread
+  and not on 2, 4, 6 or 8. Six worker processes, each with its own resumable cache in
+  `cache/external_v1/`; `--collect` writes `cache/external_v1/pangolin.parquet` and its
+  `.environment.json`.
+- Environment: the Pangolin venv the companion release recorded for its external
+  columns (that of the older checkout); pip freeze identical.
+- The delivered column is `pangolin_score` of `results/external_scores_v1.parquet`.
+- Run 2026-11-22T15:29:57Z to 2026-11-23T09:35:49Z (the machine slept from 2026-11-22T18:14Z to 2026-11-23T09:15Z and the run went on from its cache): 5,095 scored by
+  the six workers, 0 unscorable, 0 NaN, 0 exceptions. On the 4,522 rows the release scored
+  every value equals the release's (largest absolute difference 0).
