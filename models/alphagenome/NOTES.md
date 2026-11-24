@@ -81,3 +81,33 @@ scores from this pipeline) and report their Spearman; target > 0.9.
   0 failures; the end's drift check equal to the start's, to the last bit. On the 4,522
   rows the release scored, the merged score and the three scorers equal the release's
   on every row.
+
+## The frozen matrix by the official definition (2026-11-24)
+
+- `python -m atlas.alphagenome_official` (`src/atlas/alphagenome_official.py`) writes the
+  input and assembles what the scorer wrote; `score_official.py` is unchanged (sha256
+  3bb934200a35624f…, as in A2) and runs in this folder's `.venv` as above. Input
+  `data/raw/alphagenome_official_atlas_v1/score_input.parquet`: the frozen matrix's 64,178
+  variants, its 46,392 SNVs first and then the 17,786 others (9,714 deletions, 64
+  insertions, 8,008 complex), each part in the matrix's order. Outputs in
+  `cache/official_atlas_v1/`; the columns `alphagenome_official`,
+  `alphagenome_splice_sites`, `alphagenome_splice_site_usage` and
+  `alphagenome_splice_junctions` in `results/alphagenome_official_scores_v1.parquet`, with
+  its provenance record.
+- Trial: 20 variants drawn with seed 20261124 (10 SNVs; a deletion, an insertion and a
+  complex variant at ±1–2 bp; 7 other non-SNVs), into `cache/official_atlas_v1_trial/`:
+  every one scored by all three scorers, no raw score below zero, 0 retries.
+- Run: the start's drift check equal to the release on all ten variants, to the last bit
+  (2026-11-24T03:53Z). The 64,178 variants on two threads, in three segments (stopped
+  twice with Ctrl+C and resumed from the cache): 14,932 from 03:54:03Z to 06:18:13Z,
+  29,185 from 07:41:22Z to 12:24:17Z, 20,061 from 15:33:49Z to 18:59:52Z. The last
+  segment 0 retries and 0 failures; the scorer records calls and retries only for the
+  segment that completes a run, so the first two have none recorded. Every variant has a
+  row from each scorer and no NaN. The end's drift check (19:00:27Z to 19:00:32Z) equal to
+  the start's, to the last bit, and scored after the run.
+- Against the release (`results/alphagenome_official_concordance_v1.tsv`): on the release
+  analysis set's 8,853 SNVs, the merged score and the three scorers equal the release's
+  `all_scores.tsv` (read round-trip) on every row.
+- Against this folder's older `alphagenome` column (reported only): Spearman ρ 0.763 over
+  the 64,178 variants, 0.752 over the SNVs; by stratum, over all variants, from 0.437 at
+  ±1–2 bp to 0.924 beyond 50 bp; by gene × stratum in the same file.
