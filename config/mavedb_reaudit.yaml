@@ -1,0 +1,938 @@
+# Verdicts of the MaveDB survey's re-audit (atlas.mavedb_survey_reaudit), written by
+# hand by the rules in that module's docstring. Per deposit: the family whose reading it
+# shares (if any), each matched column's verdict (or, for a deposit of none, one
+# verdict), what the verdict rests on (basis: text = a quotation describes the column;
+# relation = a numeric relation between the columns pins it; header = the column's name
+# and the numeric checks only), the evidence (source and a quotation of at most 25
+# words) and a note. Sources: mavedb:score_set:<field>, mavedb:experiment:<field>,
+# pmc:<PMCID> (full text cached by `literature`), table:header. `assemble` checks every
+# quotation against its source, recomputes the relations and the numeric checks, and
+# stops on a deposit without a verdict.
+literature:
+  PMC5740498: Weile et al. 2017, the TileSeq/BarSeq framework (UBE2I, CALM1); the deposits' publication
+  PMC5547491: Rubin et al. 2017, Enrich2; the BRCA1 E3 deposit's publication, and the method behind the
+    Enrich2 output columns
+  PMC12147941: Olvera-León et al. 2024, RAD51C saturation genome editing; the deposits' publication
+  PMC7359949: Zhang et al. 2020, CYP2C9 and CYP2C19 abundance; the deposit's publication
+  PMC10577081: van Loggerenberg et al. 2023, HMBS; the deposit's publication
+  PMC8322931: Weile et al. 2021, MTHFR; identified from the deposits' titles (MaveDB links none)
+  PMC10866706: Weng et al. 2024, KRAS ddPCA; identified from the deposits' titles (MaveDB links none)
+  PMC10412457: Tsuboyama et al. 2023, cDNA display proteolysis; the platform's publication, identified
+    from the deposits' methods (MaveDB links none)
+families:
+  tsuboyama_combined:
+    description: 'Protease-stability platform, combined scores: score is dG, with its 95% interval'
+    columns:
+      score_95CI_low: uncertainty_of_score
+      score_95CI_high: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: The score column is the dG value calculated using the coupled model, calculated from the
+        counts across replicates and proteases.
+    - source: pmc:PMC10412457
+      quote: our Bayesian procedure produces confidence intervals for K 50 and Δ G estimates, producing
+        a quality estimate for each individual measurement
+    note: A model-based (Bayesian) interval on dG, not a spread between replicates; the score lies inside
+      it in every row.
+  tsuboyama_protease:
+    description: 'Protease-stability platform, one protease: score is log10 K50, with its 95% interval;
+      dG and its interval beside it'
+    columns:
+      score_95CI_low: uncertainty_of_score
+      score_95CI_high: uncertainty_of_score
+      dG_95CI_low: uncertainty_of_other
+      dG_95CI_high: uncertainty_of_other
+      fitting_err: undetermined
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: The score column is the log10 K50 value calculated using the ratio of sequence counts.
+    - source: pmc:PMC10412457
+      quote: our Bayesian procedure produces confidence intervals for K 50 and Δ G estimates, producing
+        a quality estimate for each individual measurement
+    note: score lies inside score_95CI in every row; dG lies inside dG_95CI in every row and score inside
+      it in few, so dG_95CI is dG's interval. fitting_err is described nowhere in the record or the paper.
+  domainome:
+    description: 'Domainome 1.0 (aPCA, DiMSum): score and sigma are raw_score and raw_sigma scaled linearly
+      within each domain'
+    columns:
+      sigma: uncertainty_of_score
+      raw_sigma: uncertainty_of_other
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Growth rates and growth rate errors were normalized within each protein domain by linearly
+        scaling the data
+    relations:
+    - ratio:
+      - sigma
+      - raw_sigma
+    - linear:
+      - score
+      - raw_score
+    note: 'sigma / raw_sigma is one constant per deposit and equals the slope of score on raw_score: sigma
+      is the error of score, raw_sigma that of raw_score.'
+  tem1_err:
+    description: TEM-1 lineage fitness scores with an estimated error column
+    columns:
+      err: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: The estimated error ('err' column) is based on the percent difference in fitness between
+        the nucleotide variant fitness and the average fitness
+    note: An error of the score, but relative (a percent difference between codon-level and amino-acid-level
+      fitness), not a standard error in the score's units.
+  cohesin:
+    description: 'Cohesin-dockerin binding: score with score_err; the raw log2 ratio with log2_ratio_err'
+    columns:
+      score_err: uncertainty_of_score
+      log2_ratio_err: uncertainty_of_other
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,score_err,log2_ratio,log2_ratio_err
+    - source: mavedb:score_set:methodText
+      quote: The fitness score is listed as the score, and the raw $\log_2$ ratios are also included.
+    note: No text defines the two error columns; the names pair them with score and log2_ratio, and both
+      are non-negative. The paper is not in PMC.
+  enrich2_replicates:
+    description: 'Enrich2 output: the combined score and its SE, then each replicate''s score and SE'
+    columns: {}
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,SE,epsilon,SE_Replicate_1,score_Replicate_1
+    - source: pmc:PMC5547491
+      quote: Variant standard errors are also calculated for each selection and replicate score
+    note: The header is Enrich2's (score, SE, epsilon; per-replicate score and SE); the deposit's own
+      record does not describe the columns, and the Enrich2 paper is the method's, not the deposit's.
+  sge_bap1:
+    description: 'BAP1 saturation genome editing, per exon: score is the continuous LFC'
+    columns:
+      SE_bind_continuous: uncertainty_of_score
+      SE_bind_D4_D7: uncertainty_of_other
+      SE_bind_D4_D10: uncertainty_of_other
+      SE_bind_D4_D14: uncertainty_of_other
+      SE_bind_D4_D21: uncertainty_of_other
+    basis: relation
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: to calculate the depletion kinetics of the variants within target regions
+    relations:
+    - equal:
+      - score
+      - processed_LFC_continuous
+    - equal:
+      - processed_Z_continuous
+      - processed_LFC_continuous / SE_bind_continuous
+      rtol: 0.005
+    note: 'score equals processed_LFC_continuous, and processed_Z_continuous is that LFC over SE_bind_continuous:
+      SE_bind_continuous is the score''s SE; the other SE_bind columns are the SEs of the other comparisons''
+      LFCs. The deposit rounds to six decimals, so the ratio is checked to 0.5%.'
+  sge_rad51c:
+    description: 'RAD51C saturation genome editing: score is the D4-D14 z-score'
+    columns:
+      SE_bind_D4_D7: uncertainty_of_other
+      SE_bind_D4_D14: uncertainty_of_other
+      SE_bind_continuous: uncertainty_of_other
+    basis: relation
+    evidence:
+    - source: pmc:PMC12147941
+      quote: median-scaled LFCs were converted to z-scores by dividing by the standard error
+    relations:
+    - equal:
+      - score
+      - processed_adj_lfc_D4_D14 / SE_bind_D4_D14
+    - equal:
+      - z_score_continuous
+      - processed_adj_lfc_continuous / SE_bind_continuous
+    note: 'score is processed_adj_lfc_D4_D14 over SE_bind_D4_D14, a z-score: the SE_bind columns are the
+      SEs of the LFCs, not of the score. No column is the score''s own uncertainty.'
+  roth_tileseq:
+    description: TileSeq/BarSeq maps (score, sd, se)
+    columns:
+      sd: uncertainty_of_score
+      se: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: pmc:PMC5740498
+      quote: the largest standard error associated with any experimentally measured score in the given
+        dataset
+  mthfr:
+    description: MTHFR complementation maps (score with se; the experimental score with its own se beside
+      it in some)
+    columns:
+      sd: uncertainty_of_score
+      se: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: pmc:PMC8322931
+      quote: A functionality score and associated measurement error was derived for each variant in each
+        folinate concentration and genetic background.
+    note: MaveDB links no publication; the paper is identified from the deposits' titles.
+  mapk1:
+    description: 'MAPK1/ERK2 drug selections: score is the mean of the replicate columns, the SD column
+      their SD'
+    columns:
+      SCH_SD: uncertainty_of_score
+      VRT_SD: uncertainty_of_score
+    basis: relation
+    evidence:
+    - source: mavedb:experiment:methodText
+      quote: Score is an average of 6 replicates normalized to the total reads per lane and log2 transformed
+    note: 'Recomputed from the replicate columns (which the replicate pattern does not match): the score
+      is their mean and the SD column their SD (ddof 0).'
+  kcnq2:
+    description: 'KCNQ2 patch clamp: score with SEM and the number of replicates'
+    columns:
+      SEM: uncertainty_of_score
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,SEM,replicates
+    note: No text defines SEM; the header pairs it with the score and the replicate count. MaveDB links
+      no publication.
+  ldlr:
+    description: LDLR uptake maps (score, sd, se, df)
+    columns:
+      sd: uncertainty_of_score
+      se: uncertainty_of_score
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,hgvsp,aapos,sd,se,df
+    note: The record does not describe the columns, nor does the paper's text.
+deposits:
+  urn:mavedb:00000295-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000600-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000175-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000517-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000178-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000151-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000279-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000369-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000530-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000524-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000518-0-1:
+    family: tsuboyama_combined
+  urn:mavedb:00000196-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000213-a-2:
+    family: tsuboyama_protease
+  urn:mavedb:00000245-a-2:
+    family: tsuboyama_protease
+  urn:mavedb:00000515-a-2:
+    family: tsuboyama_protease
+  urn:mavedb:00000157-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000542-a-2:
+    family: tsuboyama_protease
+  urn:mavedb:00000358-a-2:
+    family: tsuboyama_protease
+  urn:mavedb:00000357-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000259-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000275-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000286-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000391-a-2:
+    family: tsuboyama_protease
+  urn:mavedb:00000501-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000384-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000566-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000537-a-2:
+    family: tsuboyama_protease
+  urn:mavedb:00000574-a-2:
+    family: tsuboyama_protease
+  urn:mavedb:00000613-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00000630-a-1:
+    family: tsuboyama_protease
+  urn:mavedb:00001030-a-1:
+    family: domainome
+  urn:mavedb:00000862-a-1:
+    family: domainome
+  urn:mavedb:00001097-a-1:
+    family: domainome
+  urn:mavedb:00000752-a-1:
+    family: domainome
+  urn:mavedb:00000881-a-1:
+    family: domainome
+  urn:mavedb:00000979-a-1:
+    family: domainome
+  urn:mavedb:00001180-a-1:
+    family: domainome
+  urn:mavedb:00000941-a-1:
+    family: domainome
+  urn:mavedb:00001049-a-1:
+    family: domainome
+  urn:mavedb:00000927-a-1:
+    family: domainome
+  urn:mavedb:00001004-a-1:
+    family: domainome
+  urn:mavedb:00000955-a-1:
+    family: domainome
+  urn:mavedb:00000956-a-1:
+    family: domainome
+  urn:mavedb:00000984-a-1:
+    family: domainome
+  urn:mavedb:00000776-a-1:
+    family: domainome
+  urn:mavedb:00000767-a-1:
+    family: domainome
+  urn:mavedb:00000726-a-1:
+    family: domainome
+  urn:mavedb:00000817-a-1:
+    family: domainome
+  urn:mavedb:00001121-a-1:
+    family: domainome
+  urn:mavedb:00001022-a-1:
+    family: domainome
+  urn:mavedb:00000796-a-1:
+    family: domainome
+  urn:mavedb:00000805-a-1:
+    family: domainome
+  urn:mavedb:00001033-a-1:
+    family: domainome
+  urn:mavedb:00001101-a-1:
+    family: domainome
+  urn:mavedb:00001031-a-1:
+    family: domainome
+  urn:mavedb:00000797-a-1:
+    family: domainome
+  urn:mavedb:00000946-a-1:
+    family: domainome
+  urn:mavedb:00001088-a-1:
+    family: domainome
+  urn:mavedb:00001048-a-1:
+    family: domainome
+  urn:mavedb:00001248-c-3:
+    columns:
+      Sigma: uncertainty_of_score
+      sigma1_uncorr: uncertainty_of_other
+      sigma2_uncorr: uncertainty_of_other
+      sigma3_uncorr: uncertainty_of_other
+      sigma4_uncorr: uncertainty_of_other
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Enrichment scores and error estimates were calculated with DiMSum.
+    note: 'DiMSum''s output: Sigma is the error of the fitness (score); sigma1-4_uncorr are the errors
+      of the four replicates'' uncorrected fitness columns beside them.'
+  urn:mavedb:00000070-a-1:
+    family: tem1_err
+  urn:mavedb:00000070-a-2:
+    family: tem1_err
+  urn:mavedb:00000070-a-3:
+    family: tem1_err
+  urn:mavedb:00000070-a-4:
+    family: tem1_err
+  urn:mavedb:00000085-a-1:
+    family: tem1_err
+  urn:mavedb:00000085-b-1:
+    family: tem1_err
+  urn:mavedb:00000085-c-1:
+    family: tem1_err
+  urn:mavedb:00000085-d-1:
+    family: tem1_err
+  urn:mavedb:00000077-a-1:
+    family: cohesin
+  urn:mavedb:00000077-a-2:
+    family: cohesin
+  urn:mavedb:00000077-b-1:
+    family: cohesin
+  urn:mavedb:00000077-b-2:
+    family: cohesin
+  urn:mavedb:00000115-a-23:
+    columns:
+      SE: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: doubledeepPCA + DiMSum
+    - source: pmc:PMC10866706
+      quote: Finally, fitness estimates and associated errors were then obtained from the resulting filtered
+        variant counts with DiMSum (countPath option).
+    note: MaveDB links no publication; the paper is identified from the deposit's title.
+  urn:mavedb:00000049-a-8:
+    family: mthfr
+  urn:mavedb:00000049-a-6:
+    family: mthfr
+    note: se sits beside score, exp.se beside exp.score (which the error pattern does not match); score
+      differs from exp.score in most rows.
+  urn:mavedb:00000049-a-1:
+    family: mthfr
+    note: se sits beside score, exp.se beside exp.score (which the error pattern does not match); score
+      differs from exp.score in most rows.
+  urn:mavedb:00000046-a-2:
+    family: enrich2_replicates
+    columns:
+      SE: uncertainty_of_score
+      SE_Replicate_1: uncertainty_of_other
+      SE_Replicate_2: uncertainty_of_other
+      SE_Replicate_3: uncertainty_of_other
+  urn:mavedb:00000043-a-2:
+    family: enrich2_replicates
+    columns:
+      SE: uncertainty_of_score
+      SE_Replicate_1: uncertainty_of_other
+      SE_Replicate_2: uncertainty_of_other
+      SE_Replicate_3: uncertainty_of_other
+      SE_Replicate_4: uncertainty_of_other
+      SE_Replicate_5: uncertainty_of_other
+      SE_Replicate_6: uncertainty_of_other
+    note: The deposit's paper is not in PMC.
+  urn:mavedb:00000003-a-1:
+    columns:
+      SE: uncertainty_of_score
+      SE_PlusE2Rep3: uncertainty_of_other
+      SE_PlusE2Rep4: uncertainty_of_other
+      SE_PlusE2Rep5: uncertainty_of_other
+      SE_PlusE2NewRep3: uncertainty_of_other
+      SE_PlusE2NewRep4: uncertainty_of_other
+      SE_PlusE2NewRep5: uncertainty_of_other
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Replicate scores were combined using the Enrich2 random-effects model.
+    - source: mavedb:score_set:methodText
+      quote: The scores and standard errors calculated for each of replicate appear as additional columns.
+  urn:mavedb:00001269-a-1:
+    family: ldlr
+  urn:mavedb:00001269-c-1:
+    family: ldlr
+  urn:mavedb:00000103-c-1:
+    family: mapk1
+    relations:
+    - row_mean:
+      - score
+      - - SCH_REP_A
+        - SCH_REP_B
+        - SCH_REP_C
+        - SCH_REP_D
+        - SCH_REP_E
+        - SCH_REP_F
+    - row_std:
+      - SCH_SD
+      - - SCH_REP_A
+        - SCH_REP_B
+        - SCH_REP_C
+        - SCH_REP_D
+        - SCH_REP_E
+        - SCH_REP_F
+      - 0
+  urn:mavedb:00000103-d-1:
+    family: mapk1
+    relations:
+    - row_mean:
+      - score
+      - - VRT_REP_A
+        - VRT_REP_B
+        - VRT_REP_C
+        - VRT_REP_D
+    - row_std:
+      - VRT_SD
+      - - VRT_REP_A
+        - VRT_REP_B
+        - VRT_REP_C
+        - VRT_REP_D
+      - 0
+    note: Four replicate columns here, though the experiment's text says six.
+  urn:mavedb:00000664-a-8:
+    family: kcnq2
+    note: Two rows only.
+  urn:mavedb:00000664-a-18:
+    family: kcnq2
+  urn:mavedb:00000107-b-1:
+    columns:
+      se: uncertainty_of_score
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,se
+    note: No text and no publication in MaveDB; the header pairs se with the score.
+  urn:mavedb:00001218-a-1:
+    columns:
+      SE_abundance: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Enrich2 also calculated a standard error and epsilon value for each MLH1 variant.
+  urn:mavedb:00000055-b-1:
+    columns:
+      sd: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Reported are the non-normalized average score and standard deviation for each missense change
+    note: The record adds that what was averaged (codons or replicates) is not specified.
+  urn:mavedb:00001265-a-2:
+    columns:
+      standard_error: uncertainty_of_score
+      95_ci_upper: uncertainty_of_score
+      95_ci_lower: uncertainty_of_score
+    basis: relation
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Functional scores for SNVs and 3-bp deletions were calculated by applying a negative binomial
+        regression model to variant counts
+    relations:
+    - halfwidth:
+      - 95_ci_upper
+      - score
+      - standard_error
+    note: The interval is score plus or minus 1.96 standard errors in every row.
+  urn:mavedb:00001282-a-1:
+    columns:
+      se: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Score columns include the variant (hgvs_pro), the functional score, standard error of score
+        (se), degrees of freedom (df).
+  urn:mavedb:00000001-a-2:
+    family: roth_tileseq
+  urn:mavedb:00000001-c-1:
+    family: roth_tileseq
+  urn:mavedb:00000108-a-1:
+    columns:
+      sd: uncertainty_of_score
+      se: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: pmc:PMC10577081
+      quote: We estimated uncertainty (standard error) for each functional impact score both on the basis
+        of agreement between two biological replicates
+  urn:mavedb:00000662-m-1:
+    family: sge_bap1
+  urn:mavedb:00000662-d-1:
+    family: sge_bap1
+  urn:mavedb:00000673-0-1:
+    family: sge_rad51c
+  urn:mavedb:00000673-d-1:
+    family: sge_rad51c
+  urn:mavedb:00000674-a-2:
+    columns:
+      sd: uncertainty_of_score
+      se: uncertainty_of_score
+      ci_lower: uncertainty_of_score
+      ci_upper: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: The normalized scores were averaged across 3 replicates and standard error of the mean calculated.
+    relations:
+    - halfwidth:
+      - ci_upper
+      - score
+      - se
+  urn:mavedb:00000062-a-1:
+    columns:
+      sd: uncertainty_of_score
+      se: uncertainty_of_score
+      lower_ci: uncertainty_of_score
+      upper_ci: uncertainty_of_score
+    basis: relation
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: The experiment was repeated 4 times and the final score was the mean of them.
+    - source: pmc:PMC7359949
+      quote: The final abundance score for each variant was calculated by averaging mean abundance scores
+        across replicate assays.
+    relations:
+    - row_mean:
+      - score
+      - - e1_score
+        - e2_score
+        - e3_score
+        - e4_score
+    - row_std:
+      - sd
+      - - e1_score
+        - e2_score
+        - e3_score
+        - e4_score
+      - 1
+    - halfwidth:
+      - upper_ci
+      - score
+      - se
+    note: score is the mean of the four replicate columns (which the replicate pattern does not match)
+      and sd their SD.
+  urn:mavedb:00000095-b-1:
+    columns:
+      sd: uncertainty_of_score
+      se: uncertainty_of_score
+      lower_ci: uncertainty_of_score
+      upper_ci: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:experiment:methodText
+      quote: Confidence intervals and variance estimates are based on replicate scores.
+  urn:mavedb:00001207-a-2:
+    columns:
+      SE_surface: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Enrich2 that calculates a score and standard error for each variant based on a fitted weighted-least-squares
+        regression
+  urn:mavedb:00001216-a-1:
+    columns:
+      SE: uncertainty_of_score
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Scores were averaged across the two replicate experiments.
+    - source: mavedb:score_set:methodText
+      quote: Variants with a standard error greater than 0.2 were removed from subsequent analyses.
+  urn:mavedb:00000045-g-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00000045-f-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00000045-j-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00000040-a-2:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00000086-f-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00000086-a-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00000090-b-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00001234-c-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00001268-b-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00001279-a-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00001201-a-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00000059-a-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00001233-a-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00001232-b-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00000071-b-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else.
+  urn:mavedb:00001204-a-2:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: accession,hgvs_nt,hgvs_splice,hgvs_pro,score
+    note: The table holds the score and nothing else. The survey could not fetch this table (HTTPError)
+      and classed it none by default.
+  urn:mavedb:00000115-a-3:
+    verdict: missed_uncertainty
+    missed_columns:
+    - std
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: doubledeepPCA + DiMSum + MoChi
+    - source: pmc:PMC10866706
+      quote: The variability of inferred free energy changes was calculated between ten separate models
+        fit using data from
+    note: std is the SD of the free-energy change (the score) across ten model fits; the error pattern
+      has no bare std. MaveDB links no publication; the paper is identified from the deposits' titles.
+  urn:mavedb:00000115-a-7:
+    verdict: missed_uncertainty
+    missed_columns:
+    - std
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: doubledeepPCA + DiMSum + MoChi
+    - source: pmc:PMC10866706
+      quote: The variability of inferred free energy changes was calculated between ten separate models
+        fit using data from
+    note: std is the SD of the free-energy change (the score) across ten model fits; the error pattern
+      has no bare std. MaveDB links no publication; the paper is identified from the deposits' titles.
+  urn:mavedb:00000038-b-2:
+    verdict: missed_uncertainty
+    missed_columns:
+    - Std
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: The "Std" column lists the standard deviation calculated from multiple measurements of synonymous
+        codons.
+    note: The SD over synonymous codons of the amino-acid score; its unit (score or log2 ratio) is not
+      stated. The error pattern has no bare std.
+  urn:mavedb:00000038-a-1:
+    verdict: missed_uncertainty
+    missed_columns:
+    - Std
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: The "Std" column lists the standard deviation calculated from multiple measurements of synonymous
+        codons.
+    note: The SD over synonymous codons of the amino-acid score; its unit (score or log2 ratio) is not
+      stated. The error pattern has no bare std.
+  urn:mavedb:00000094-a-13:
+    verdict: none
+    basis: text
+    evidence:
+    - source: mavedb:experiment:methodText
+      quote: Only variants that contained at least three replicates are included.
+    note: replicates counts the recordings (whole numbers, 4-6); no spread is given.
+  urn:mavedb:00001239-a-3:
+    verdict: missed_replicates
+    missed_columns:
+    - a14BindR1
+    - a14BindR2
+    basis: text
+    evidence:
+    - source: mavedb:experiment:methodText
+      quote: We performed two replicates for each antibody binding assay (four in total)
+    note: Two replicate columns the replicate pattern does not match; their mean does not reproduce the
+      score (see the replicate check), so by the survey's rule they would be replicates that do not reconcile,
+      not an estimate.
+  urn:mavedb:00001239-a-6:
+    verdict: missed_replicates
+    missed_columns:
+    - insBindR1
+    - insBindR2
+    basis: text
+    evidence:
+    - source: mavedb:experiment:methodText
+      quote: We performed two replicates for each antibody binding assay (four in total)
+    note: Two replicate columns the replicate pattern does not match; their mean does not reproduce the
+      score (see the replicate check), so by the survey's rule they would be replicates that do not reconcile,
+      not an estimate.
+  urn:mavedb:00000110-a-3:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,hgvs_tx
+    note: hgvs_tx is a variant name.
+  urn:mavedb:00000218-a-2:
+    family: tsuboyama_protease
+    verdict: missed_uncertainty
+    missed_columns:
+    - score_95CI_low
+    - score_95CI_high
+    note: The survey could not fetch this table (HTTPError) and classed it none by default; the current
+      table carries the score's interval, which the error pattern matches.
+  urn:mavedb:00000462-a-1:
+    family: tsuboyama_protease
+    verdict: missed_uncertainty
+    missed_columns:
+    - score_95CI_low
+    - score_95CI_high
+    note: The survey could not fetch this table (HTTPError) and classed it none by default; the current
+      table carries the score's interval, which the error pattern matches.
+  urn:mavedb:00001257-a-1:
+    verdict: missed_uncertainty
+    missed_columns:
+    - iqr
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Variant-level scores were obtained by median-averaging across barcodes, and confidence intervals
+        were estimated using the interquartile range of barcode scores.
+    note: An interquartile range over barcodes, with their number, not an SE or SD.
+  urn:mavedb:00001240-a-3:
+    verdict: none
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: as well as standard deviations derived from the Gaussian fit
+    note: std_on and std_off are the widths of the Gaussians fitted to each variant's cell distribution,
+      not errors of the fitted mean; their magnitudes (median about 70, up to 1e12) are not on the score's
+      scale (0.8-4.7).
+  urn:mavedb:00000658-g-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,cLFC_trend_BH_FDR,D7_combined_LFC
+    note: Log fold changes and FDRs; no error column.
+  urn:mavedb:00000097-i-2:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,score_raw,score_day5,score_rna
+    note: One replicate per deposit (the titles say Replicate 1); the other readouts are scores, not errors.
+  urn:mavedb:00000097-a-2:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,score_raw,score_day5,score_rna
+    note: One replicate per deposit (the titles say Replicate 1); the other readouts are scores, not errors.
+  urn:mavedb:00000097-e-2:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,score_raw,score_day5,score_rna
+    note: One replicate per deposit (the titles say Replicate 1); the other readouts are scores, not errors.
+  urn:mavedb:00000034-a-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,p-value,unique_tags
+    note: A p-value and tag counts; no error column.
+  urn:mavedb:00000034-b-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,p-value,unique_tags
+    note: A p-value and tag counts; no error column.
+  urn:mavedb:00000031-a-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,p-value,unique_tags
+    note: A p-value and tag counts; no error column.
+  urn:mavedb:00001205-a-1:
+    verdict: missed_uncertainty
+    missed_columns:
+    - error
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,error,LLR,LLR_strength,Filter_CI
+    - source: mavedb:score_set:methodText
+      quote: Functional scores were calculated using the TileSeq Analysis pipeline
+    note: No text defines error; the header pairs it with the score (non-negative). The error pattern's
+      bare err does not match error.
+  urn:mavedb:00001227-a-2:
+    verdict: missed_uncertainty
+    missed_columns:
+    - std
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,std,ks_fdr_pvalue
+    - source: mavedb:score_set:methodText
+      quote: comparing each variant's barcode-level activity distribution to wild-type
+    note: No text defines std; the record describes barcode-level activities, which std presumably spreads
+      over. The error pattern has no bare std.
+  urn:mavedb:00000083-a-1:
+    verdict: none
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,EI
+    note: EI is a second readout, not an error.
+  urn:mavedb:00000663-a-1:
+    verdict: missed_uncertainty
+    missed_columns:
+    - error
+    basis: text
+    evidence:
+    - source: mavedb:score_set:methodText
+      quote: Fitness scores were calculated from a variant count table using the DiMSum error model and
+        pipeline.
+    note: DiMSum's fitness error; the error pattern's bare err does not match error.
+  urn:mavedb:00000053-a-1:
+    verdict: undetermined
+    basis: header
+    evidence:
+    - source: table:header
+      quote: score,sigma
+    note: The record lists sigma as a score column but has no text and no publication, and its table (648,022
+      variants) could not be fetched (the API timed out), so nothing could be checked. The survey could
+      not fetch it either and classed it none by default.
