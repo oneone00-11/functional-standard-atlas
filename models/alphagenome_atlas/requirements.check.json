@@ -1,0 +1,491 @@
+{
+ "written_utc": "2026-11-24T19:27:14+00:00",
+ "interpreter": "~/work/envs/alphagenome-atlas/bin/python",
+ "python": "3.12.13",
+ "platform": "macOS-26.6.2-arm64-arm-64bit",
+ "packages": 48,
+ "wheels_whose_record_matches_the_installed_files": 48,
+ "problems": [],
+ "files": [
+  {
+   "spec": "PyYAML==6.0.3",
+   "file": "pyyaml-6.0.3-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "fc09d0aa354569bc501d4e787133afc08552722d3ab34836a80547331bb5d4a0",
+   "kind": "wheel",
+   "record_files": 23,
+   "installed_files_hashed": 24,
+   "compared": 23,
+   "identical": 23
+  },
+  {
+   "spec": "absl-py==2.5.0",
+   "file": "absl_py-2.5.0-py3-none-any.whl",
+   "sha256": "0f17b89f2a4eaaedc4f28c622998aa690564b3012a396a4ffad0821007fe03ba",
+   "kind": "wheel",
+   "record_files": 29,
+   "installed_files_hashed": 30,
+   "compared": 29,
+   "identical": 29
+  },
+  {
+   "spec": "alphagenome==0.9.0",
+   "file": "alphagenome-0.9.0-py3-none-any.whl",
+   "sha256": "a4f35884341ae85b5d2cf088dfe0304961de7ae4a590d4538653069673de32f4",
+   "kind": "wheel",
+   "record_files": 80,
+   "installed_files_hashed": 82,
+   "compared": 80,
+   "identical": 80
+  },
+  {
+   "spec": "anndata==0.13.4",
+   "file": "anndata-0.13.4-py3-none-any.whl",
+   "sha256": "028c4e4f968a68965d3d0fc465c947890fa8e5aa6d2506104590f46080c7736d",
+   "kind": "wheel",
+   "record_files": 60,
+   "installed_files_hashed": 61,
+   "compared": 60,
+   "identical": 60
+  },
+  {
+   "spec": "annotated-types==0.8.0",
+   "file": "annotated_types-0.8.0-py3-none-any.whl",
+   "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+   "kind": "wheel",
+   "record_files": 6,
+   "installed_files_hashed": 7,
+   "compared": 6,
+   "identical": 6
+  },
+  {
+   "spec": "array-api-compat==1.15.0",
+   "file": "array_api_compat-1.15.0-py3-none-any.whl",
+   "sha256": "7b1b9c53269061403fd5f45a8de349f16e7887653328bfa0c5f2d45299ff0a8e",
+   "kind": "wheel",
+   "record_files": 52,
+   "installed_files_hashed": 53,
+   "compared": 52,
+   "identical": 52
+  },
+  {
+   "spec": "contourpy==1.4.0",
+   "file": "contourpy-1.4.0-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "c76f3a5318164db7d9401132fc1b5364b784c613c93fa506e3b5e6d1bf353ec8",
+   "kind": "wheel",
+   "record_files": 23,
+   "installed_files_hashed": 24,
+   "compared": 23,
+   "identical": 23
+  },
+  {
+   "spec": "cycler==0.12.1",
+   "file": "cycler-0.12.1-py3-none-any.whl",
+   "sha256": "85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30",
+   "kind": "wheel",
+   "record_files": 6,
+   "installed_files_hashed": 7,
+   "compared": 6,
+   "identical": 6
+  },
+  {
+   "spec": "donfig==0.8.1.post1",
+   "file": "donfig-0.8.1.post1-py3-none-any.whl",
+   "sha256": "2a3175ce74a06109ff9307d90a230f81215cbac9a751f4d1c6194644b8204f9d",
+   "kind": "wheel",
+   "record_files": 13,
+   "installed_files_hashed": 14,
+   "compared": 13,
+   "identical": 13
+  },
+  {
+   "spec": "fonttools==4.65.0",
+   "file": "fonttools-4.65.0-cp312-cp312-macosx_10_13_universal2.whl",
+   "sha256": "e844a45c9e5ced6536f184cf1a65b5d65e8f7e711993b413e10500a8223622e5",
+   "kind": "wheel",
+   "record_files": 362,
+   "installed_files_hashed": 367,
+   "compared": 361,
+   "identical": 361
+  },
+  {
+   "spec": "fsspec==2026.9.0",
+   "file": "fsspec-2026.9.0-py3-none-any.whl",
+   "sha256": "8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f",
+   "kind": "wheel",
+   "record_files": 61,
+   "installed_files_hashed": 62,
+   "compared": 61,
+   "identical": 61
+  },
+  {
+   "spec": "google-crc32c==1.8.0",
+   "file": "google_crc32c-1.8.0-cp312-cp312-macosx_12_0_arm64.whl",
+   "sha256": "4b8286b659c1335172e39563ab0a768b8015e88e08329fa5321f774275fc3113",
+   "kind": "wheel",
+   "record_files": 14,
+   "installed_files_hashed": 15,
+   "compared": 14,
+   "identical": 14
+  },
+  {
+   "spec": "grpcio==1.84.0",
+   "file": "grpcio-1.84.0-cp312-cp312-macosx_11_0_universal2.whl",
+   "sha256": "406583b4e8fb2282ebd392e12b963e601c1f82e07125a8c2cb5b144e7e024796",
+   "kind": "wheel",
+   "record_files": 65,
+   "installed_files_hashed": 66,
+   "compared": 65,
+   "identical": 65
+  },
+  {
+   "spec": "h5py==3.16.0",
+   "file": "h5py-3.16.0-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "42b012933a83e1a558c673176676a10ce2fd3759976a0fedee1e672d1e04fc9d",
+   "kind": "wheel",
+   "record_files": 102,
+   "installed_files_hashed": 103,
+   "compared": 102,
+   "identical": 102
+  },
+  {
+   "spec": "immutabledict==4.3.1",
+   "file": "immutabledict-4.3.1-py3-none-any.whl",
+   "sha256": "c9facdc0ff30fdb8e35bd16532026cac472a549e182c94fa201b51b25e4bf7bf",
+   "kind": "wheel",
+   "record_files": 5,
+   "installed_files_hashed": 6,
+   "compared": 5,
+   "identical": 5
+  },
+  {
+   "spec": "jaxtyping==0.3.11",
+   "file": "jaxtyping-0.3.11-py3-none-any.whl",
+   "sha256": "8a4bedc4e3f963fa82df41bd13c7ebc2bad925601eb48614c65798f21329d4e3",
+   "kind": "wheel",
+   "record_files": 19,
+   "installed_files_hashed": 20,
+   "compared": 19,
+   "identical": 19
+  },
+  {
+   "spec": "kiwisolver==1.5.1",
+   "file": "kiwisolver-1.5.1-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "1798e83840c3f627246104c4d8a9639c60fa068adf9ce92b61791781fa8a68c1",
+   "kind": "wheel",
+   "record_files": 9,
+   "installed_files_hashed": 10,
+   "compared": 9,
+   "identical": 9
+  },
+  {
+   "spec": "legacy-api-wrap==1.5",
+   "file": "legacy_api_wrap-1.5-py3-none-any.whl",
+   "sha256": "5a8ea50e3e3bcbcdec3447b77034fd0d32cb2cf4089db799238708e4d7e0098d",
+   "kind": "wheel",
+   "record_files": 8,
+   "installed_files_hashed": 9,
+   "compared": 8,
+   "identical": 8
+  },
+  {
+   "spec": "matplotlib==3.11.2",
+   "file": "matplotlib-3.11.2-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "ef31985c4dedb5f1424e1aec6849a47dd37689cb7fa3c20b1b82187f26806261",
+   "kind": "wheel",
+   "record_files": 601,
+   "installed_files_hashed": 602,
+   "compared": 601,
+   "identical": 601
+  },
+  {
+   "spec": "ml_dtypes==0.6.0",
+   "file": "ml_dtypes-0.6.0-cp312-cp312-macosx_10_13_universal2.whl",
+   "sha256": "5359c588cc62de6f78d7430f06b65853d884955494d86d6ad90b6dd64a3f3a08",
+   "kind": "wheel",
+   "record_files": 9,
+   "installed_files_hashed": 10,
+   "compared": 9,
+   "identical": 9
+  },
+  {
+   "spec": "msgspec==0.21.1",
+   "file": "msgspec-0.21.1-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "5102c7e9b3acff82178449b85006d96310e690291bb1ea0142f1b24bcb8aabcb",
+   "kind": "wheel",
+   "record_files": 22,
+   "installed_files_hashed": 23,
+   "compared": 22,
+   "identical": 22
+  },
+  {
+   "spec": "natsort==8.4.0",
+   "file": "natsort-8.4.0-py3-none-any.whl",
+   "sha256": "4732914fb471f56b5cce04d7bae6f164a592c7712e1c85f9ef585e197299521c",
+   "kind": "wheel",
+   "record_files": 17,
+   "installed_files_hashed": 19,
+   "compared": 17,
+   "identical": 17
+  },
+  {
+   "spec": "numcodecs==0.17.0",
+   "file": "numcodecs-0.17.0-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "d30c69b4bdb1755af1022fa913e184eaadc4fc0cd38f736e483e8ad205e130d1",
+   "kind": "wheel",
+   "record_files": 46,
+   "installed_files_hashed": 47,
+   "compared": 46,
+   "identical": 46
+  },
+  {
+   "spec": "numpy==2.5.3",
+   "file": "numpy-2.5.3-cp312-cp312-macosx_14_0_arm64.whl",
+   "sha256": "a72f874bc9e10e4b8f80426fb49716d5141f64442a0c8418065093ec8017fbb0",
+   "kind": "wheel",
+   "record_files": 922,
+   "installed_files_hashed": 925,
+   "compared": 922,
+   "identical": 922
+  },
+  {
+   "spec": "packaging==26.3",
+   "file": "packaging-26.3-py3-none-any.whl",
+   "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+   "kind": "wheel",
+   "record_files": 28,
+   "installed_files_hashed": 29,
+   "compared": 28,
+   "identical": 28
+  },
+  {
+   "spec": "pandas==3.0.6",
+   "file": "pandas-3.0.6-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "9dab635a549e58a053c7b0fa054dc0bd7be22f0ed9a720f4a85d5fb993276172",
+   "kind": "wheel",
+   "record_files": 1520,
+   "installed_files_hashed": 1522,
+   "compared": 1520,
+   "identical": 1520
+  },
+  {
+   "spec": "pillow==12.3.0",
+   "file": "pillow-12.3.0-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "ffd0c5368496f41b0944be820fcb7a838aa6e623d250b01acf2643939c3f99d7",
+   "kind": "wheel",
+   "record_files": 138,
+   "installed_files_hashed": 139,
+   "compared": 138,
+   "identical": 138
+  },
+  {
+   "spec": "protobuf==7.36.2",
+   "file": "protobuf-7.36.2-cp310-abi3-macosx_10_9_universal2.whl",
+   "sha256": "cbc70b17ee27e28894c7fee8bb04be1abead49e936bc70eb60052531eee2079e",
+   "kind": "wheel",
+   "record_files": 62,
+   "installed_files_hashed": 63,
+   "compared": 62,
+   "identical": 62
+  },
+  {
+   "spec": "pyarrow==25.0.1",
+   "file": "pyarrow-25.0.1-cp312-cp312-macosx_12_0_arm64.whl",
+   "sha256": "df961f2e7ae9cf496459259d798652c70625f6c080650d6952f8c04053c58ee9",
+   "kind": "wheel",
+   "record_files": 752,
+   "installed_files_hashed": 754,
+   "compared": 752,
+   "identical": 752
+  },
+  {
+   "spec": "pydantic-settings==2.15.0",
+   "file": "pydantic_settings-2.15.0-py3-none-any.whl",
+   "sha256": "0ba092c291c94baceb5eff768aa0d56400a457585bc0175925a5a5510303da42",
+   "kind": "wheel",
+   "record_files": 26,
+   "installed_files_hashed": 27,
+   "compared": 26,
+   "identical": 26
+  },
+  {
+   "spec": "pydantic==2.13.5",
+   "file": "pydantic-2.13.5-py3-none-any.whl",
+   "sha256": "346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73",
+   "kind": "wheel",
+   "record_files": 110,
+   "installed_files_hashed": 111,
+   "compared": 110,
+   "identical": 110
+  },
+  {
+   "spec": "pydantic_core==2.46.5",
+   "file": "pydantic_core-2.46.5-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "a39ac25a9a2fa4072efdb429833c4a4c8009a51ff9eea3eeae131713cd27991e",
+   "kind": "wheel",
+   "record_files": 9,
+   "installed_files_hashed": 10,
+   "compared": 9,
+   "identical": 9
+  },
+  {
+   "spec": "pyfaidx==0.9.0.4",
+   "file": "pyfaidx-0.9.0.4-py3-none-any.whl",
+   "sha256": "18b223b7ba8c66b988a8ce00011500961cb2aeb7fa97d05a293cf472acdd0009",
+   "kind": "wheel",
+   "record_files": 7,
+   "installed_files_hashed": 9,
+   "compared": 7,
+   "identical": 7
+  },
+  {
+   "spec": "pyparsing==3.3.2",
+   "file": "pyparsing-3.3.2-py3-none-any.whl",
+   "sha256": "850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d",
+   "kind": "wheel",
+   "record_files": 22,
+   "installed_files_hashed": 23,
+   "compared": 22,
+   "identical": 22
+  },
+  {
+   "spec": "python-dateutil==2.9.0.post0",
+   "file": "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+   "sha256": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427",
+   "kind": "wheel",
+   "record_files": 24,
+   "installed_files_hashed": 25,
+   "compared": 24,
+   "identical": 24
+  },
+  {
+   "spec": "python-dotenv==1.2.3",
+   "file": "python_dotenv-1.2.3-py3-none-any.whl",
+   "sha256": "904552145e8bfed22162c09dab1c2b9b54fefa7b23ba780f4f26ca0316b0f0d9",
+   "kind": "wheel",
+   "record_files": 14,
+   "installed_files_hashed": 16,
+   "compared": 14,
+   "identical": 14
+  },
+  {
+   "spec": "scipy==1.18.1",
+   "file": "scipy-1.18.1-cp312-cp312-macosx_14_0_arm64.whl",
+   "sha256": "7bbf207c4453ce1ad2e00b17313852b33310b83090c2311bdaf97f93c0380d12",
+   "kind": "wheel",
+   "record_files": 1428,
+   "installed_files_hashed": 1429,
+   "compared": 1428,
+   "identical": 1428
+  },
+  {
+   "spec": "scverse-misc==0.1.6",
+   "file": "scverse_misc-0.1.6-py3-none-any.whl",
+   "sha256": "5fc1d262981d100f9936c0729f2c38f13e8284d070c56613a4d07d58dd29c68a",
+   "kind": "wheel",
+   "record_files": 18,
+   "installed_files_hashed": 19,
+   "compared": 18,
+   "identical": 18
+  },
+  {
+   "spec": "seaborn==0.13.2",
+   "file": "seaborn-0.13.2-py3-none-any.whl",
+   "sha256": "636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987",
+   "kind": "wheel",
+   "record_files": 57,
+   "installed_files_hashed": 58,
+   "compared": 57,
+   "identical": 57
+  },
+  {
+   "spec": "session-info2==0.4.2",
+   "file": "session_info2-0.4.2-py3-none-any.whl",
+   "sha256": "dbf5f58769115651fad28e8ffc930b6a848a629a242ce2ecd730d12f5e3e9315",
+   "kind": "wheel",
+   "record_files": 13,
+   "installed_files_hashed": 16,
+   "compared": 13,
+   "identical": 13
+  },
+  {
+   "spec": "six==1.17.0",
+   "file": "six-1.17.0-py2.py3-none-any.whl",
+   "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+   "kind": "wheel",
+   "record_files": 5,
+   "installed_files_hashed": 6,
+   "compared": 5,
+   "identical": 5
+  },
+  {
+   "spec": "tqdm==4.70.1",
+   "file": "tqdm-4.70.1-py3-none-any.whl",
+   "sha256": "c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73",
+   "kind": "wheel",
+   "record_files": 38,
+   "installed_files_hashed": 40,
+   "compared": 38,
+   "identical": 38
+  },
+  {
+   "spec": "typeguard==4.6.0",
+   "file": "typeguard-4.6.0-py3-none-any.whl",
+   "sha256": "79878165bb86f2cf5d41d159a0ff1792a796cf496882d2fe1b1c6c7049b9cdd7",
+   "kind": "wheel",
+   "record_files": 18,
+   "installed_files_hashed": 19,
+   "compared": 18,
+   "identical": 18
+  },
+  {
+   "spec": "typing-inspection==0.4.4",
+   "file": "typing_inspection-0.4.4-py3-none-any.whl",
+   "sha256": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+   "kind": "wheel",
+   "record_files": 8,
+   "installed_files_hashed": 9,
+   "compared": 8,
+   "identical": 8
+  },
+  {
+   "spec": "typing_extensions==4.16.0",
+   "file": "typing_extensions-4.16.0-py3-none-any.whl",
+   "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+   "kind": "wheel",
+   "record_files": 4,
+   "installed_files_hashed": 5,
+   "compared": 4,
+   "identical": 4
+  },
+  {
+   "spec": "wadler_lindig==0.1.7",
+   "file": "wadler_lindig-0.1.7-py3-none-any.whl",
+   "sha256": "e3ec83835570fd0a9509f969162aeb9c65618f998b1f42918cfc8d45122fe953",
+   "kind": "wheel",
+   "record_files": 7,
+   "installed_files_hashed": 8,
+   "compared": 7,
+   "identical": 7
+  },
+  {
+   "spec": "zarr==3.4.0",
+   "file": "zarr-3.4.0-py3-none-any.whl",
+   "sha256": "0a5e6c9b5c4139759e612556c7fb32c8ee4e4877a46b3556244093413eb72395",
+   "kind": "wheel",
+   "record_files": 103,
+   "installed_files_hashed": 105,
+   "compared": 103,
+   "identical": 103
+  },
+  {
+   "spec": "zstandard==0.25.0",
+   "file": "zstandard-0.25.0-cp312-cp312-macosx_11_0_arm64.whl",
+   "sha256": "913cbd31a400febff93b564a23e17c3ed2d56c064006f54efec210d586171c00",
+   "kind": "wheel",
+   "record_files": 10,
+   "installed_files_hashed": 11,
+   "compared": 10,
+   "identical": 10
+  }
+ ]
+}
