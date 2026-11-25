@@ -36,11 +36,14 @@ PATTERNS: dict[str, tuple[str, ...]] = {
                      "forest_*.png", "forest_*.pdf",
                      "concordance_*.png", "concordance_*.pdf"),
     "main_table":   ("table1_*.tsv", "table2_*.tsv", "tableS3_*.tsv"),
-    "supp_table":   ("*_v1.tsv", "*_v1.json"),
+    # any version, not only _v1: a table that moved to _v2 or _v3 dropped out of
+    # the record in silence (attenuation_simulation_v2.*), and so did any name
+    # carrying "summary" (mapping_summary_v1.json, table_s12_quoted_summary_v1.tsv)
+    "supp_table":   ("*_v[0-9]*.tsv", "*_v[0-9]*.json"),
 }
 # Not artefacts: intermediate score columns and the frozen matrix, which
 # `atlas.manifest` already covers at the point of download/build.
-EXCLUDE_SUBSTR = ("_scores", "score_matrix", "provenance", "summary")
+EXCLUDE_SUBSTR = ("_scores", "score_matrix", "provenance")
 
 
 def sha256_file(p: Path) -> str:

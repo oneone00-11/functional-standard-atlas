@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Emit results/predictor_resources_v1.tsv — per-predictor resources and licence terms.
+"""Emit results/predictor_resources_v2.tsv — per-predictor resources and licence terms.
+
+v2 (the current generation): the AlphaGenome row is the official definition the score
+matrix carries from v3 on (results/alphagenome_official_scores_v1.provenance.json), and
+the AlphaGenome Atlas's four columns have rows of their own
+(results/alphagenome_atlas_scores_v1.provenance.json, models/alphagenome_atlas/NOTES.md).
+Every other row is v1's. v1 (predictor_resources_v1.tsv) is not rewritten.
 
 Third-party predictor resources, versions, access dates and the licence that governs
 the SCORE VALUES in the released matrices. Values are curated from the per-model
@@ -37,21 +43,37 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+from atlas import paths
+
 REPO = Path(__file__).resolve().parents[2]
-OUT = REPO / "results" / "predictor_resources_v1.tsv"
+OUT = paths.path("predictor_resources")
 
 _DBNSFP = "dbNSFP (assembly hg38), via MyVariant.info batch API"
 _MYVARIANT = "myvariant.info/v1/query"
 _NO_TERMS = "No licence terms located; supplied via the dbNSFP academic branch"
+_ATLAS = "AlphaGenome Atlas (released 2026-09-08), client 0.9.0 (alphagenome.atlas)"
+_ATLAS_TAKEN = ("per variant the maximum over tracks and rows of the service's raw "
+                "scores (the quantiles layer is not read); SNVs only")
+_ATLAS_SOURCE = "Google DeepMind AlphaGenome Atlas, precomputed scores via the AlphaGenome API"
+_AG_TERMS = ("Non-commercial research use only (AlphaGenome Terms of Service); the outputs "
+             "are not used to train any other model")
+_AG_TERMS_URL = "https://deepmind.google.com/science/alphagenome/terms"
 
 # predictor, version_or_resource, source, accessed, licence, licence_source
 ROWS = [
-    # models/alphagenome/NOTES.md; manuscript Methods (client 0.7.0, 16-kb window)
-    ("AlphaGenome", "API client 0.7.0; merged-quantile splice score, 16-kb window",
-     "Google DeepMind AlphaGenome API (non-commercial tier)",
-     "2026-07-28; definition sweep 2026-08-04",
-     "Non-commercial use only (API free tier)",
-     "https://deepmind.google.com/science/alphagenome"),
+    # results/alphagenome_official_scores_v1.provenance.json; models/alphagenome/NOTES.md
+    # ("The frozen matrix by the official definition"); scored 2026-11-24 (atlas) and
+    # 2026-11-22 (external genes)
+    ("AlphaGenome", "API client 0.10.0; the official splicing notebook's merged score, "
+     "max(SPLICE_SITES) + max(SPLICE_SITE_USAGE) + max(SPLICE_JUNCTIONS)/5 over the raw "
+     "scores, 1-Mb interval centred on the variant; model version not requested "
+     "(client default)",
+     "Google DeepMind AlphaGenome API (non-commercial tier); definition from "
+     "google-deepmind/alphagenome colabs/v1/splicing_variant_scoring.ipynb at 5594311",
+     "2026-11-24; external genes 2026-11-22",
+     "Non-commercial research use only (AlphaGenome Terms of Service); the outputs "
+     "are not used to train any other model",
+     "https://deepmind.google.com/science/alphagenome/terms"),
     # models/spliceai/requirements.txt (spliceai==1.3.1); scores 2026-07-30
     ("SpliceAI", "1.3.1; full-precision re-score of delta scores",
      "github.com/Illumina/SpliceAI (run locally)", "2026-07-30",
@@ -131,6 +153,16 @@ ROWS = [
     ("ESM-1b", _DBNSFP, _MYVARIANT, "2026-08-03",
      "MIT (code and pretrained weights)",
      "https://github.com/facebookresearch/esm"),
+    # results/alphagenome_atlas_scores_v1.provenance.json; models/alphagenome_atlas/NOTES.md
+    ("AlphaGenome Atlas AVI", _ATLAS + "; scorer AVI_SCORE, the Atlas's combined "
+     "variant impact score; " + _ATLAS_TAKEN, _ATLAS_SOURCE, "2026-11-24",
+     _AG_TERMS, _AG_TERMS_URL),
+    ("AlphaGenome Atlas SPLICE_SITES", _ATLAS + "; scorer SPLICE_SITES; " + _ATLAS_TAKEN,
+     _ATLAS_SOURCE, "2026-11-24", _AG_TERMS, _AG_TERMS_URL),
+    ("AlphaGenome Atlas SPLICE_SITE_USAGE", _ATLAS + "; scorer SPLICE_SITE_USAGE; "
+     + _ATLAS_TAKEN, _ATLAS_SOURCE, "2026-11-24", _AG_TERMS, _AG_TERMS_URL),
+    ("AlphaGenome Atlas SPLICE_JUNCTIONS", _ATLAS + "; scorer SPLICE_JUNCTIONS (one row per "
+     "junction); " + _ATLAS_TAKEN, _ATLAS_SOURCE, "2026-11-24", _AG_TERMS, _AG_TERMS_URL),
 ]
 
 
@@ -252,6 +284,24 @@ TRAINING = {
         "variant scores are zero-shot pseudo-likelihoods, with no labels",
         "No", _NONE_DOC,
         "https://github.com/facebookresearch/esm"),
+    # results/alphagenome_atlas_scores_v1.provenance.json (dependency)
+    "AlphaGenome Atlas AVI": (
+        "AlphaGenome's predictions, combined into one variant impact score; the "
+        "combination was selected on a validation set of variant-effect experiments",
+        "Not documented",
+        "Yes: the score was selected on a validation set that includes BRCA1, RAD51C "
+        "and DDX3X experiments; BRCA1 and RAD51C are core genes of this atlas, so those "
+        "two cells are flagged and kept out of every quantity across genes",
+        "https://deepmind.google.com/science/alphagenome"),
+    "AlphaGenome Atlas SPLICE_SITES": (
+        "AlphaGenome's splice-site track predictions, precomputed; no variant labels",
+        "No", _NONE_DOC, "https://deepmind.google.com/science/alphagenome"),
+    "AlphaGenome Atlas SPLICE_SITE_USAGE": (
+        "AlphaGenome's splice-site usage track predictions, precomputed; no variant labels",
+        "No", _NONE_DOC, "https://deepmind.google.com/science/alphagenome"),
+    "AlphaGenome Atlas SPLICE_JUNCTIONS": (
+        "AlphaGenome's splice-junction predictions, precomputed; no variant labels",
+        "No", _NONE_DOC, "https://deepmind.google.com/science/alphagenome"),
 }
 
 HEADER = ["predictor", "version_or_resource", "source", "accessed",
@@ -262,7 +312,9 @@ HEADER = ["predictor", "version_or_resource", "source", "accessed",
 # Columns whose terms are more restrictive than the CC BY 4.0 granted to the derived
 # data. Quoted by LICENSE-DATA and README.md; keep in sync with ROWS.
 RESTRICTED = ["AlphaGenome", "CADD", "AlphaMissense", "NT-v2-500M", "SpliceAI",
-              "REVEL", "PrimateAI", "VEST4"]
+              "REVEL", "PrimateAI", "VEST4",
+              "AlphaGenome Atlas AVI", "AlphaGenome Atlas SPLICE_SITES",
+              "AlphaGenome Atlas SPLICE_SITE_USAGE", "AlphaGenome Atlas SPLICE_JUNCTIONS"]
 NO_TERMS_LOCATED = ["BayesDel (addAF)", "ClinPred", "MetaRNN"]
 
 

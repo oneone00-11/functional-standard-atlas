@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 226,
+ "n_files": 232,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 62
+  "supp_table": 68
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
@@ -27,6 +27,21 @@
    "role": "supp_table",
    "sha256": "c0660841e4511de4c386fd975df9781b83c87702d3db9675141f7268c5635f71",
    "bytes": 33463
+  },
+  "results/attenuation_simulation_v2.json": {
+   "role": "supp_table",
+   "sha256": "1be51f6b679c7aec93fabc1f598f89a1da5ee05a6c812215a00ea1ded52df28f",
+   "bytes": 12677
+  },
+  "results/attenuation_simulation_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "a8941b47158f006366f9c10b0337308631fa5aa071d4472b79f6946a74466059",
+   "bytes": 358671
+  },
+  "results/attenuation_simulation_v2_curves.tsv": {
+   "role": "supp_table",
+   "sha256": "d2d75e3b18e6cfa7ca54981e5fa94b5fc07eaf72023c8964c9a6cac88da88755",
+   "bytes": 41507
   },
   "results/attenuation_v1.tsv": {
    "role": "supp_table",
@@ -818,6 +833,11 @@
    "sha256": "623efd7d7a24945c95122f8f397b64c568ffaf93a9ae9bd22e5a1a6b1ad14fc9",
    "bytes": 9974
   },
+  "results/mapping_summary_v1.json": {
+   "role": "supp_table",
+   "sha256": "883778141a77ea2e6c1ce31a7b4f3cd9a59a6f4e519a219c0c1c83f3fc347671",
+   "bytes": 1783
+  },
   "results/matched_ceilings_v1.json": {
    "role": "supp_table",
    "sha256": "259d6a831a18293c1d9872951bb6d77571c4ff7ee521cf865029caeb5e9b060d",
@@ -927,6 +947,11 @@
    "role": "supp_table",
    "sha256": "2290bd2c1e14a0dcc90dbf6b97729d5252ebab164ac18227a6071d7b100a6e41",
    "bytes": 8190
+  },
+  "results/predictor_resources_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "c0a155fea140fc1d89ede3f1ff8a157c911fa88028420f2f6e6a45ce9f4050e0",
+   "bytes": 11495
   },
   "results/protease_agreement_v1.tsv": {
    "role": "supp_table",
@@ -1127,6 +1152,11 @@
    "role": "supp_table",
    "sha256": "ed69459ce7f656d6cf85543989c8f3d4ed79c0ab0bf6587c4c8d27dfe87903dc",
    "bytes": 4041
+  },
+  "results/table_s12_quoted_summary_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "7bfa3277add1a6356eecbc22a20fefee155d7d52527c32770840ac0dd17a34fd",
+   "bytes": 2942
   },
   "results/tie_audit_rounded_vs_fullprec_v1.tsv": {
    "role": "supp_table",

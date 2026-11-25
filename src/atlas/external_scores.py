@@ -31,6 +31,13 @@ Subcommands (run from the repository root, PYTHONPATH=src):
               overwrite the record of the core-gene run beside the scorer
   assemble    results/external_scores_v1.parquet, its provenance record and
               results/external_concordance_v1.tsv (the comparison with the release)
+  extend      the current generation, results/external_scores_v2.parquet, and its
+              provenance: v1's 5,095 rows as they are, ``alphagenome_official``
+              renamed ``alphagenome`` (the matrix's name for the official definition
+              from v3 on; its three scorers keep their names), and the AlphaGenome
+              Atlas's four columns from results/alphagenome_atlas_scores_v1.parquet
+              (the rows of set == external). Thirteen predictor columns
+              (atlas.predictors.EXTERNAL). v1 is not rewritten.
 
 SpliceAI, Pangolin and AlphaGenome run in their own environments:
 models/spliceai/score_external.py, models/pangolin/score_external.py and
@@ -670,6 +677,75 @@ def assemble() -> dict:
 
 
 # ==========================================================================
+# the current generation: v1 with the Atlas's columns
+# ==========================================================================
+RENAMED = {"alphagenome_official": "alphagenome"}
+
+
+def extend(v1_path: Path = OUT_TABLE, atlas_path: Path | None = None) -> tuple[pd.DataFrame, dict]:
+    """v1's rows and columns, alphagenome_official renamed, the Atlas's four columns
+    added; with the checks: v1's columns equal to the bit, the Atlas's columns equal
+    A3.2's to the bit and never empty."""
+    from atlas import paths, predictors
+    from atlas.matrix_v3 import bitwise_equal
+    atlas_path = atlas_path or paths.path("alphagenome_atlas_scores")
+    v1 = pd.read_parquet(v1_path)
+    at = pd.read_parquet(atlas_path)
+    at = at[at["set"] == "external"].reset_index(drop=True)
+    if not at["variant_id"].is_unique or not v1["variant_id"].is_unique:
+        raise SystemExit("a variant appears twice")
+    t = v1.rename(columns=RENAMED).merge(at[["variant_id", *predictors.ATLAS]],
+                                         on="variant_id", how="left", validate="one_to_one")
+    checks = {
+        "rows": int(len(t)),
+        "v1_columns_equal": {c: bitwise_equal(t[RENAMED.get(c, c)], v1[c]) for c in v1.columns},
+        "atlas_rows": int(len(at)),
+        "atlas_equal_A3_2": {c: bool(t["variant_id"].equals(at["variant_id"])
+                                     and bitwise_equal(t[c], at[c])) for c in predictors.ATLAS},
+        "atlas_empty": {c: int(t[c].isna().sum()) for c in predictors.ATLAS},
+        "predictors": [c for c in predictors.EXTERNAL if c in t.columns],
+    }
+    checks["holds"] = bool(len(t) == len(v1) and all(checks["v1_columns_equal"].values())
+                           and all(checks["atlas_equal_A3_2"].values())
+                           and not any(checks["atlas_empty"].values())
+                           and checks["predictors"] == predictors.EXTERNAL)
+    return t, checks
+
+
+def extend_provenance(t: pd.DataFrame, checks: dict, out_table: Path,
+                      v1_path: Path = OUT_TABLE, atlas_path: Path | None = None) -> dict:
+    from datetime import datetime, timezone
+    from atlas import paths
+    atlas_path = atlas_path or paths.path("alphagenome_atlas_scores")
+    atlas_prov = paths.path("alphagenome_atlas_provenance")
+    atp = _read_json(atlas_prov)
+
+    def ref(p: Path) -> dict:
+        p = Path(p)
+        return {"file": str(p.resolve().relative_to(REPO)) if p.resolve().is_relative_to(REPO)
+                else p.name, "sha256": sha256_file(p)}
+    return {"file": ref(out_table)["file"], "rows": int(len(t)), "sha256": sha256_file(out_table),
+            "written_by": "src/atlas/external_scores.py extend",
+            "written_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "built_from": {"v1": ref(v1_path),
+                           "v1_provenance": ref(OUT_PROV),
+                           "atlas": ref(atlas_path), "atlas_provenance": ref(atlas_prov)},
+            "renamed": RENAMED,
+            "added": {c: {"from": ref(atlas_path)["file"], "rows": "set == external"}
+                      for c in ("avi", "avi_splice_sites", "avi_splice_site_usage",
+                                "avi_splice_junctions")},
+            "columns_note": ("every column of v1 is carried as it is (its provenance: "
+                             "built_from.v1_provenance); alphagenome is the official "
+                             "definition's merged splicing score, as in v1's "
+                             "alphagenome_official"),
+            "atlas": {"product": atp["product"], "client_version": atp["client_version"],
+                      "aggregation": atp["aggregation"], "dependency": atp["dependency"],
+                      "licence": atp["licence"], "licence_source": atp["licence_source"]},
+            "use": "research only; not used to train any other model",
+            "checks": checks}
+
+
+# ==========================================================================
 # command line
 # ==========================================================================
 def _write_json(path: Path, obj) -> None:
@@ -680,8 +756,24 @@ def _write_json(path: Path, obj) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["companion", "check", "lookups", "assemble"])
+    ap.add_argument("command", choices=["companion", "check", "lookups", "assemble", "extend"])
+    ap.add_argument("--out", default=str(RESULTS), help="extend: the results directory")
     args = ap.parse_args(argv)
+    if args.command == "extend":
+        from atlas import paths
+        t, checks = extend()
+        if not checks["holds"]:
+            print("checks fail:", json.dumps(checks, indent=1), file=sys.stderr)
+            return 1
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        table = out / paths.name("external_scores")
+        t.to_parquet(table, index=False)
+        _write_json(out / paths.name("external_scores_provenance"),
+                    extend_provenance(t, checks, table))
+        print(f"wrote {table.name} ({len(t)} rows, {t.shape[1]} columns; "
+              f"{len(checks['predictors'])} predictors); checks hold")
+        return 0
     if args.command == "companion":
         print(json.dumps(fetch_companion(), indent=1))
         return 0

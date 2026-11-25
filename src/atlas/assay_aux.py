@@ -15,16 +15,28 @@ column means).
 
 Validation performed
 --------------------
-* ``se``  — where the deposit also publishes a 95% CI, the SE is accepted only if
-  ``(ci_upper - score) / se == 1.96`` for every row. Deposits without a CI to
-  check against are carried with ``se_status`` set to something other than
-  ``validated`` and are excluded from the primary reliability estimate.
+* ``se``  — accepted only when it is checked against another quantity the deposit
+  itself publishes (CONVENTIONS.md rule 4), and the column ``se_validated_by`` says
+  which:
+
+  ``ci``              the deposit's 95% CI: ``(ci_upper - score) / se == 1.96`` on
+                      every row (BARD1, PALB2);
+  ``test_statistic``  the deposit's own test statistic: ``score`` equals its LFC
+                      column on every row, and ``score / se`` equals its z column to
+                      within 1e-4 on every row (BAP1; the deposit rounds its values,
+                      so equality to the bit is not required of the ratio);
+  ``replicates``      the deposit's replicate scores, from which the SE of their mean
+                      is derived (BRCA1).
+
+  A check that fails on any row stops the build. Deposits with no such quantity are
+  carried with ``se_status`` other than ``validated`` (RAD51C: ``scale_mismatch``) and
+  stay out of the reliability estimate.
 * ``rna`` — the atlas orientation rule is ``pathogenicity = -score``. An RNA
   readout is only carried if it is *positively* rank-correlated with the assay's
   own ``score``, i.e. the same orientation rule applies to it; the observed
   correlation is recorded in the provenance file.
 
-Usage (PYTHONPATH=src):  python -m atlas.assay_aux --out results/
+Usage (PYTHONPATH=src):  python -m atlas.assay_aux   (writes results/assay_aux_v2.*)
 """
 
 from __future__ import annotations
@@ -36,17 +48,21 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from atlas import paths
+
 REPO = Path(__file__).resolve().parents[2]
+RESULTS = REPO / "results"
 RAW = REPO / "data" / "raw" / "mavedb"
-FROZEN = REPO / "data" / "frozen" / "frozen-matrix-v1.parquet"
+FROZEN = paths.FROZEN
 
 # --------------------------------------------------------------------------
 # per-assay registry
 # --------------------------------------------------------------------------
 # se_status:
-#   validated       — SE is on the score scale, checked against a published CI
-#   unvalidated     — SE plausibly on the score scale but no CI to check against
-#   scale_mismatch  — SE is demonstrably not on the score scale; do not use
+#   validated       — SE is on the score scale, checked against another quantity the
+#                     deposit publishes (its CI or its test statistic; se_validated_by)
+#   unvalidated     — SE plausibly on the score scale but nothing to check it against
+#   scale_mismatch  — the deposit carries no error on the score's scale; do not use
 AUX: dict[str, dict] = {
     "urn:mavedb:00000097-0-2": {
         "gene": "BRCA1",
@@ -57,13 +73,17 @@ AUX: dict[str, dict] = {
     "urn:mavedb:00000662-0-1": {
         "gene": "BAP1",
         "se": "SE_bind_continuous",
-        "se_status": "unvalidated",  # no published CI in the deposit
+        "se_status": "unvalidated",  # until the test statistic below reconciles it
+        # no published CI; the deposit's own LFC and z of the same comparison instead
+        "test_statistic": {"lfc": "processed_LFC_continuous",
+                           "z": "processed_Z_continuous"},
     },
     "urn:mavedb:00000673-0-1": {
         "gene": "RAD51C",
         "se": "SE_bind_continuous",
-        # sd(score) = 6.84 vs sd(SE_bind) = 0.018: SE_bind describes a different
-        # parameterisation (adjusted LFC), not `score`.
+        # score is processed_adj_lfc_D4_D14 / SE_bind_D4_D14 on every row (to 2.5e-13):
+        # a z-score. The SE_bind columns are the SEs of the adjusted LFCs; the deposit
+        # carries no error on the score's scale (sd(score) = 6.84, sd(SE_bind) = 0.018).
         "se_status": "scale_mismatch",
         "label_class": "functional_classification",
         "label_abnormal_values": ("fast depleted", "slow depleted"),
@@ -96,7 +116,7 @@ AUX: dict[str, dict] = {
 OUT_COLS = [
     "variant_id", "gene", "urn",
     "fit_rep1", "fit_rep2",
-    "se", "se_status",
+    "se", "se_status", "se_validated_by",
     "rna", "rna_alt", "rna_rep1", "rna_rep2",
     "label_abnormal", "label_class", "label_source",
 ]
@@ -112,6 +132,34 @@ def _read_assay(urn: str) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"{urn}: {path} not found — run `make fetch` first")
     return pd.read_csv(path, low_memory=False)
+
+
+Z_ATOL = 1e-4   # the deposit rounds its values; the ratio need not equal z to the bit
+
+
+def check_test_statistic(raw: pd.DataFrame, se_col: str, cols: dict, gene: str) -> dict:
+    """Is ``se`` the SE of ``score``, by the deposit's own test statistic? ``score`` must
+    equal the LFC column on every row, and ``score / se`` the z column to within
+    Z_ATOL on every row. One row that does not hold stops the build."""
+    score = pd.to_numeric(raw["score"], errors="coerce")
+    lfc = pd.to_numeric(raw[cols["lfc"]], errors="coerce")
+    se = pd.to_numeric(raw[se_col], errors="coerce")
+    z = pd.to_numeric(raw[cols["z"]], errors="coerce")
+    same_na = score.isna().equals(lfc.isna())
+    equal = bool(same_na and (score[score.notna()] == lfc[lfc.notna()]).all())
+    if not equal:
+        raise ValueError(f"{gene}: score does not equal {cols['lfc']} on every row")
+    m = score.notna() | se.notna() | z.notna()
+    if (score[m].isna() | se[m].isna() | z[m].isna()).any():
+        raise ValueError(f"{gene}: score, {se_col} and {cols['z']} are not all present "
+                         "on the same rows")
+    diff = (score[m] / se[m] - z[m]).abs()
+    if not (diff < Z_ATOL).all():
+        raise ValueError(f"{gene}: score / {se_col} differs from {cols['z']} by "
+                         f"{float(diff.max()):.3g} on some row (tolerance {Z_ATOL})")
+    return {"score_equals": cols["lfc"], "rows_equal": int(score.notna().sum()),
+            "z": cols["z"], "rows_checked": int(m.sum()),
+            "max_abs_diff_score_over_se_vs_z": float(diff.max()), "tolerance": Z_ATOL}
 
 
 def build(min_rna_rho: float = 0.05) -> tuple[pd.DataFrame, dict]:
@@ -137,12 +185,14 @@ def build(min_rna_rho: float = 0.05) -> tuple[pd.DataFrame, dict]:
             # SE estimator and the two estimators cross-checked on one dataset.
             out["se"] = raw[[a, b]].std(axis=1, ddof=1) / np.sqrt(2)
             out["se_status"] = "derived_from_replicates"
+            out["se_validated_by"] = "replicates"
             rec["carried"].append("se=sd(reps)/sqrt(2) (derived_from_replicates)")
 
-        # -- standard error, validated against the published CI where possible
+        # -- standard error, checked against another quantity the deposit publishes
         if "se" in spec:
             se = pd.to_numeric(raw[spec["se"]], errors="coerce")
             status = spec.get("se_status", "unvalidated")
+            validated_by = np.nan
             if "ci" in spec:
                 lo, hi = spec["ci"]
                 ratio = (raw[hi] - raw["score"]) / se
@@ -153,10 +203,17 @@ def build(min_rna_rho: float = 0.05) -> tuple[pd.DataFrame, dict]:
                         f"{gene}: {spec['se']} does not reconcile with {hi} "
                         f"(median (ci_hi-score)/se = {ratio.median():.4f}, expected 1.96)"
                     )
-                status = "validated"
+                status, validated_by = "validated", "ci"
+            elif "test_statistic" in spec:
+                rec["se_test_statistic"] = check_test_statistic(raw, spec["se"],
+                                                                spec["test_statistic"], gene)
+                status, validated_by = "validated", "test_statistic"
             out["se"] = se
             out["se_status"] = status
-            rec["carried"].append(f"se={spec['se']} ({status})")
+            out["se_validated_by"] = validated_by
+            rec["carried"].append(f"se={spec['se']} ({status}"
+                                  + (f", by {validated_by})" if isinstance(validated_by, str)
+                                     else ")"))
 
         # -- RNA readout, orientation-checked against the assay's own score --
         for key, col in (("rna", spec.get("rna")), ("rna_alt", spec.get("rna_alt"))):
@@ -216,21 +273,53 @@ def build(min_rna_rho: float = 0.05) -> tuple[pd.DataFrame, dict]:
         c: int(aux[c].notna().sum())
         for c in ("fit_rep1", "se", "rna", "rna_alt", "rna_rep1", "label_abnormal")
     }
+    prov["se_validated_by"] = {k: int(v) for k, v in
+                               aux["se_validated_by"].value_counts().items()}
     return aux, prov
+
+
+PREVIOUS = RESULTS / "assay_aux_v1.parquet"   # the generation v2 is checked against
+
+
+def against_previous(aux: pd.DataFrame, previous: Path = PREVIOUS) -> dict:
+    """v2 against v1: the same rows, and every column but se_status and se_validated_by
+    equal to the bit; se_status may differ only where se_validated_by is test_statistic
+    (unvalidated -> validated)."""
+    from atlas.matrix_v3 import bitwise_equal
+    v1 = pd.read_parquet(previous)
+    same_rows = bool(aux["variant_id"].equals(v1["variant_id"]))
+    cols = [c for c in v1.columns if c != "se_status"]
+    equal = {c: bool(same_rows and bitwise_equal(aux[c], v1[c])) for c in cols}
+    changed = aux["se_status"].fillna("") != v1["se_status"].fillna("")
+    moved = aux.loc[changed, ["gene", "se_validated_by"]].assign(
+        before=v1.loc[changed, "se_status"], after=aux.loc[changed, "se_status"])
+    status_ok = bool(same_rows and (moved["se_validated_by"] == "test_statistic").all()
+                     and (moved["before"] == "unvalidated").all()
+                     and (moved["after"] == "validated").all())
+    return {"previous": PREVIOUS.name, "same_rows": same_rows, "columns_equal": equal,
+            "se_status_changed_rows": int(changed.sum()),
+            "se_status_changed": {f"{g}: {b} -> {a}": int(n) for (g, b, a), n in
+                                  moved.groupby(["gene", "before", "after"]).size().items()},
+            "holds": bool(same_rows and all(equal.values()) and status_ok)}
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--out", default="results")
+    ap.add_argument("--out", default=str(RESULTS))
     args = ap.parse_args(argv)
 
     aux, prov = build()
+    if PREVIOUS.exists():
+        prov["against_v1"] = against_previous(aux)
+        if not prov["against_v1"]["holds"]:
+            print("v2 differs from v1 beyond BAP1's se_status:", prov["against_v1"])
+            return 1
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    aux.to_parquet(out / "assay_aux_v1.parquet", index=False)
-    (out / "assay_aux_v1.provenance.json").write_text(json.dumps(prov, indent=2) + "\n")
+    aux.to_parquet(out / paths.name("assay_aux"), index=False)
+    (out / paths.name("assay_aux_provenance")).write_text(json.dumps(prov, indent=2) + "\n")
 
-    print(f"assay_aux_v1.parquet: {len(aux):,} rows (of {prov['n_rows_raw']:,} raw)")
+    print(f"{paths.name('assay_aux')}: {len(aux):,} rows (of {prov['n_rows_raw']:,} raw)")
     for k, v in prov["coverage"].items():
         print(f"  {k:<16} {v:>7,}")
     print("\nper-assay:")
