@@ -42,36 +42,52 @@ would be filed as coding. Every deposit here names variants on its MANE Select
 transcript. The prefix is checked against the registry and removed. A row on any
 other transcript is an error, not a silent drop.
 
+Populations: a deposit's variants are split into SNVs and the rest by their c. name
+(``SNV_HGVS`` on the bare name: one base for one base); every non-SNV here is a deletion,
+or for TP53 a deletion, insertion or duplication.
+
+Intervals (the current generation): B = 2,000 resamples of the variants, from
+atlas.reliability.bootstrap_layer, the seed from the cell's key (external, gene,
+stratum, method, population); ``estimable`` when the ceiling's lower bound is above 0.
+TP53's two bounding rows share their resamples.
+
 Outputs
 -------
-results/external_reliability_v1.tsv   one row per deposit x stratum x estimator
-results/external_reliability_v1.json  per-stratum gene counts, median and range of the
-    ceiling. The main estimate combines the three v5 genes (read from
-    results/reliability_v1.tsv, not recomputed, v5's primary route) with the external
-    rows marked ``main``. The JSON also gives v5 alone, the external genes alone, and
-    the main estimate with TP53 added at each bound.
+results/external_reliability_v2.tsv   one row per deposit x population x stratum x
+    estimator, with the columns of the core table (results/reliability_v2.tsv)
+results/external_reliability_v2.json  per stratum, on the SNVs: the main estimate, which
+    combines the core genes' main rows (results/reliability_v2.tsv, not recomputed) with
+    the external rows marked ``main``; the core and the external genes alone; the main
+    estimate with TP53 added at each bound; the checks and the inputs.
+The v1 files (the v5 genes from reliability_v1.tsv) are not rewritten; `summarise` still
+builds v1's summary.
 
-Usage (PYTHONPATH=src):  python -m atlas.external_reliability --out results/
+Usage (PYTHONPATH=src):  python -m atlas.external_reliability [--out results/]
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 from itertools import combinations
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from atlas import paths, population
 from atlas.evaluate import classify_region
 from atlas.manifest import load_manifest, register_file, sha256_file
-from atlas.reliability import MIN_N, STRATA, _stratum_mask, spearman_brown
+from atlas.reliability import (MIN_N, STRATA, TABLE_COLUMNS, _stratum_mask, bootstrap_layer,
+                               layer_seed, spearman_brown)
 
 REPO = Path(__file__).resolve().parents[2]
 RAW = REPO / "data" / "raw" / "mavedb_external"
 RESULTS = REPO / "results"
 V5_TABLE = RESULTS / "reliability_v1.tsv"
+CORE_TABLE = paths.path("reliability")          # the core genes of the current generation
+SNV_HGVS = re.compile(r"^c\.[-*]?\d+(?:[+-]\d+)?[ACGT]>[ACGT]$")
 
 # Each deposit names its variants on this transcript. All six are MANE Select
 # (MANE v1.5); SBDS uses the Ensembl member of its MANE pair (NM_016038.4).
@@ -318,6 +334,112 @@ def summarise(ext: pd.DataFrame, v5: pd.DataFrame) -> dict:
 
 
 # --------------------------------------------------------------------------
+# the current generation: populations and intervals
+# --------------------------------------------------------------------------
+def deposit_population(hgvs_c: pd.Series) -> pd.Series:
+    return hgvs_c.map(lambda h: population.SNV if SNV_HGVS.match(str(h)) else population.NON_SNV)
+
+
+def _with_intervals(rows: list[dict], d: pd.DataFrame, spec: dict, pop: str) -> list[dict]:
+    """Each row with its population, the reliability before clipping, and the bootstrap
+    on the row's own variants."""
+    out = []
+    for r in rows:
+        seed = layer_seed("external", r["gene"], r["stratum"], r["method"], pop)
+        if r["method"] == "se":
+            x = pd.DataFrame({"score": pd.to_numeric(d["score"], errors="coerce"),
+                              "se": pd.to_numeric(d[spec["se"]], errors="coerce"),
+                              "region": d["region"]}).dropna(subset=["score", "se"])
+            x = x[_stratum_mask(x["region"], r["stratum"])]
+            raw = (1 - r["mean_se2"] / r["score_var"]) if r["score_var"] > 0 else np.nan
+            ci = bootstrap_layer("se", seed, y=x["score"].to_numpy(float),
+                                 se=x["se"].to_numpy(float))
+        else:
+            reps = list(spec["replicates"])
+            x = d[reps].apply(pd.to_numeric, errors="coerce").assign(region=d["region"])
+            x = x.dropna(subset=reps)
+            x = x[_stratum_mask(x["region"], r["stratum"])]
+            raw = np.nan
+            ci = bootstrap_layer("replicates", seed, reps=[x[c].to_numpy(float) for c in reps],
+                                 k=int(r["k"]))
+        if len(x) != r["n"]:
+            raise SystemExit(f"{r['gene']} {r['stratum']}: the resampled set is not the row's")
+        out.append(r | {"population": pop, "reliability_unclipped": raw, "seed": seed,
+                        "bootstrap_B": 2000, **ci, "inflation_factor": np.nan,
+                        "ceiling_inflated": np.nan})
+    return out
+
+
+def external_table_v2(raw: Path = RAW) -> tuple[pd.DataFrame, dict]:
+    """(one row per deposit x population x stratum x estimator, the per-deposit checks)."""
+    rows: list[dict] = []
+    checks: dict = {}
+    for urn, spec in EXTERNAL.items():
+        df = load_deposit(urn, raw)
+        df["population"] = deposit_population(df["hgvs_c"])
+        rec = {"gene": spec["gene"], "transcript": spec["transcript"], "rows": int(len(df)),
+               "rows_by_population": {k: int(v) for k, v in
+                                      df["population"].value_counts().sort_index().items()},
+               "rows_by_region": {k: int(v) for k, v in
+                                  df["region"].value_counts().sort_index().items()}}
+        if spec["method"] == "se":
+            chk = check_se(df, spec["se"], spec["ci"])
+            rec["se_check"] = chk
+        else:
+            summary = replicate_summary(df, spec["replicates"])
+            rec["score_is"] = f"{summary} of {', '.join(spec['replicates'])}"
+        for pop in population.POPULATIONS:
+            d = df[df["population"] == pop]
+            if spec["method"] == "se":
+                base = se_rows(d, spec["gene"], urn, spec["se"], chk["status"])
+            else:
+                base = replicate_rows(d, spec["gene"], urn, spec["replicates"], summary)
+            rows += _with_intervals(base, d, spec, pop)
+        checks[urn] = rec
+    t = pd.DataFrame(rows)
+    t["estimable"] = t["ceiling_lo"] > 0
+    return t[TABLE_COLUMNS], checks
+
+
+def _cells(t: pd.DataFrame) -> pd.DataFrame:
+    return t[["gene", "stratum", "ceiling", "estimable"]]
+
+
+def summarise_v2(ext: pd.DataFrame, core: pd.DataFrame, pop: str = population.SNV) -> dict:
+    """Per stratum, on one population: the main estimate (the core genes' main rows and the
+    external main rows), each part alone, and the main estimate with the bounded deposit."""
+    ext, core = ext[ext["population"] == pop], core[core["population"] == pop]
+    base = _cells(core[core["role"] == "main"])
+    main_ext = _cells(ext[ext["role"] == "main"])
+    main = pd.concat([base, main_ext], ignore_index=True)
+
+    def summ(cells: pd.DataFrame) -> list[dict]:
+        est = cells.groupby("stratum")["estimable"].apply(
+            lambda v: sorted(cells.loc[v.index][v]["gene"]))
+        return [r | {"genes_estimable": est.get(r["stratum"], []),
+                     "n_genes_estimable": len(est.get(r["stratum"], []))}
+                for r in stratum_summary(cells)]
+    with_bounds = {}
+    for role in ("lower_bound", "upper_bound"):
+        extra = _cells(ext[ext["role"] == role])
+        if len(extra):
+            with_bounds[role] = summ(pd.concat([main, extra], ignore_index=True))
+    return {
+        "population": pop,
+        "main": summ(main),
+        "core_genes": summ(base),
+        "external_main_only": summ(main_ext),
+        "main_plus_bounded_deposit": with_bounds,
+        "bounded_rows": ext[ext["role"].isin(["lower_bound", "upper_bound"])][
+            ["gene", "stratum", "n", "rep_rho", "k", "reliability", "ceiling", "ceiling_lo",
+             "ceiling_hi", "estimable", "role"]].to_dict("records"),
+        "excluded_rows": ext[ext["role"] == "excluded"][
+            ["gene", "stratum", "status"]].to_dict("records"),
+        "not_estimated": NOT_ESTIMATED,
+    }
+
+
+# --------------------------------------------------------------------------
 # provenance
 # --------------------------------------------------------------------------
 def licences(raw: Path = RAW) -> dict[str, dict]:
@@ -353,21 +475,22 @@ def register_licences(raw: Path = RAW) -> int:
     return n
 
 
-def inputs(raw: Path = RAW) -> dict:
+def inputs(raw: Path = RAW, core: Path = CORE_TABLE) -> dict:
     files = {}
     for key, entry in sorted(load_manifest(raw / "MANIFEST.json").get("files", {}).items()):
         files[key] = {"sha256": entry["sha256"], "bytes": entry["bytes"],
                       "urn": entry.get("urn"), "gene": entry.get("gene")}
     return {"raw_dir": raw.relative_to(REPO).as_posix() if raw.is_relative_to(REPO) else str(raw),
             "files": files, "licences": licences(raw),
-            "v5_table": V5_TABLE.relative_to(REPO).as_posix(),
-            "v5_table_sha256": sha256_file(V5_TABLE) if V5_TABLE.exists() else None}
+            "core_table": (Path(core).resolve().relative_to(REPO).as_posix()
+                           if Path(core).resolve().is_relative_to(REPO) else Path(core).name),
+            "core_table_sha256": sha256_file(Path(core)) if Path(core).exists() else None}
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", default=str(RAW))
-    ap.add_argument("--v5", default=str(V5_TABLE))
+    ap.add_argument("--core", default=str(CORE_TABLE))
     ap.add_argument("--out", default="results")
     ap.add_argument("--register-licences", action="store_true",
                     help="only add the deposits' licences to raw/MANIFEST.json")
@@ -379,28 +502,27 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[external] licence added to {n} manifest entries in {raw / 'MANIFEST.json'}")
         return 0
 
-    ext, checks = external_table(raw)
-    v5 = pd.read_csv(args.v5, sep="\t")
-    summary = summarise(ext, v5)
-    summary = {"note": ("Ceilings are sqrt(reliability). 'main' combines the three v5 genes "
-                        "(results/reliability_v1.tsv, v5's primary route, not recomputed) "
-                        "with the external rows whose role is 'main'. Rows with role "
-                        "lower_bound / upper_bound do not enter 'main'."),
-               **summary, "checks": checks, "inputs": inputs(raw)}
+    ext, checks = external_table_v2(raw)
+    core = pd.read_csv(args.core, sep="\t")
+    from atlas.reliability import jsonable
+    summary = {"note": ("Ceilings are sqrt(reliability). 'main' combines the core genes' main "
+                        "rows (results/reliability_v2.tsv, not recomputed) with the external "
+                        "rows whose role is 'main'. Rows with role lower_bound / upper_bound "
+                        "do not enter 'main'. By population; the SNVs are the main analysis."),
+               "by_population": {pop: summarise_v2(ext, core, pop)
+                                 for pop in population.POPULATIONS},
+               "checks": checks, "inputs": inputs(raw, Path(args.core))}
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    ext.to_csv(out / "external_reliability_v1.tsv", sep="\t", index=False)
-    (out / "external_reliability_v1.json").write_text(
-        json.dumps(summary, indent=2, default=str) + "\n")
+    ext.to_csv(out / paths.name("external_reliability"), sep="\t", index=False)
+    (out / paths.name("external_reliability_summary")).write_text(
+        json.dumps(jsonable(summary), indent=2, default=str) + "\n")
 
-    show = pd.DataFrame(summary["main"])
-    print("Attenuation ceiling by stratum, main estimate (v5 genes + external 'main' rows)")
-    print(show.drop(columns="genes").to_string(index=False, float_format=lambda v: f"{v:.3f}"))
-    if summary["bounded_rows"]:
-        b = pd.DataFrame(summary["bounded_rows"])
-        print("\nBounded rows (not in the main estimate):")
-        print(b.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+    show = pd.DataFrame(summary["by_population"][population.SNV]["main"])
+    print("Attenuation ceiling by stratum, SNVs, main estimate (core + external 'main' rows)")
+    print(show.drop(columns=["genes", "genes_estimable"]).to_string(
+        index=False, float_format=lambda v: f"{v:.3f}"))
     return 0
 
 

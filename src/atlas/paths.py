@@ -35,6 +35,19 @@ NAMES: dict[str, str] = {
     "external_scores": "external_scores_v2.parquet",
     "external_scores_provenance": "external_scores_v2.provenance.json",
     "predictor_resources": "predictor_resources_v2.tsv",
+    # the main grid
+    "eval_ext": "eval_ext_v2.tsv",
+    "eval_ext_per_gene": "eval_ext_per_gene_v2.tsv",
+    "reliability": "reliability_v2.tsv",
+    "reliability_summary": "reliability_v2.json",
+    "reliability_corroboration": "reliability_corroboration_v2.tsv",
+    "reliability_neutral_check": "reliability_neutral_check_v1.tsv",
+    "external_reliability": "external_reliability_v2.tsv",
+    "external_reliability_summary": "external_reliability_v2.json",
+    "matched_ceilings": "matched_ceilings_v2.tsv",
+    "matched_ceilings_summary": "matched_ceilings_v2.json",
+    "alphagenome_definition_change": "alphagenome_definition_change_v1.tsv",
+    "canonical_site_saturation": "canonical_site_saturation_v1.tsv",
 }
 
 

@@ -43,9 +43,13 @@ ENTRYPOINTS = [
     "robustness",
     "simulate_attenuation",
 ]
+# The entry points rebuilt for the current generation take the matrix from atlas.paths
+# (score_matrix_atlas_v3 since A4). The others -- definition_sweep and metapredictors,
+# not rebuilt, and those still to be rebuilt -- keep v2.
+CURRENT_GENERATION = {"evaluate_ext", "reliability"}
 
 
-@pytest.mark.parametrize("module", ENTRYPOINTS)
+@pytest.mark.parametrize("module", sorted(set(ENTRYPOINTS) - CURRENT_GENERATION))
 def test_the_matrix_default_is_v2(module):
     """v1 has twelve columns and v2 nineteen. Defaulting any entry point to v1
     is what made the delivered tables unreproducible as documented."""
@@ -55,24 +59,38 @@ def test_the_matrix_default_is_v2(module):
     assert 'default=str(RESULTS / "score_matrix_atlas_v1.parquet")' not in src, module
 
 
+@pytest.mark.parametrize("module", sorted(CURRENT_GENERATION))
+def test_the_matrix_default_is_the_current_one_from_atlas_paths(module):
+    """A rebuilt entry point names no matrix of its own: the default is the current
+    one, written once in atlas.paths."""
+    from atlas import paths
+    mod = importlib.import_module(f"atlas.{module}")
+    src = inspect.getsource(mod.main)
+    assert 'default=str(paths.path("score_matrix"))' in src, module
+    assert "score_matrix_atlas_v" not in src, module
+    assert paths.name("score_matrix") == "score_matrix_atlas_v3.parquet"
+
+
 def test_evaluate_ext_with_default_arguments_reproduces_the_delivered_grid(tmp_path):
-    """A default run must regenerate the delivered 19 x 16 grid: 304 rows,
-    cell for cell. With the old v1 default it produced 193."""
+    """A default run must regenerate the delivered grid of the current generation (23
+    predictors x 16 snv strata, and the non_snv strata) and its per-gene table, byte for
+    byte. With the old v1 default it produced 193 rows of v5's 304."""
     pytest.importorskip("pyarrow")
     import pandas as pd
+    from atlas import paths
 
-    delivered = RESULTS / "eval_ext_v1.tsv"
-    if not ((RESULTS / "score_matrix_atlas_v2.parquet").exists()
-            and delivered.exists()):
+    delivered = [paths.path("eval_ext"), paths.path("eval_ext_per_gene")]
+    if not (paths.path("score_matrix").exists() and all(p.exists() for p in delivered)):
         pytest.skip("results/ not built in this checkout")
 
     from atlas import evaluate_ext
     evaluate_ext.main(["--out", str(tmp_path)])
 
-    got = tmp_path / "eval_ext_v1.tsv"
-    assert len(pd.read_csv(got, sep="\t")) == 304
-    assert got.read_bytes() == delivered.read_bytes(), (
-        "a default evaluate_ext run no longer reproduces the delivered grid")
+    grid = pd.read_csv(tmp_path / paths.name("eval_ext"), sep="\t")
+    assert (grid["population"] == "snv").sum() == 23 * 16
+    for p in delivered:
+        assert (tmp_path / p.name).read_bytes() == p.read_bytes(), (
+            f"a default evaluate_ext run no longer reproduces {p.name}")
 
 
 def test_robustness_with_default_arguments_reproduces_the_delivered_files(tmp_path):

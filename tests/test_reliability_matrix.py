@@ -24,9 +24,11 @@ def test_the_default_matrix_carries_every_declared_model():
     pytest.importorskip("pyarrow")
     import pandas as pd
 
+    from atlas import paths, predictors
     from atlas.reliability import MODELS
 
-    default = RESULTS / "score_matrix_atlas_v2.parquet"
+    assert MODELS == predictors.PREDICTORS
+    default = paths.path("score_matrix")
     if not default.exists():
         pytest.skip("score matrix not built in this checkout")
     cols = set(pd.read_parquet(default, columns=None).columns)
@@ -36,16 +38,18 @@ def test_the_default_matrix_carries_every_declared_model():
         f"run would silently drop them: {missing}")
 
 
-def test_the_default_is_the_matrix_with_the_meta_predictors():
-    """v1 has twelve columns and v2 nineteen. Pointing the default at v1 is what
-    made the published table unreproducible."""
+def test_the_default_is_the_current_matrix_from_atlas_paths():
+    """v1 has twelve columns and v2 nineteen; pointing the default at v1 is what made
+    the published table unreproducible. The default is now the current matrix, named
+    once in atlas.paths."""
     import inspect
 
     from atlas import reliability
 
     src = inspect.getsource(reliability.main)
-    assert "score_matrix_atlas_v2.parquet" in src
-    assert 'default=str(RESULTS / "score_matrix_atlas_v1.parquet")' not in src
+    assert 'default=str(paths.path("score_matrix"))' in src
+    assert 'default=str(paths.path("assay_aux"))' in src
+    assert "score_matrix_atlas_v1.parquet" not in src
 
 
 def test_the_attenuation_table_covers_the_meta_predictors():

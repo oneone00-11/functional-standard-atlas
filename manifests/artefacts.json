@@ -1,17 +1,22 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 232,
+ "n_files": 244,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 68
+  "supp_table": 80
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
    "role": "supp_table",
    "sha256": "1bf66337702c522e1c343f3717df450bbf0d4718aea8be7d6e86528ddcd8be32",
    "bytes": 718
+  },
+  "results/alphagenome_definition_change_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "6a6850584f9089a73c59685bbe262395a5f92db32e7b6d9cab5cf776b851f854",
+   "bytes": 5373
   },
   "results/alphagenome_official_concordance_v1.tsv": {
    "role": "supp_table",
@@ -47,6 +52,11 @@
    "role": "supp_table",
    "sha256": "441519993c93f8168cf020aa31e7d9e705a6f4352fe12c30ba3083dac2bce349",
    "bytes": 30096
+  },
+  "results/canonical_site_saturation_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "ca9fc7004a63990d77d0ad89d7f7336703989681a13b17d599e63fbdaa9be62a",
+   "bytes": 2512
   },
   "results/clinical_evidence_v1.json": {
    "role": "supp_table",
@@ -158,10 +168,20 @@
    "sha256": "13fbd3633d53a8cf6b29fd81a5fc86e5ac5d0418de6c39ea5415ca370a641ea5",
    "bytes": 813
   },
+  "results/eval_ext_per_gene_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "b076f1d371e91bdf4a7778d5fbf057a9c93a4ab373d4b3c330524e3d4b1e9cbb",
+   "bytes": 131882
+  },
   "results/eval_ext_v1.tsv": {
    "role": "supp_table",
    "sha256": "c5171cb6abf382252fb0fb2cf4588ec61e437807017b402af739eeb4666c34c9",
    "bytes": 26745
+  },
+  "results/eval_ext_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "9fd574f33f7d8fce23a2152f18fc256ecca09f43728cee40eadf42f5bfe07a84",
+   "bytes": 39972
   },
   "results/external_concordance_v1.tsv": {
    "role": "supp_table",
@@ -177,6 +197,16 @@
    "role": "supp_table",
    "sha256": "64eed9e54e1a7c0887b5253aaf4be675e0ea839c3c2b4cfbc126a68aa0ff9c49",
    "bytes": 6659
+  },
+  "results/external_reliability_v2.json": {
+   "role": "supp_table",
+   "sha256": "32df5340a5dd077dc81056c92d7b0a022fd5748d9b896afabd94eb720cbe24aa",
+   "bytes": 62875
+  },
+  "results/external_reliability_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "8168711135e1fe11fff3dd328871e79b4cd15cbf8bfd687cbaed6083a4108b14",
+   "bytes": 22273
   },
   "results/fdr_grid_v1.tsv": {
    "role": "supp_table",
@@ -848,6 +878,16 @@
    "sha256": "04f92458a587b379dbf4600de3ff6f405c5a0f319a124d4ab4d63f045c5e2da4",
    "bytes": 272628
   },
+  "results/matched_ceilings_v2.json": {
+   "role": "supp_table",
+   "sha256": "9bcbe56072178f4264158d6a4740f2347893656444572b4857868df3fc2163ae",
+   "bytes": 216862
+  },
+  "results/matched_ceilings_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "aca1aacdb294d2b40f763998ca576dac10c7f222810fc15765a4948b4a097c5e",
+   "bytes": 359530
+  },
   "results/matched_realisation_loo_v1.tsv": {
    "role": "supp_table",
    "sha256": "991cc5d13314c3e9708e0b9a41bb50c19f2d77030a9ffe873630f98c9c84c63a",
@@ -968,6 +1008,16 @@
    "sha256": "e6b0a768f33705dcccacac73f34b1cefbf6e602a490bbc31ef3d5cb17a1914ad",
    "bytes": 1531
   },
+  "results/reliability_corroboration_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "2fc2c3e168f9ba34c0b4befe945f6beb6e393228af1eaa3976f3113d923208c0",
+   "bytes": 2433
+  },
+  "results/reliability_neutral_check_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "1e80f50fbeb664d98c020cdad624d8b4980872512daed68744688895f4022b0e",
+   "bytes": 1200
+  },
   "results/reliability_v1.json": {
    "role": "supp_table",
    "sha256": "efee321b5da11ca81331a208cc279acf633b3c3dcd50e2604d1d882017c330e1",
@@ -977,6 +1027,16 @@
    "role": "supp_table",
    "sha256": "d89f241c5916067921f6649c2a2c66fd0b642a92ae160894b9533b9ee05a0b2c",
    "bytes": 3077
+  },
+  "results/reliability_v2.json": {
+   "role": "supp_table",
+   "sha256": "b66ae6bcf9a4fec8eef63ef6c8e2dcd67b367136cd4ba9b4cebb9047d58c935d",
+   "bytes": 10089
+  },
+  "results/reliability_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "2cc7604a3938ba866abf7705e3c1c1e476947f9150ca876d98110625b3eb2f47",
+   "bytes": 15031
   },
   "results/rna_readout_v1.json": {
    "role": "supp_table",

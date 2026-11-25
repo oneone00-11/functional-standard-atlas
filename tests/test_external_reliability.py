@@ -273,16 +273,24 @@ def _need_inputs():
 
 
 def test_the_delivered_table_regenerates_from_the_deposits():
+    """The current generation's table (by population, with intervals) and its summary
+    regenerate from the deposits and the core table."""
     _need_inputs()
-    ext, checks = er.external_table()
+    from atlas import paths
+    cur_tsv, cur_json = paths.path("external_reliability"), paths.path("external_reliability_summary")
+    core = paths.path("reliability")
+    if not (cur_tsv.exists() and cur_json.exists() and core.exists()):
+        pytest.skip("results of the current generation not present")
+    ext, checks = er.external_table_v2()
     # round_trip: the default C parser can be one ulp off on 17-digit values
-    delivered = pd.read_csv(OUT_TSV, sep="\t", float_precision="round_trip")
+    delivered = pd.read_csv(cur_tsv, sep="\t", float_precision="round_trip")
     pd.testing.assert_frame_equal(ext.reset_index(drop=True), delivered,
                                   check_dtype=False, check_exact=True)
-    summary = json.loads(OUT_JSON.read_text())
-    again = er.summarise(ext, pd.read_csv(V5_TSV, sep="\t"))
-    assert json.loads(json.dumps(again["main"], default=str)) == summary["main"]
-    assert summary["checks"] == json.loads(json.dumps(checks, default=str))
+    summary = json.loads(cur_json.read_text())
+    from atlas.reliability import jsonable
+    again = er.summarise_v2(ext, pd.read_csv(core, sep="\t"))
+    assert jsonable(again)["main"] == summary["by_population"]["snv"]["main"]
+    assert summary["checks"] == json.loads(json.dumps(jsonable(checks), default=str))
 
 
 def test_the_delivered_checks_hold():

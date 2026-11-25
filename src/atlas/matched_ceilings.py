@@ -1,4 +1,44 @@
 """Attenuation ceilings matched to the variants each correlation uses, with bootstrap
+intervals, and the realisation: core and external genes, per population.
+
+The current generation (results/matched_ceilings_v2.tsv and .json):
+
+Cells: group (core, external) x gene x stratum (atlas.reliability.STRATA, the seven) x
+predictor x population (atlas.population), with at least MIN_N (30) variants. A cell's
+variants are those the predictor scored that carry a functional score; for a gene with an
+error model, also its error information (A2's rule). Core: the seven genes of
+results/score_matrix_atlas_v3.parquet with results/assay_aux_v2.parquet, BRCA1 by
+replicates, BARD1, PALB2 and BAP1 by validated SE, and RAD51C, BRCA2 and VHL, which have no
+usable error model, with rho and its interval only (method ``none``); the 23 predictors
+of atlas.predictors. External: CTCF, SFPQ, RAD51D, XRCC2 and SBDS by SE, their 13 columns
+(results/external_scores_v2.parquet; all SNVs). A2's two scopes become one: the
+population. rho, the reliability and ceiling on the cell's own variants and the
+realisation come from one set of variants, each with its bootstrap interval (B = 2,000,
+the seed from SEED and the cell's key: group, gene, stratum, predictor, population).
+Columns added: ``estimable`` (the ceiling's lower bound above 0), ``selection_overlap``
+(atlas.predictors.SELECTION_OVERLAP), ``ceiling_inflated`` (BARD1, PALB2, BAP1: SE^2
+times the gene's inflation factor from atlas.reliability's neutral check) and
+``breakeven_inflation`` = (1 - rho^2) / (1 - the reliability before clipping), the factor
+by which the error variance would have to grow for the ceiling to fall to the
+predictor's rho (empty where that reliability is not below 1). A realisation whose cell
+is not estimable is kept but enters no summary of realisations. The columns comparing
+with v5's stratum ceiling are gone.
+
+The summary (snv population; a flagged cell enters no quantity across genes): (1) per
+stratum and group (core, external, all), the genes whose layer ceiling
+(results/reliability_v2.tsv, results/external_reliability_v2.tsv) is estimable, its
+median and range, and per predictor the median, range and number of genes of rho and of
+the realisation; (2) per gene x stratum, n, the layer ceiling and its interval, the
+predictor with the highest rho and the splice family's, each with rho, realisation and
+their intervals, and the cell's breakeven factor; (3) at 3-10 and 11-50 bp, that best
+predictor's realisation, and the cells whose realisation interval's upper bound is below
+1, and below 0.5; (4) beyond 50 bp, the layer ceiling per gene; (5) the cells whose
+realisation exceeds 1 or whose interval crosses 1. With the regression against
+results/matched_ceilings_v1.tsv.
+
+A2's first generation (results/matched_ceilings_v1.*) follows; its functions are kept.
+
+Attenuation ceilings matched to the variants each correlation uses, with bootstrap
 intervals; and the realisation of the external genes.
 
 v5 estimates one ceiling per gene x stratum from every variant with error information
@@ -63,6 +103,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import rankdata
 
+from atlas import paths, population, predictors
 from atlas.evaluate import classify_region
 from atlas.matched_realisation import CODING, MISSENSE_ONLY, SPLICE
 from atlas.reliability import MIN_N, MODELS, STRATA, _stratum_mask, spearman_brown
@@ -73,11 +114,12 @@ RAW = REPO / "data" / "raw"
 
 SEED = 20261122
 B = 2000
-CORE = {"BRCA1": "replicates", "BARD1": "se", "PALB2": "se"}
+# the core genes' error models (atlas.reliability.CORE_METHOD), and the genes without one
+CORE = {"BRCA1": "replicates", "BARD1": "se", "PALB2": "se", "BAP1": "se",
+        "RAD51C": "none", "BRCA2": "none", "VHL": "none"}
 EXTERNAL_GENES = ("CTCF", "SFPQ", "RAD51D", "XRCC2", "SBDS")
-EXTERNAL_MODELS = ["spliceai_ds", "pangolin_score", "cadd", "gpn_msa", "phylop100way",
-                   "phastcons100way", "gnomad_af_global", "gnomad_af_popmax",
-                   "alphagenome_official"]
+EXTERNAL_MODELS = predictors.EXTERNAL
+POPULATIONS = population.POPULATIONS        # the cells' scope in this generation
 INTRONIC = ["splice_1_2", "splice_3_10", "splice_11_50", "splice_deep"]
 EXTERNAL_STRATA = ["splice_region"] + INTRONIC
 SCOPES = ("scored", "snv")
@@ -92,28 +134,28 @@ CHECK_MODELS = ["spliceai_ds", "pangolin_score", "cadd"]
 # ==========================================================================
 # the variants
 # ==========================================================================
-def load_core(matrix: Path = RESULTS / "score_matrix_atlas_v2.parquet",
-              aux: Path = RESULTS / "assay_aux_v1.parquet") -> pd.DataFrame:
-    m = pd.read_parquet(matrix)
+def load_core(matrix: Path | None = None, aux: Path | None = None) -> pd.DataFrame:
+    m = population.load(None, matrix)
     m = m[m["gene"].isin(CORE)]
-    a = pd.read_parquet(aux, columns=["variant_id", "gene", "fit_rep1", "fit_rep2", "se",
-                                      "se_status"])
+    a = pd.read_parquet(aux or paths.path("assay_aux"),
+                        columns=["variant_id", "gene", "fit_rep1", "fit_rep2", "se", "se_status"])
     df = m.merge(a, on=["variant_id", "gene"], how="left")
-    df["region"] = df["hgvs_c"].map(classify_region)
     df["method"] = df["gene"].map(CORE)
     rep = df["fit_rep1"].notna() & df["fit_rep2"].notna()
     se = df["se"].notna() & (df["se_status"] == "validated")
-    df["has_error"] = np.where(df["method"] == "replicates", rep, se)
+    # "has_error": the variant carries what its gene's estimator needs (nothing for none)
+    df["has_error"] = np.select([df["method"] == "replicates", df["method"] == "se"],
+                                [rep, se], default=True)
     df["group"] = "core"
     return _common(df)
 
 
-def load_external(path: Path = RESULTS / "external_scores_v1.parquet") -> pd.DataFrame:
-    df = pd.read_parquet(path)
+def load_external(path: Path | None = None) -> pd.DataFrame:
+    df = pd.read_parquet(path or paths.path("external_scores"))
     df = df.rename(columns={"standard_error": "se"})
     df["region"] = df["hgvs_c"].map(classify_region)
     if not (df["region"] == df["stratum"]).all():
-        raise SystemExit("external_scores_v1's stratum differs from classify_region")
+        raise SystemExit("the external table's stratum differs from classify_region")
     df["fit_rep1"] = df["fit_rep2"] = np.nan
     df["method"] = "se"
     df["has_error"] = df["se"].notna()
@@ -134,6 +176,9 @@ def point(x, y, method, se=None, r1=None, r2=None) -> dict:
     """rho, reliability and ceiling as v5 computes them (the same expressions, so the
     same floats where the variants are the same)."""
     rho = float(pd.Series(x).corr(pd.Series(y), method="spearman"))
+    if method == "none":                       # no error model: rho alone
+        return {"rho": rho, "rep_rho": np.nan, "reliability": np.nan,
+                "reliability_unclipped": np.nan, "ceiling": np.nan, "realisation": np.nan}
     if method == "replicates":
         rep = float(pd.Series(r1).corr(pd.Series(r2), method="spearman"))
         rel = spearman_brown(rep)
@@ -164,6 +209,9 @@ def spearman_rows(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 def resample_stats(idx: np.ndarray, x, y, method, se=None, r1=None, r2=None) -> dict:
     """The estimators on each resample, one per row of idx."""
     rho = spearman_rows(x[idx], y[idx])
+    if method == "none":
+        nan = np.full(len(rho), np.nan)
+        return {"rho": rho, "reliability": nan, "ceiling": nan, "realisation": nan}
     if method == "replicates":
         r = spearman_rows(r1[idx], r2[idx])
         with np.errstate(invalid="ignore", divide="ignore"):
@@ -229,7 +277,8 @@ def cell_tasks(df: pd.DataFrame, models: list[str], strata: list[str],
                     continue
                 base = s[s[model].notna()]
                 for scope in scopes:
-                    c = base[base["snv"]] if scope == "snv" else base
+                    c = (base[base["snv"]] if scope == "snv" else
+                         base[~base["snv"]] if scope == "non_snv" else base)
                     if len(c) < MIN_N:
                         continue
                     arrays = {"x": c[model].to_numpy(float),
@@ -237,7 +286,7 @@ def cell_tasks(df: pd.DataFrame, models: list[str], strata: list[str],
                     if method == "replicates":
                         arrays |= {"r1": c["fit_rep1"].to_numpy(float),
                                    "r2": c["fit_rep2"].to_numpy(float)}
-                    else:
+                    elif method == "se":
                         arrays["se"] = c["se"].to_numpy(float)
                     key = (g["group"].iloc[0], gene, stratum, model, scope)
                     tasks.append((key, method, arrays))
@@ -508,7 +557,207 @@ COLUMNS = ["group", "gene", "stratum", "model", "scope", "n", "method", "rho", "
            "v5_ceiling", "ceiling_minus_v5", "realisation_v5_ceiling", "seed", "bootstrap_B",
            "rho_lo", "rho_hi", "reliability_lo", "reliability_hi", "ceiling_lo", "ceiling_hi",
            "realisation_lo", "realisation_hi", "share_realisation_gt_1",
-           "bootstrap_realisation_undefined"]
+           "bootstrap_realisation_undefined"]     # A2's table (matched_ceilings_v1)
+
+
+# ==========================================================================
+# the current generation
+# ==========================================================================
+COLUMNS_V2 = ["group", "gene", "stratum", "model", "population", "n", "method", "rho",
+              "rep_rho", "reliability", "reliability_unclipped", "ceiling", "realisation",
+              "estimable", "selection_overlap", "ceiling_inflated", "breakeven_inflation",
+              "seed", "bootstrap_B", "rho_lo", "rho_hi", "reliability_lo", "reliability_hi",
+              "ceiling_lo", "ceiling_hi", "realisation_lo", "realisation_hi",
+              "share_realisation_gt_1", "bootstrap_realisation_undefined"]
+GROUPS_V2 = {"core": ["core"], "external": ["external"], "all": ["core", "external"]}
+BEST_STRATA = ("splice_3_10", "splice_11_50")
+POINT = ["n", "rho", "reliability", "ceiling", "realisation"]
+INTERVAL = ["rho_lo", "rho_hi", "reliability_lo", "reliability_hi", "ceiling_lo", "ceiling_hi",
+            "realisation_lo", "realisation_hi", "share_realisation_gt_1"]
+REGRESSION_TOL = 1e-12
+
+
+def finish(raw: pd.DataFrame, inflation: dict[str, float]) -> pd.DataFrame:
+    """The cells as computed, with the population, estimable, the flag, the inflated
+    ceiling and the breakeven factor."""
+    t = raw.rename(columns={"scope": "population"}).copy()
+    t["estimable"] = t["ceiling_lo"] > 0
+    t["selection_overlap"] = [predictors.is_overlap(m, g) for m, g in zip(t["model"], t["gene"])]
+    f = t["gene"].map(inflation)
+    core_se = (t["group"] == "core") & (t["method"] == "se")
+    with np.errstate(invalid="ignore"):
+        rel = np.clip(1 - f * (1 - t["reliability_unclipped"]), 0.0, 1.0)
+    t["ceiling_inflated"] = np.where(core_se & f.notna(), np.sqrt(rel), np.nan)
+    se = t["method"] == "se"
+    room = 1 - t["reliability_unclipped"]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        t["breakeven_inflation"] = np.where(se & (room > 0), (1 - t["rho"] ** 2) / room, np.nan)
+    return t[COLUMNS_V2]
+
+
+def layer_ceilings() -> pd.DataFrame:
+    """The layer ceilings of the main rows (results/reliability_v2.tsv and
+    results/external_reliability_v2.tsv), by group."""
+    core = pd.read_csv(paths.path("reliability"), sep="\t").assign(group="core")
+    ext = pd.read_csv(paths.path("external_reliability"), sep="\t").assign(group="external")
+    t = pd.concat([core, ext], ignore_index=True)
+    t = t[t["role"] == "main"]
+    return t[["group", "gene", "population", "stratum", "method", "n", "ceiling", "ceiling_lo",
+              "ceiling_hi", "estimable"]].reset_index(drop=True)
+
+
+def variant_counts(df: pd.DataFrame) -> pd.DataFrame:
+    """Per gene x stratum x population, the variants with a functional score and (for a
+    gene with an error model) its error information."""
+    rows = []
+    for (gene, pop), g in df.assign(pop=np.where(df["snv"], population.SNV,
+                                                 population.NON_SNV)).groupby(["gene", "pop"]):
+        for stratum in STRATA:
+            s = g[_stratum_mask(g["region"], stratum) & g["has_error"]
+                  & g["functional_pathogenicity"].notna()]
+            if len(s):
+                rows.append({"group": g["group"].iloc[0], "gene": gene, "population": pop,
+                             "stratum": stratum, "n_variants": int(len(s))})
+    return pd.DataFrame(rows)
+
+
+def _cell_record(r: pd.Series) -> dict:
+    return {k: r[k] for k in ("model", "n", "rho", "rho_lo", "rho_hi", "ceiling", "ceiling_lo",
+                              "ceiling_hi", "estimable", "realisation", "realisation_lo",
+                              "realisation_hi", "breakeven_inflation")}
+
+
+def by_stratum_v2(table: pd.DataFrame, layer: pd.DataFrame) -> dict:
+    """1: per stratum and group, the estimable layer ceilings and the cross-gene medians."""
+    t = table[(table["population"] == population.SNV) & ~table["selection_overlap"]]
+    lay = layer[layer["population"] == population.SNV]
+    out = {}
+    for stratum in STRATA:
+        rec = {}
+        for name, groups in GROUPS_V2.items():
+            L = lay[(lay["stratum"] == stratum) & lay["group"].isin(groups)]
+            E = L[L["estimable"]]
+            d = t[(t["stratum"] == stratum) & t["group"].isin(groups)]
+            if not len(L) and not len(d):
+                continue
+            per = {}
+            for model, m in d.groupby("model", sort=False):
+                per[model] = {"rho": _range(m["rho"]),
+                              "realisation": _range(m.loc[m["estimable"], "realisation"])}
+            rec[name] = {"genes_with_layer_ceiling": sorted(L["gene"]),
+                         "genes_estimable": sorted(E["gene"]),
+                         "n_genes_estimable": int(len(E)), "ceiling": _range(E["ceiling"]),
+                         "per_predictor": per}
+        if rec:
+            out[stratum] = rec
+    return out
+
+
+def by_gene_stratum(table: pd.DataFrame, layer: pd.DataFrame, counts: pd.DataFrame) -> list[dict]:
+    """2: per gene x stratum (snv), n, the layer ceiling, the best predictor by rho and
+    the splice family's best (a flagged cell is not a candidate)."""
+    t = table[table["population"] == population.SNV]
+    lay = layer[layer["population"] == population.SNV].set_index(["gene", "stratum"])
+    cnt = counts[counts["population"] == population.SNV].set_index(["gene", "stratum"])
+    out = []
+    for (group, gene, stratum), d in t.groupby(["group", "gene", "stratum"], sort=False):
+        elig = d[~d["selection_overlap"] & d["rho"].notna()]
+        fam = elig[elig["model"].isin(predictors.SPLICE_FAMILY)]
+        L = lay.loc[(gene, stratum)] if (gene, stratum) in lay.index else None
+        out.append({
+            "group": group, "gene": gene, "stratum": stratum,
+            "n_variants": int(cnt.loc[(gene, stratum), "n_variants"])
+            if (gene, stratum) in cnt.index else None,
+            "layer_ceiling": None if L is None else {
+                "n": int(L["n"]), "method": L["method"], "ceiling": L["ceiling"],
+                "ceiling_lo": L["ceiling_lo"], "ceiling_hi": L["ceiling_hi"],
+                "estimable": bool(L["estimable"])},
+            "best": _cell_record(elig.loc[elig["rho"].idxmax()]) if len(elig) else None,
+            "best_splice_family": _cell_record(fam.loc[fam["rho"].idxmax()]) if len(fam) else None})
+    return out
+
+
+def best_realisation(per_gene: list[dict]) -> dict:
+    """3: at 3-10 and 11-50 bp, the best predictor's realisation per gene (estimable cells),
+    and the genes where its interval's upper bound is below 1, and below 0.5."""
+    out = {}
+    for stratum in BEST_STRATA:
+        rows = [r for r in per_gene if r["stratum"] == stratum and r["best"]
+                and r["best"]["estimable"]]
+        out[stratum] = {
+            "cells": [{"gene": r["gene"], **r["best"]} for r in rows],
+            "upper_bound_below_1": [f"{r['gene']} {r['best']['model']}" for r in rows
+                                    if r["best"]["realisation_hi"] < 1],
+            "upper_bound_below_0.5": [f"{r['gene']} {r['best']['model']}" for r in rows
+                                      if r["best"]["realisation_hi"] < 0.5],
+            "not_estimable": [r["gene"] for r in per_gene if r["stratum"] == stratum
+                              and r["best"] and not r["best"]["estimable"]]}
+    return out
+
+
+def deep(layer: pd.DataFrame) -> list[dict]:
+    """4: beyond 50 bp, the layer ceiling per gene (snv)."""
+    d = layer[(layer["population"] == population.SNV) & (layer["stratum"] == "splice_deep")]
+    return d[["group", "gene", "method", "n", "ceiling", "ceiling_lo", "ceiling_hi",
+              "estimable"]].to_dict("records")
+
+
+def above_one(table: pd.DataFrame) -> dict:
+    """5: the estimable snv cells whose realisation exceeds 1 or whose interval crosses 1."""
+    t = table[table["population"] == population.SNV]
+    hit = (t["realisation"] > 1) | (t["realisation_hi"] > 1)
+    keep = ["group", "gene", "stratum", "model", "n", "rho", "ceiling", "ceiling_lo",
+            "realisation", "realisation_lo", "realisation_hi", "share_realisation_gt_1",
+            "selection_overlap"]
+    return {"cells": t[hit & t["estimable"]][keep].to_dict("records"),
+            "not_estimable_cells_left_out": int((hit & ~t["estimable"]).sum())}
+
+
+def regression_v1(table: pd.DataFrame, v1_path: Path | None = None) -> dict:
+    """A2's matched_ceilings_v1.tsv (scope snv) against this table (population snv): the
+    core three genes and the eighteen predictors whose definition did not change, the
+    external five genes and their nine columns (alphagenome_official as alphagenome)."""
+    v1 = pd.read_csv(v1_path or RESULTS / "matched_ceilings_v1.tsv", sep="\t",
+                     float_precision="round_trip")
+    v1 = v1[v1["scope"] == "snv"].copy()
+    v1["model"] = v1["model"].replace({"alphagenome_official": "alphagenome"})
+    v1 = v1[~((v1["group"] == "core") & (v1["model"] == "alphagenome"))]
+    v2 = table[table["population"] == population.SNV].set_index(["group", "gene", "stratum",
+                                                                  "model"])
+    rec = {"rows_compared": 0, "missing_here": [], "point_identical": 0, "point_differ": [],
+           "point_max_abs_diff": 0.0, "interval_identical": 0, "interval_differ": []}
+    for r in v1.itertuples(index=False):
+        key = (r.group, r.gene, r.stratum, r.model)
+        if key not in v2.index:
+            rec["missing_here"].append(list(key))
+            continue
+        rec["rows_compared"] += 1
+        o = v2.loc[key]
+        diffs = []
+        for c in POINT:
+            a, b = float(getattr(r, c)), float(o[c])
+            if not ((np.isnan(a) and np.isnan(b)) or
+                    np.float64(a).view(np.uint64) == np.float64(b).view(np.uint64)):
+                diffs.append(c)
+                rec["point_max_abs_diff"] = max(rec["point_max_abs_diff"], abs(a - b))
+        if diffs:
+            rec["point_differ"].append(list(key) + [diffs])
+        else:
+            rec["point_identical"] += 1
+        idiff = [c for c in INTERVAL if not (
+            (np.isnan(float(getattr(r, c))) and np.isnan(float(o[c]))) or
+            np.float64(getattr(r, c)).view(np.uint64) == np.float64(o[c]).view(np.uint64))]
+        if idiff:
+            rec["interval_differ"].append({"cell": list(key), "columns": idiff,
+                                           "seed_v1": int(r.seed), "seed_here": int(o["seed"])})
+        else:
+            rec["interval_identical"] += 1
+    rec["interval_differ_with_same_seed"] = [d for d in rec["interval_differ"]
+                                             if d["seed_v1"] == d["seed_here"]]
+    rec["holds"] = bool(not rec["missing_here"] and rec["point_max_abs_diff"] <= REGRESSION_TOL
+                        and not rec["interval_differ_with_same_seed"])
+    rec["point_bitwise"] = not rec["point_differ"]
+    return rec
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -517,39 +766,50 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 2))
     ap.add_argument("--out", default=str(RESULTS))
     args = ap.parse_args(argv)
+    from atlas.reliability import inflation_factors, neutral_check
     core, ext = load_core(), load_external()
-    tasks = (cell_tasks(core, MODELS, STRATA)
-             + cell_tasks(ext, EXTERNAL_MODELS, EXTERNAL_STRATA, scopes=("snv",)))
+    inflation = inflation_factors(neutral_check(population.load(None),
+                                                pd.read_parquet(paths.path("assay_aux"))))
+    tasks = (cell_tasks(core, MODELS, STRATA, scopes=POPULATIONS)
+             + cell_tasks(ext, EXTERNAL_MODELS, STRATA, scopes=POPULATIONS))
     print(f"[matched] {len(tasks)} cells, {B} resamples each, {args.workers} workers",
           flush=True)
-    table = add_v5(compute(tasks, args.workers), stratum_ceilings())[COLUMNS]
-    df = pd.concat([core, ext], ignore_index=True)
-    att = check_attenuation(table, core)
-    trial = check_trial(table, core)
-    failures = []
-    if att["other_differences"]:
-        failures.append(f"{len(att['other_differences'])} scored cells differ from "
-                        "attenuation_v1.tsv beyond missing error information")
-    failures += [f"checkpoint {k}" for k, v in trial.items() if not v["holds"]]
+    table = finish(compute(tasks, args.workers), inflation)
+    layer = layer_ceilings()
+    per_gene = by_gene_stratum(table, layer, variant_counts(pd.concat([core, ext],
+                                                                        ignore_index=True)))
+    reg = regression_v1(table)
     summary = {"definition": {"seed": SEED, "bootstrap_B": B, "min_n": MIN_N,
-                              "scopes": list(SCOPES), "core": CORE,
+                              "populations": list(POPULATIONS), "core": CORE,
                               "external_genes": list(EXTERNAL_GENES),
-                              "cross_gene_scope": "snv"},
-               "checkpoints": {"attenuation_v1": att, "instruction_trial": trial},
-               "1_by_stratum": by_stratum(table, snv_ceilings(df, STRATA)),
-               "2_coding_vs_splice_1_2": coding_vs_splice(table),
-               "3_lists": lists(table),
-               "distributions": distributions(df, deposit_class_map()),
-               "failures": failures}
+                              "predictors_core": MODELS, "predictors_external": EXTERNAL_MODELS,
+                              "cross_gene_population": population.SNV,
+                              "selection_overlap": predictors.SELECTION_OVERLAP,
+                              "estimable": "the cell's ceiling interval's lower bound above 0; "
+                                           "a realisation of a cell that is not estimable "
+                                           "enters no summary",
+                              "inflation_factor": inflation,
+                              "layer_ceilings": [paths.name("reliability"),
+                                                 paths.name("external_reliability")]},
+               "checks": {"regression_matched_ceilings_v1": reg},
+               "1_by_stratum": by_stratum_v2(table, layer),
+               "2_by_gene_stratum": per_gene,
+               "3_best_realisation_3_10_and_11_50": best_realisation(per_gene),
+               "4_beyond_50bp": deep(layer),
+               "5_realisation_above_1_or_interval_crossing_1": above_one(table)}
     out = Path(args.out)
-    if failures:
+    if not reg["holds"]:
         (out / "_scratch").mkdir(parents=True, exist_ok=True)
-        table.to_csv(out / "_scratch" / "matched_ceilings_failed.tsv", sep="\t", index=False)
-        print("checkpoints fail:", failures, file=sys.stderr)
+        table.to_csv(out / "_scratch" / "matched_ceilings_v2_failed.tsv", sep="\t", index=False)
+        print("the regression against matched_ceilings_v1 fails:",
+              json.dumps(jsonable(reg), indent=1)[:3000], file=sys.stderr)
         return 1
-    table.to_csv(out / "matched_ceilings_v1.tsv", sep="\t", index=False)
-    (out / "matched_ceilings_v1.json").write_text(json.dumps(jsonable(summary), indent=1) + "\n")
-    print(f"[matched] wrote {len(table)} cells; checkpoints hold")
+    table.to_csv(out / paths.name("matched_ceilings"), sep="\t", index=False)
+    (out / paths.name("matched_ceilings_summary")).write_text(
+        json.dumps(jsonable(summary), indent=1) + "\n")
+    print(f"[matched] wrote {len(table)} cells; regression against v1 holds "
+          f"({reg['rows_compared']} rows, point identical {reg['point_identical']}, "
+          f"intervals identical {reg['interval_identical']})")
     return 0
 
 

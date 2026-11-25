@@ -1,25 +1,38 @@
-"""Extended stratification of the territory map.
+"""The pooled territory grid, per population, with the per-gene values it is pooled from.
 
-``atlas.evaluate`` scores eight strata. Three questions it cannot answer, each
-of which a reader will ask:
+Per gene, Spearman rho of each predictor against ``functional_pathogenicity``; per
+stratum, the genes with at least MIN_N (30) variants, pooled with DerSimonian-Laird on
+Fisher-z when there are at least two. Everything is imported from ``atlas.evaluate``, so
+the numbers are directly comparable with v5's.
 
-*ClinVar ascertainment.* The ClinVar-recorded stratum was compared against
-``all``, but ``all`` *contains* the recorded variants, so the comparison is
-diluted. The informative contrast is recorded versus **absent**.
+Populations (``atlas.population``):
 
-*Variant type.* 17,786 indels sit in the atlas and are never evaluated as their
-own stratum, even though four predictors score them.
+``snv``      the main analysis; sixteen strata:
+             the seven territories (all, coding_or_utr, splice_region, splice_1_2,
+             splice_3_10, splice_11_50, splice_deep);
+             five consequence classes (missense, synonymous, nonsense, utr, and
+             coding_snv_nontruncating = missense or synonymous), from the matrix's
+             ``consequence``;
+             ClinVar's three arms (clinvar_classified, clinvar_recorded_unclassified,
+             clinvar_unrecorded) from ``clinvar_arm`` (A3.3), and the sub-arm
+             clinvar_no_assertion (``clinvar_arm_strict`` == recorded_no_assertion).
+             v5's recorded/absent split and its list of recorded ids are not used.
+``non_snv``  the territories with enough variants for a pooled value (at least two
+             genes with MIN_N scored variants for some predictor), and the variant
+             classes deletion and complex; only for the predictors that score a non-SNV
+             (``alphagenome``, ``phylop100way``, ``phastcons100way`` score every one; the
+             two gnomAD columns 128).
 
-*What drives the coding signal.* A predictor can look strong in coding/UTR
-simply by separating nonsense from missense variants. Stratifying by protein
-consequence (from ``atlas.consequence``) tests whether the signal survives
-inside a single consequence class.
+The selection overlap (``atlas.predictors.SELECTION_OVERLAP``): avi's BRCA1 and RAD51C
+cells are computed and listed in the per-gene table with ``selection_overlap`` set, and
+are left out of avi's pooled values; the grid's ``excluded_genes`` names them.
 
-Everything else — per-gene Spearman, minimum n, DerSimonian–Laird pooling on
-Fisher-z — is unchanged and imported from ``atlas.evaluate``, so the extended
-numbers are directly comparable to the originals.
+Outputs: results/eval_ext_v2.tsv (one row per population x predictor x stratum) and
+results/eval_ext_per_gene_v2.tsv (one row per population x predictor x stratum x gene
+with at least MIN_N variants: n and rho; the pooled values are computed from these rows,
+less the flagged ones).
 
-Usage (PYTHONPATH=src):  python -m atlas.evaluate_ext --out results/
+Usage (PYTHONPATH=src):  python -m atlas.evaluate_ext [--out results/]
 """
 
 from __future__ import annotations
@@ -32,146 +45,143 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from atlas.evaluate import classify_region, dl_pool, fisher_z
+from atlas import paths, population, predictors
+from atlas.evaluate import dl_pool, fisher_z
 
 REPO = Path(__file__).resolve().parents[2]
 RESULTS = REPO / "results"
 
-MODELS = [
-    "alphagenome", "spliceai_ds", "pangolin_score", "cadd", "alphamissense",
-    "evo2", "gpn_msa", "nucleotide_transformer", "phylop100way",
-    "phastcons100way", "gnomad_af_global", "gnomad_af_popmax",
-    # dbNSFP meta-predictors (missense-only; atlas.metapredictors)
-    "revel", "bayesdel_addaf", "clinpred", "metarnn", "primateai", "vest4", "esm1b",
-]
-
+MODELS = predictors.PREDICTORS
 MIN_N = 30
 
+TERRITORIES = ["all", "coding_or_utr", "splice_region",
+               "splice_1_2", "splice_3_10", "splice_11_50", "splice_deep"]
+CONSEQUENCE = ["missense", "synonymous", "nonsense", "utr", "coding_snv_nontruncating"]
+CLINVAR = ["clinvar_classified", "clinvar_recorded_unclassified", "clinvar_unrecorded",
+           "clinvar_no_assertion"]
+CLASSES = ["deletion", "complex"]
 
-def stratum_masks(df: pd.DataFrame) -> dict[str, pd.Series]:
+GRID_COLUMNS = ["population", "model", "stratum", "k_genes", "n", "pooled_rho", "ci_lo",
+                "ci_hi", "i2_pct", "excluded_genes"]
+PER_GENE_COLUMNS = ["population", "model", "stratum", "gene", "n", "rho", "selection_overlap"]
+
+
+def territory_masks(df: pd.DataFrame) -> dict[str, pd.Series]:
     region = df["region"]
-    cons = df["consequence"]
-    is_snv = df["ref"].str.len().eq(1) & df["alt"].str.len().eq(1)
-    m: dict[str, pd.Series] = {
-        # original eight, recomputed so the extended table is self-contained
-        "all": pd.Series(True, index=df.index),
-        "coding_or_utr": region.eq("coding_or_utr"),
-        "splice_region": region.str.startswith("splice_"),
-        "splice_1_2": region.eq("splice_1_2"),
-        "splice_3_10": region.eq("splice_3_10"),
-        "splice_11_50": region.eq("splice_11_50"),
-        "splice_deep": region.eq("splice_deep"),
-        "clinvar_recorded": df["clinvar"],
-        # new
-        "clinvar_absent": ~df["clinvar"],
-        "snv": is_snv,
-        "indel": ~is_snv,
-        "missense": cons.eq("missense"),
-        "synonymous": cons.eq("synonymous"),
-        "nonsense": cons.eq("nonsense"),
-        "utr": cons.isin(["utr5", "utr3"]),
-        # protein-truncating vs not, within coding SNVs
-        "coding_snv_nontruncating": cons.isin(["missense", "synonymous"]),
-    }
+    return {"all": pd.Series(True, index=df.index),
+            "coding_or_utr": region.eq("coding_or_utr"),
+            "splice_region": region.str.startswith("splice_"),
+            "splice_1_2": region.eq("splice_1_2"),
+            "splice_3_10": region.eq("splice_3_10"),
+            "splice_11_50": region.eq("splice_11_50"),
+            "splice_deep": region.eq("splice_deep")}
+
+
+def stratum_masks(df: pd.DataFrame, pop: str = population.SNV) -> dict[str, pd.Series]:
+    """The strata of one population (df holds that population only)."""
+    m = territory_masks(df)
+    if pop == population.SNV:
+        cons = df["consequence"]
+        m |= {"missense": cons.eq("missense"), "synonymous": cons.eq("synonymous"),
+              "nonsense": cons.eq("nonsense"), "utr": cons.isin(["utr5", "utr3"]),
+              "coding_snv_nontruncating": cons.isin(["missense", "synonymous"])}
+        arm, strict = df["clinvar_arm"], df["clinvar_arm_strict"]
+        m |= {"clinvar_classified": arm.eq("classified"),
+              "clinvar_recorded_unclassified": arm.eq("recorded_unclassified"),
+              "clinvar_unrecorded": arm.eq("unrecorded"),
+              "clinvar_no_assertion": strict.eq("recorded_no_assertion")}
+    else:
+        m |= {c: df["variant_class"].eq(c) for c in CLASSES}
     return m
 
 
-def evaluate_grid(df: pd.DataFrame) -> pd.DataFrame:
-    masks = stratum_masks(df)
-    rows = []
-    # A model declared in MODELS but absent from the matrix used to be skipped
-    # in silence: with the old v1 default the delivered 19 x 16 grid came out
-    # missing all seven dbNSFP meta-predictors and nothing said so.
+def per_gene(sub: pd.DataFrame, model: str) -> list[dict]:
+    """Per gene with at least MIN_N variants: n, rho, Fisher z and its variance."""
+    out = []
+    for gene, g in sub.groupby("gene"):
+        if len(g) < MIN_N:
+            continue
+        r = float(g[model].corr(g["functional_pathogenicity"], method="spearman"))
+        z, v = fisher_z(r, len(g))
+        out.append({"gene": gene, "n": len(g), "rho": r, "z": z, "var": v,
+                    "selection_overlap": predictors.is_overlap(model, gene)})
+    return out
+
+
+def pooled_row(pop: str, model: str, stratum: str, sub: pd.DataFrame, pg: list[dict]) -> dict:
+    excluded = sorted(predictors.overlap_genes(model))
+    use = [p for p in pg if not p["selection_overlap"]]
+    n = int((~sub["gene"].isin(excluded)).sum())
+    row = {"population": pop, "model": model, "stratum": stratum, "k_genes": len(use),
+           "n": n, "pooled_rho": np.nan, "ci_lo": np.nan, "ci_hi": np.nan,
+           "i2_pct": np.nan, "excluded_genes": ";".join(excluded)}
+    if len(use) >= 2:
+        p = dl_pool([u["z"] for u in use], [u["var"] for u in use])
+        row |= {"pooled_rho": math.tanh(p["pooled"]), "ci_lo": math.tanh(p["ci_lo"]),
+                "ci_hi": math.tanh(p["ci_hi"]), "i2_pct": p["i2_pct"]}
+    return row
+
+
+def evaluate_population(df: pd.DataFrame, pop: str) -> tuple[list[dict], list[dict]]:
+    d = population.select(df, pop)
+    masks = stratum_masks(d, pop)
+    models = [m for m in MODELS if m in d.columns]
+    if pop == population.NON_SNV:
+        models = [m for m in models if d[m].notna().any()]
+    cells = {}
+    for model in models:
+        for stratum, mask in masks.items():
+            sub = d[mask].dropna(subset=[model, "functional_pathogenicity"])
+            cells[(model, stratum)] = (sub, per_gene(sub, model))
+    if pop == population.NON_SNV:
+        # a territory enters when some predictor pools in it; the classes always do
+        keep = set(CLASSES) | {s for (m, s), (_, pg) in cells.items()
+                               if sum(not p["selection_overlap"] for p in pg) >= 2}
+        cells = {k: v for k, v in cells.items() if k[1] in keep}
+    rows, genes = [], []
+    for (model, stratum), (sub, pg) in cells.items():
+        rows.append(pooled_row(pop, model, stratum, sub, pg))
+        genes += [{"population": pop, "model": model, "stratum": stratum, "gene": p["gene"],
+                   "n": p["n"], "rho": p["rho"], "selection_overlap": p["selection_overlap"]}
+                  for p in pg]
+    return rows, genes
+
+
+def evaluate_grid(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    # a declared predictor absent from the matrix is said so, not skipped in silence
     absent = [m for m in MODELS if m not in df.columns]
     if absent:
         print(f"[evaluate_ext] WARNING: {len(absent)} declared models are not in "
               f"this matrix and are omitted: {', '.join(absent)}", file=sys.stderr)
-    for model in MODELS:
-        if model not in df.columns:
-            continue
-        for stratum, mask in masks.items():
-            sub = df[mask].dropna(subset=[model, "functional_pathogenicity"])
-            per_gene = []
-            for gene, g in sub.groupby("gene"):
-                if len(g) < MIN_N:
-                    continue
-                r = float(g[model].corr(g["functional_pathogenicity"], method="spearman"))
-                z, v = fisher_z(r, len(g))
-                per_gene.append({"gene": gene, "n": len(g), "rho": r, "z": z, "var": v})
-            if len(per_gene) < 2:
-                rows.append({"model": model, "stratum": stratum, "k_genes": len(per_gene),
-                             "n": int(len(sub)), "pooled_rho": np.nan, "ci_lo": np.nan,
-                             "ci_hi": np.nan, "i2_pct": np.nan})
-                continue
-            pg = pd.DataFrame(per_gene)
-            p = dl_pool(pg["z"].tolist(), pg["var"].tolist())
-            rows.append({
-                "model": model, "stratum": stratum, "k_genes": len(pg),
-                "n": int(len(sub)),
-                "pooled_rho": math.tanh(p["pooled"]),
-                "ci_lo": math.tanh(p["ci_lo"]),
-                "ci_hi": math.tanh(p["ci_hi"]),
-                "i2_pct": p["i2_pct"],
-            })
-    return pd.DataFrame(rows)
-
-
-def load(matrix: Path, consequence: Path, clinvar: Path) -> pd.DataFrame:
-    df = pd.read_parquet(matrix)
-    cv = set(pd.read_parquet(clinvar)["variant_id"])
-    # matrix v2 already carries the consequence column; merging again would
-    # produce consequence_x/consequence_y and silently break every
-    # consequence-based stratum
-    if "consequence" not in df.columns:
-        cons = pd.read_parquet(consequence)[["variant_id", "consequence"]]
-        df = df.merge(cons, on="variant_id", how="left")
-    df["region"] = df["hgvs_c"].map(classify_region)
-    df["clinvar"] = df["variant_id"].isin(cv)
-    return df
+    rows, genes = [], []
+    for pop in population.POPULATIONS:
+        r, g = evaluate_population(df, pop)
+        rows += r
+        genes += g
+    return (pd.DataFrame(rows, columns=GRID_COLUMNS),
+            pd.DataFrame(genes, columns=PER_GENE_COLUMNS))
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
-    # v1, so a default run produced a 193-row grid missing those models instead
-    # of the delivered 304-row one. v1 is kept only as the auditable
-    # pre-rescore matrix (see atlas.matrix_v2).
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
-    ap.add_argument("--consequence", default=str(RESULTS / "consequence_v1.parquet"))
-    ap.add_argument("--clinvar",
-                    default=str(REPO / "data/external/clinvar_recorded_ids.parquet"))
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--matrix", default=str(paths.path("score_matrix")))
     ap.add_argument("--out", default="results")
     args = ap.parse_args(argv)
 
-    df = load(Path(args.matrix), Path(args.consequence), Path(args.clinvar))
-    grid = evaluate_grid(df)
+    df = population.load(None, Path(args.matrix))
+    grid, genes = evaluate_grid(df)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    grid.to_csv(out / "eval_ext_v1.tsv", sep="\t", index=False)
+    grid.to_csv(out / paths.name("eval_ext"), sep="\t", index=False)
+    genes.to_csv(out / paths.name("eval_ext_per_gene"), sep="\t", index=False)
 
-    wide = grid.pivot(index="model", columns="stratum", values="pooled_rho")
-    order = [m for m in MODELS if m in wide.index]
-
-    print("Stratum sizes:")
-    for s, mask in stratum_masks(df).items():
-        print(f"  {s:<26} {int(mask.sum()):>7,}")
-
-    print("\nClinVar ascertainment — recorded vs absent (the diluted 'all' comparison "
-          "is shown for reference):")
-    cv = wide.reindex(order)[["clinvar_recorded", "clinvar_absent", "all"]].copy()
-    cv["uplift_vs_absent"] = cv["clinvar_recorded"] - cv["clinvar_absent"]
-    cv["uplift_vs_all"] = cv["clinvar_recorded"] - cv["all"]
-    print(cv.to_string(float_format=lambda x: f"{x:.3f}"))
-    print(f"\n  median uplift vs absent = {cv['uplift_vs_absent'].median():.3f}   "
-          f"vs all = {cv['uplift_vs_all'].median():.3f}")
-
-    print("\nWithin-consequence-class signal (does coding performance survive "
-          "removing the nonsense/missense contrast?):")
-    print(wide.reindex(order)[["coding_or_utr", "missense", "synonymous", "nonsense", "utr"]]
+    snv = grid[grid["population"] == population.SNV]
+    wide = snv.pivot(index="model", columns="stratum", values="pooled_rho")
+    print(f"{len(grid)} rows ({len(snv)} snv, {len(grid) - len(snv)} non_snv); "
+          f"{len(genes)} per-gene rows")
+    print(wide.reindex([m for m in MODELS if m in wide.index])[TERRITORIES]
           .to_string(float_format=lambda x: f"{x:.3f}"))
-
-    print("\nSNV vs indel:")
-    print(wide.reindex(order)[["snv", "indel"]].to_string(float_format=lambda x: f"{x:.3f}"))
     return 0
 
 
