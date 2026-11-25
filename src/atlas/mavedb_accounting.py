@@ -28,7 +28,13 @@ from the delivered survey/ceiling/audit tables — no new API calls:
                  marked pending manual adjudication. This module deliberately
                  does not adjudicate them.
 
-Usage (PYTHONPATH=src):  python -m atlas.mavedb_accounting --out results/
+The current generation reads the survey v2 (the human flag judged on each deposit's
+record, atlas.mavedb_records) and the ceilings v2 (atlas.mavedb_ceilings) and writes
+mavedb_accounting_v2.tsv and mavedb_ceiling_k_sensitivity_v2.tsv. The audit-status table
+of the old audit is no longer written (the audit was finished in
+atlas.mavedb_survey_reaudit); `audit_status` stays for v1's files.
+
+Usage (PYTHONPATH=src):  python -m atlas.mavedb_accounting [--out results/]
 """
 
 from __future__ import annotations
@@ -66,7 +72,8 @@ def accounting(sv: pd.DataFrame, ce: pd.DataFrame) -> pd.DataFrame:
         ("published score sets", n_all, None, None,
          "every published MaveDB score set enumerated through the API"),
         ("human score sets", n_human, n_all, n_human / n_all,
-         "target gene recorded as Homo sapiens"),
+         "a target judged human on the deposit's record: taxonomy 9606, a GRCh37/GRCh38 "
+         "assembly, or a human accession (atlas.mavedb_records)"),
         ("human permitting an estimate", n_human_permit, n_human,
          n_human_permit / n_human,
          "human score sets whose table carries reconcilable replicates or a "
@@ -80,7 +87,7 @@ def accounting(sv: pd.DataFrame, ce: pd.DataFrame) -> pd.DataFrame:
         ("ceilings computed (paper class)", n_paper_ok, n_paper, n_paper_ok / n_paper,
          "status ok among the paper counting class"),
         ("ceilings computed / all published", n_paper_ok, n_all, n_paper_ok / n_all,
-         "the 24.0% figure: usable ceilings over every published score set"),
+         "usable ceilings over every published score set (the paper's headline ratio)"),
         ("ceiling candidates, all deposits", len(ce), None, None,
          "every surveyed deposit that permits an estimate, all organisms and "
          "the designed-stability platform included"),
@@ -159,43 +166,26 @@ def audit_status(au: pd.DataFrame) -> pd.DataFrame:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from atlas import paths
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default="results")
     args = ap.parse_args(argv)
     out = Path(args.out)
 
-    sv = pd.read_csv(out / "mavedb_survey_v1.tsv", sep="\t")
-    ce = pd.read_csv(out / "mavedb_ceilings_v1.tsv", sep="\t")
-    au = pd.read_csv(out / "mavedb_survey_audit_v1.tsv", sep="\t")
+    sv = pd.read_csv(paths.path("mavedb_survey"), sep="\t")
+    ce = pd.read_csv(paths.path("mavedb_ceilings"), sep="\t")
 
     ledger = accounting(sv, ce)
-    ledger.to_csv(out / "mavedb_accounting_v1.tsv", sep="\t", index=False)
+    ledger.to_csv(out / paths.name("mavedb_accounting"), sep="\t", index=False)
 
     ks = k_sensitivity(ce)
-    ks.to_csv(out / "mavedb_ceiling_k_sensitivity_v1.tsv", sep="\t", index=False)
-
-    status = audit_status(au)
-    status.to_csv(out / "mavedb_survey_audit_status_v1.tsv", sep="\t", index=False)
-
-    counts = status["permits"].value_counts().to_dict()
-    doc = {
-        "audit_total": len(status),
-        "by_permits": {k: int(v) for k, v in counts.items()},
-        "adjudication": ("no sampled row has been manually adjudicated; the 25 "
-                         "'errors' rows are the false-positive direction and are "
-                         "marked pending manual adjudication"),
-        "false_positive_rows": int((status["permits"] == "errors").sum()),
-    }
-    (out / "mavedb_survey_audit_status_v1.json").write_text(json.dumps(doc, indent=2) + "\n")
+    ks.to_csv(out / paths.name("mavedb_ceiling_k_sensitivity"), sep="\t", index=False)
 
     print("MaveDB deposit ledger:")
     print(ledger.to_string(index=False,
                            float_format=lambda x: f"{x:.3f}" if x == x else ""))
     print("\nk-sensitivity (SE = SD/sqrt(k)):")
     print(ks.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
-    print(f"\naudit status: {len(status)} rows, classes "
-          f"{ {k: int(v) for k, v in sorted(counts.items())} }, "
-          f"all pending manual adjudication")
     return 0
 
 

@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 263,
+ "n_files": 271,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 99
+  "supp_table": 107
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
@@ -963,17 +963,37 @@
    "sha256": "40140bbf137012677f8af93b81d239fd9bc6694804abd9c11c0d6c3f6b9700df",
    "bytes": 1164
   },
+  "results/mavedb_accounting_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "ec7eaf9c5606f8012d12ba0a03da509470c6f6e66f9864fc6bf3eb45eb1dab07",
+   "bytes": 1271
+  },
   "results/mavedb_ceiling_k_sensitivity_v1.tsv": {
    "role": "supp_table",
    "sha256": "5c115ca962800f19a0e13427f4aa3a9b92239c625ca74357ea0eb2028666dce1",
    "bytes": 819
+  },
+  "results/mavedb_ceiling_k_sensitivity_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "11021060aab43429eedca83dde3ae5494cf05d0d0804a8b445d63fc3f36d06e5",
+   "bytes": 817
   },
   "results/mavedb_ceilings_v1.tsv": {
    "role": "supp_table",
    "sha256": "0f3ec30d78a05bb67b6818e04d78fa3b68818302ba10de14e86ebd0cf09236cb",
    "bytes": 576879
   },
+  "results/mavedb_ceilings_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "73d7c86593230ec2a54060771966f5d760147ca2e5b86f06df212dc096a0b610",
+   "bytes": 583600
+  },
   "results/mavedb_estimator_comparison_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "e10ce5aa1f017fcb2f3cfe668fc1d6bb3d3f3023ea39e4c198cd8b5d150f58a3",
+   "bytes": 1701
+  },
+  "results/mavedb_estimator_comparison_v2.tsv": {
    "role": "supp_table",
    "sha256": "e10ce5aa1f017fcb2f3cfe668fc1d6bb3d3f3023ea39e4c198cd8b5d150f58a3",
    "bytes": 1701
@@ -982,6 +1002,11 @@
    "role": "supp_table",
    "sha256": "fca16ddde74098333997a5519335876dc2fe9c6c7d839a2f1ac05fa46de5944e",
    "bytes": 203213
+  },
+  "results/mavedb_metadata_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "07c14807eadac097cea0221539c9feae4fd3abd530bc69efcdcf6f6ddb6b0ff6",
+   "bytes": 312239
   },
   "results/mavedb_survey_audit_status_v1.json": {
    "role": "supp_table",
@@ -1008,10 +1033,25 @@
    "sha256": "d6ff2eb7d1e00c6db6a8e26fcfc291260a762dc7dbe89958ca448e4fc6be1b02",
    "bytes": 182590
   },
+  "results/mavedb_survey_reaudit_v2.json": {
+   "role": "supp_table",
+   "sha256": "5a1bd56769bdda87113e93ad2d23ca9735265204b4e073c83cb4802a3aa036ee",
+   "bytes": 3333
+  },
+  "results/mavedb_survey_reaudit_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "776ab379130774398d99c3475865d0ecc6966d6e4c5bd69bd17e8897d21a5a55",
+   "bytes": 182580
+  },
   "results/mavedb_survey_v1.tsv": {
    "role": "supp_table",
    "sha256": "5e36c1ba4eb5d7eb61a2da23a61927e66d225b27d3f2e5f36f89fde4b485c856",
    "bytes": 645527
+  },
+  "results/mavedb_survey_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "cc006ab6b951e5987f9fa581118352ee5e269a328a32cc02bcb2007ceaca6a00",
+   "bytes": 754722
   },
   "results/model_correlation_all_v1.tsv": {
    "role": "supp_table",

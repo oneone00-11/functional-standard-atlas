@@ -67,6 +67,15 @@ NAMES: dict[str, str] = {
     "ensemble_pooled": "ensemble_pooled_v2.tsv",
     "ensemble_summary": "ensemble_v2.json",
     "model_correlation": "model_correlation_{stratum}_v2.tsv",
+    # MaveDB
+    "mavedb_survey": "mavedb_survey_v2.tsv",
+    "mavedb_metadata": "mavedb_metadata_v2.tsv",
+    "mavedb_ceilings": "mavedb_ceilings_v2.tsv",
+    "mavedb_accounting": "mavedb_accounting_v2.tsv",
+    "mavedb_ceiling_k_sensitivity": "mavedb_ceiling_k_sensitivity_v2.tsv",
+    "mavedb_estimator_comparison": "mavedb_estimator_comparison_v2.tsv",
+    "mavedb_survey_reaudit": "mavedb_survey_reaudit_v2.tsv",
+    "mavedb_survey_reaudit_summary": "mavedb_survey_reaudit_v2.json",
 }
 
 

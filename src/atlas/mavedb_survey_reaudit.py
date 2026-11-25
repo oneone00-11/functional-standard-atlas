@@ -68,6 +68,12 @@ stratum's human count x its proportion); the proportion of none that was missed 
 missed error column, or missed replicates whose mean reproduces the score: the survey's
 own rule for replicates) and the count it implies; v5's counts beside them.
 
+The current generation's ``assemble`` reads the survey v2 (results/mavedb_survey_v2.tsv),
+whose human flag is judged on each deposit's record (atlas.mavedb_records): the verdicts
+do not change, only each row's human flag and the human counts derived from it. It
+writes results/mavedb_survey_reaudit_v2.tsv and .json; v1's are left as they are. The
+sample (drawn on the survey v1) and its platform column are as drawn.
+
 Subcommands (from the repository root, PYTHONPATH=src):
   sample      data/raw/mavedb_audit_v2/sample.tsv
   fetch       the records, the experiments and the score tables of the sample (a table
@@ -96,15 +102,18 @@ from atlas.mavedb_ceilings import platform_series
 from atlas.mavedb_survey import (API, PAUSE, RE_ERROR, RE_REPLICATE, SCORE_COL, TIMEOUT,
                                  _reconciling_subset)
 
+from atlas import paths
+
 REPO = Path(__file__).resolve().parents[2]
 RESULTS = REPO / "results"
-SURVEY = RESULTS / "mavedb_survey_v1.tsv"
+SURVEY = RESULTS / "mavedb_survey_v1.tsv"          # the survey the sample was drawn on
 METADATA = RESULTS / "mavedb_metadata_v1.tsv"
+SURVEY_CURRENT = paths.path("mavedb_survey")       # its human flag, for assemble
 CACHE = REPO / "data" / "raw" / "mavedb_audit_v2"
 SAMPLE = CACHE / "sample.tsv"
 VERDICTS = REPO / "config" / "mavedb_reaudit.yaml"
-OUT_TSV = RESULTS / "mavedb_survey_reaudit_v1.tsv"
-OUT_JSON = RESULTS / "mavedb_survey_reaudit_v1.json"
+OUT_TSV = paths.path("mavedb_survey_reaudit")
+OUT_JSON = paths.path("mavedb_survey_reaudit_summary")
 
 SEED = 20261124
 STRATA = ("conventional", "interval_prefix", "sigma", "err")
@@ -641,9 +650,11 @@ def summarise(rows: pd.DataFrame, survey: pd.DataFrame) -> dict:
     return out
 
 
-def assemble(cache: Path = CACHE) -> dict:
+def assemble(cache: Path = CACHE, survey_path: Path = SURVEY_CURRENT) -> dict:
     sample = pd.read_csv(SAMPLE, sep="\t")
-    survey = pd.read_csv(SURVEY, sep="\t")
+    survey = pd.read_csv(survey_path, sep="\t")
+    # the sample was drawn on the survey v1; each row's human flag is the current one
+    sample["human"] = sample["urn"].map(survey.set_index("urn")["human"])
     v = load_verdicts()
     log = json.loads((cache / "fetch_log.json").read_text())
     survey_note = survey.set_index("urn")["note"].fillna("").to_dict()
@@ -689,6 +700,8 @@ def assemble(cache: Path = CACHE) -> dict:
     t = pd.DataFrame(rows)
     summ = summarise(t, survey)
     summ |= {"rows": int(len(t)), "fetched": sorted({x[:10] for x in t["fetched_utc"]}),
+             "survey": str(Path(survey_path).resolve().relative_to(REPO))
+             if Path(survey_path).resolve().is_relative_to(REPO) else Path(survey_path).name,
              "verdicts_file": str(VERDICTS.relative_to(REPO)),
              "columns_changed_since_survey": int(t["columns_changed"].sum())}
     RESULTS.mkdir(exist_ok=True)

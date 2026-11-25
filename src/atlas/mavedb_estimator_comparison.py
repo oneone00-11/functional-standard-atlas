@@ -22,8 +22,11 @@ primary analysis derives one as sd(replicates)/sqrt(2); the manuscript reports
 that this raises its ceiling by 0.049-0.062. Reproducing that here is a
 regression check that this module and the main pipeline agree.
 
+The current generation reads the survey v2 (only its ``human`` differs from v1's) and
+writes mavedb_estimator_comparison_v2.tsv.
+
 Usage (with PYTHONPATH=src):
-    python -m atlas.mavedb_estimator_comparison --out results/mavedb_estimator_comparison_v1.tsv
+    python -m atlas.mavedb_estimator_comparison
 """
 
 from __future__ import annotations
@@ -88,8 +91,9 @@ def compare(urn: str, reps: list[str], derived_se: bool = False) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--survey", default="results/mavedb_survey_v1.tsv")
-    ap.add_argument("--out", default="results/mavedb_estimator_comparison_v1.tsv")
+    from atlas import paths
+    ap.add_argument("--survey", default=str(paths.path("mavedb_survey")))
+    ap.add_argument("--out", default=str(paths.path("mavedb_estimator_comparison")))
     args = ap.parse_args(argv)
 
     s = pd.read_csv(args.survey, sep="\t").fillna("")
