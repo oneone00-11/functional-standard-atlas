@@ -21,7 +21,12 @@ Three strategies are compared on identical variants:
   ``territory_logo``    best model per territory (chosen LOGO)
   ``rank_average``      mean within-gene percentile rank over a fixed panel
 
-Usage (PYTHONPATH=src):  python -m atlas.ensemble --out results/
+The current generation: the SNVs of score matrix v3 (atlas.population); the two fixed
+panels as they were; the candidates gain the AlphaGenome Atlas's three splice scorers
+(avi itself is not a candidate). Outputs: ensemble_logo_v2.tsv, ensemble_pooled_v2.tsv,
+ensemble_v2.json and model_correlation_<stratum>_v2.tsv.
+
+Usage (PYTHONPATH=src):  python -m atlas.ensemble [--out results/]
 """
 
 from __future__ import annotations
@@ -35,6 +40,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from atlas import paths, population
 from atlas.evaluate import classify_region, dl_pool, fisher_z
 
 REPO = Path(__file__).resolve().parents[2]
@@ -48,7 +54,11 @@ STRATA = ["all", "coding_or_utr", "splice_region",
 PANEL_BROAD = ["cadd", "evo2", "gpn_msa", "phylop100way"]
 PANEL_SPLICE = ["alphagenome", "spliceai_ds", "pangolin_score"]
 
-CANDIDATES = PANEL_BROAD + PANEL_SPLICE + ["phastcons100way", "nucleotide_transformer"]
+# the Atlas's three splice scorers join the candidates; avi does not (it was selected on
+# a validation set holding two of these genes: atlas.predictors.SELECTION_OVERLAP)
+ATLAS_SPLICE = ["avi_splice_sites", "avi_splice_site_usage", "avi_splice_junctions"]
+CANDIDATES = (PANEL_BROAD + PANEL_SPLICE + ["phastcons100way", "nucleotide_transformer"]
+              + ATLAS_SPLICE)
 
 MIN_N = 30
 
@@ -146,15 +156,12 @@ def logo_strategies(df: pd.DataFrame) -> pd.DataFrame:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
-    # v1, so a default run silently omitted those candidates from the ensemble
-    # tables. v1 is kept only as the auditable pre-rescore matrix
-    # (see atlas.matrix_v2).
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
+    # the current matrix (atlas.paths); the SNVs only
+    ap.add_argument("--matrix", default=str(paths.path("score_matrix")))
     ap.add_argument("--out", default="results")
     args = ap.parse_args(argv)
 
-    df = pd.read_parquet(args.matrix)
+    df = population.load(population.SNV, Path(args.matrix))
     # A declared candidate absent from the matrix used to be skipped in silence.
     absent = [m for m in CANDIDATES if m not in df.columns]
     if absent:
@@ -178,14 +185,14 @@ def main(argv: list[str] | None = None) -> int:
             pooled_rows.append({"stratum": stratum, "score": col, "k_genes": len(pg),
                                 "n": int(pg["n"].sum()), "pooled_rho": pooled(pg)})
     pooled_df = pd.DataFrame(pooled_rows)
-    pooled_df.to_csv(out / "ensemble_pooled_v1.tsv", sep="\t", index=False)
+    pooled_df.to_csv(out / paths.name("ensemble_pooled"), sep="\t", index=False)
 
     logo = logo_strategies(df)
-    logo.to_csv(out / "ensemble_logo_v1.tsv", sep="\t", index=False)
+    logo.to_csv(out / paths.name("ensemble_logo"), sep="\t", index=False)
 
     for stratum in ("all", "coding_or_utr", "splice_region"):
         cm = complementarity(df, stratum)
-        cm.to_csv(out / f"model_correlation_{stratum}_v1.tsv", sep="\t")
+        cm.to_csv(out / paths.name("model_correlation", stratum=stratum), sep="\t")
 
     print("Pooled ρ — fixed-panel rank-average ensembles vs their members:")
     piv = pooled_df.pivot(index="score", columns="stratum", values="pooled_rho")
@@ -210,8 +217,9 @@ def main(argv: list[str] | None = None) -> int:
     print("\nWhich model the LOGO selector picks per stratum:")
     print(picks.to_string(index=False))
 
-    (out / "ensemble_v1.json").write_text(json.dumps({
-        "panel_broad": PANEL_BROAD, "panel_splice": PANEL_SPLICE,
+    (out / paths.name("ensemble_summary")).write_text(json.dumps({
+        "panel_broad": PANEL_BROAD, "panel_splice": PANEL_SPLICE, "candidates": CANDIDATES,
+        "population": population.SNV,
         "strategy_medians": summ.to_dict("index"),
     }, indent=2, default=str) + "\n")
     return 0

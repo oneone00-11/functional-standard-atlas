@@ -13,7 +13,12 @@ readouts of one assay agree at ρ = r, then a predictor reaching ρ = r against
 one of them is performing at the level of the experiment's own internal
 agreement.
 
-Usage (PYTHONPATH=src):  python -m atlas.rna_readout --out results/
+The current generation: the SNVs of score matrix v3 (atlas.population), the 23
+predictors of atlas.predictors; a flagged cell (atlas.predictors.SELECTION_OVERLAP: avi on
+BRCA1) is listed with ``selection_overlap`` set and left out of the pooled values.
+Outputs: rna_readout_v2.tsv and rna_readout_v2.json.
+
+Usage (PYTHONPATH=src):  python -m atlas.rna_readout [--out results/]
 """
 
 from __future__ import annotations
@@ -27,19 +32,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from atlas import paths, population, predictors
 from atlas.evaluate import classify_region, dl_pool, fisher_z
 from atlas.reliability import spearman_brown
 
 REPO = Path(__file__).resolve().parents[2]
 RESULTS = REPO / "results"
 
-MODELS = [
-    "cadd", "alphamissense", "gpn_msa", "evo2", "phylop100way", "alphagenome",
-    "nucleotide_transformer", "phastcons100way", "spliceai_ds", "pangolin_score",
-    "gnomad_af_global", "gnomad_af_popmax",
-    # dbNSFP meta-predictors (missense-only; atlas.metapredictors)
-    "revel", "bayesdel_addaf", "clinpred", "metarnn", "primateai", "vest4", "esm1b",
-]
+MODELS = predictors.PREDICTORS
 MIN_N = 30
 
 
@@ -89,7 +89,7 @@ def analyse(mat: pd.DataFrame, aux: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         r = _rho_row(g["rna_pathogenicity"], g["functional_pathogenicity"])
         if r:
             rows.append({"gene": gene, "comparison": "rna_vs_fitness",
-                         "model": "(assay itself)", **r})
+                         "model": "(assay itself)", **r, "selection_overlap": False})
             agree_pg.append(r)
 
     for model in MODELS:
@@ -99,14 +99,17 @@ def analyse(mat: pd.DataFrame, aux: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         for gene, g in coding.groupby("gene"):
             rf = _rho_row(g[model], g["functional_pathogenicity"])
             rr = _rho_row(g[model], g["rna_pathogenicity"])
+            flag = predictors.is_overlap(model, gene)      # listed, not pooled
             if rf:
                 rows.append({"gene": gene, "comparison": "model_vs_fitness",
-                             "model": model, **rf})
-                pg_fit.append(rf)
+                             "model": model, **rf, "selection_overlap": flag})
+                if not flag:
+                    pg_fit.append(rf)
             if rr:
                 rows.append({"gene": gene, "comparison": "model_vs_rna",
-                             "model": model, **rr})
-                pg_rna.append(rr)
+                             "model": model, **rr, "selection_overlap": flag})
+                if not flag:
+                    pg_rna.append(rr)
         cross_pg.append({"model": model, "fit": _pool(pg_fit), "rna": _pool(pg_rna)})
 
     # RNA readout reliability, where replicates exist (BRCA1)
@@ -131,16 +134,13 @@ def analyse(mat: pd.DataFrame, aux: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
-    # v1, so a default run silently omitted those models from the delivered
-    # table. v1 is kept only as the auditable pre-rescore matrix
-    # (see atlas.matrix_v2).
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
-    ap.add_argument("--aux", default=str(RESULTS / "assay_aux_v1.parquet"))
+    # the current matrix and aux table (atlas.paths); the SNVs only
+    ap.add_argument("--matrix", default=str(paths.path("score_matrix")))
+    ap.add_argument("--aux", default=str(paths.path("assay_aux")))
     ap.add_argument("--out", default="results")
     args = ap.parse_args(argv)
 
-    mat = pd.read_parquet(args.matrix)
+    mat = population.load(population.SNV, Path(args.matrix))
     # A declared model absent from the matrix used to be skipped in silence.
     absent = [m for m in MODELS if m not in mat.columns]
     if absent:
@@ -151,8 +151,9 @@ def main(argv: list[str] | None = None) -> int:
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    per_gene.to_csv(out / "rna_readout_v1.tsv", sep="\t", index=False)
-    (out / "rna_readout_v1.json").write_text(json.dumps(prov, indent=2, default=str) + "\n")
+    per_gene.to_csv(out / paths.name("rna_readout"), sep="\t", index=False)
+    (out / paths.name("rna_readout_summary")).write_text(
+        json.dumps(prov, indent=2, default=str) + "\n")
 
     print(f"RNA readout available for {prov['n_with_rna']:,} variants "
           f"across {len(prov['genes'])} genes: {', '.join(prov['genes'])}")

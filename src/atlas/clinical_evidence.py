@@ -21,7 +21,12 @@ model and no ClinGen-specified bootstrap procedure. They are reported so that
 territory-resolved performance can be read on a scale clinicians use, and the
 ACMG tier column should be read as "consistent with", not "certified as".
 
-Usage (PYTHONPATH=src):  python -m atlas.clinical_evidence --out results/
+The current generation: the SNVs of score matrix v3 (atlas.population), the 23
+predictors of atlas.predictors; every number here is across genes, so a flagged cell
+(atlas.predictors.SELECTION_OVERLAP: avi on RAD51C) is left out and ``excluded_genes``
+names it. Outputs: clinical_evidence_v2.tsv and clinical_evidence_v2.json.
+
+Usage (PYTHONPATH=src):  python -m atlas.clinical_evidence [--out results/]
 """
 
 from __future__ import annotations
@@ -36,18 +41,13 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from atlas import paths, population, predictors
 from atlas.evaluate import classify_region, dl_pool
 
 REPO = Path(__file__).resolve().parents[2]
 RESULTS = REPO / "results"
 
-MODELS = [
-    "alphagenome", "spliceai_ds", "pangolin_score", "cadd", "alphamissense",
-    "evo2", "gpn_msa", "nucleotide_transformer", "phylop100way",
-    "phastcons100way", "gnomad_af_global", "gnomad_af_popmax",
-    # dbNSFP meta-predictors (missense-only; atlas.metapredictors)
-    "revel", "bayesdel_addaf", "clinpred", "metarnn", "primateai", "vest4", "esm1b",
-]
+MODELS = predictors.PREDICTORS
 
 STRATA = ["all", "coding_or_utr", "splice_region",
           "splice_1_2", "splice_3_10", "splice_11_50", "splice_deep"]
@@ -170,7 +170,7 @@ def evaluate(mat: pd.DataFrame, labels: pd.DataFrame) -> pd.DataFrame:
                 sub = df[df["region"].str.startswith("splice_")]
             else:
                 sub = df[df["region"] == stratum]
-            sub = sub.dropna(subset=[model])
+            sub = predictors.drop_overlap(sub.dropna(subset=[model]), model)
             per_gene = []
             for gene, g in sub.groupby("gene"):
                 y = g["y"].to_numpy()
@@ -204,22 +204,20 @@ def evaluate(mat: pd.DataFrame, labels: pd.DataFrame) -> pd.DataFrame:
                 "lr_at_spec95_median": float(pg["lr95"].median()),
                 "lr_at_spec90_median": float(pg["lr90"].median()),
                 "acmg_tier_spec95": acmg_tier(float(pg["lr95"].median())),
+                "excluded_genes": ";".join(sorted(predictors.overlap_genes(model))),
             })
     return pd.DataFrame(rows)
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
-    # v1, so a default run silently omitted those models from the delivered
-    # table. v1 is kept only as the auditable pre-rescore matrix
-    # (see atlas.matrix_v2).
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
-    ap.add_argument("--aux", default=str(RESULTS / "assay_aux_v1.parquet"))
+    # the current matrix and aux table (atlas.paths); the SNVs only
+    ap.add_argument("--matrix", default=str(paths.path("score_matrix")))
+    ap.add_argument("--aux", default=str(paths.path("assay_aux")))
     ap.add_argument("--out", default="results")
     args = ap.parse_args(argv)
 
-    mat = pd.read_parquet(args.matrix)
+    mat = population.load(population.SNV, Path(args.matrix))
     # A declared model absent from the matrix used to be skipped in silence.
     absent = [m for m in MODELS if m not in mat.columns]
     if absent:
@@ -231,7 +229,7 @@ def main(argv: list[str] | None = None) -> int:
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    res.to_csv(out / "clinical_evidence_v1.tsv", sep="\t", index=False)
+    res.to_csv(out / paths.name("clinical_evidence"), sep="\t", index=False)
 
     summary = {
         "n_labelled": int(len(labels)),
@@ -239,7 +237,8 @@ def main(argv: list[str] | None = None) -> int:
         "by_gene": labels.groupby("gene")["y"].agg(["size", "sum"]).to_dict("index"),
         "label_sources": labels["label_source"].value_counts().to_dict(),
     }
-    (out / "clinical_evidence_v1.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
+    (out / paths.name("clinical_evidence_summary")).write_text(
+        json.dumps(summary, indent=2, default=str) + "\n")
 
     print(f"labelled variants: {summary['n_labelled']:,} across "
           f"{len(summary['genes'])} genes ({', '.join(summary['genes'])})")

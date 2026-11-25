@@ -37,7 +37,8 @@ def test_every_current_name_carries_a_version_and_lives_under_results():
     for key, name in paths.NAMES.items():
         assert "/" not in name, key
         assert "_v" in name, f"{key}: {name} carries no version"
-        assert paths.path(key).parent == paths.RESULTS
+        fields = {"stratum": "all"} if "{stratum}" in name else {}
+        assert paths.path(key, **fields).parent == paths.RESULTS
     assert paths.name("score_matrix") == "score_matrix_atlas_v3.parquet"
     assert paths.name("assay_aux") == "assay_aux_v2.parquet"
     assert paths.name("external_scores") == "external_scores_v2.parquet"

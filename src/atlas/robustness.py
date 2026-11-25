@@ -19,7 +19,15 @@ Four checks, each answering an objection the pooled ρ table invites:
 ``logo``       Leave-one-gene-out pooled ρ: with I² up to 99%, a headline number
                that moves when one gene is dropped is a property of that gene.
 
-Usage (PYTHONPATH=src):  python -m atlas.robustness --out results/
+The current generation: the SNVs of score matrix v3 (atlas.population), the 23
+predictors of atlas.predictors, and beside the eighteen ordering claims every pair of the
+splice family and avi in splice_3_10, splice_11_50 and splice_region. avi's BRCA1 and
+RAD51C cells (atlas.predictors.SELECTION_OVERLAP) enter none of these quantities: they
+are left out of avi's tie structure, power, paired tests and leave-one-gene-out.
+Outputs: tie_audit_v2.tsv, power_v2.tsv, head_to_head_v2.tsv, head_to_head_pvalues_v2.tsv,
+logo_v2.tsv and robustness_v2.json.
+
+Usage (PYTHONPATH=src):  python -m atlas.robustness [--out results/]
 """
 
 from __future__ import annotations
@@ -28,12 +36,14 @@ import argparse
 import json
 import math
 import sys
+from itertools import combinations
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
+from atlas import paths, population, predictors
 from atlas.evaluate import classify_region, dl_pool, fisher_z
 
 REPO = Path(__file__).resolve().parents[2]
@@ -42,13 +52,7 @@ RESULTS = REPO / "results"
 STRATA = ["all", "coding_or_utr", "splice_region",
           "splice_1_2", "splice_3_10", "splice_11_50", "splice_deep"]
 
-MODELS = [
-    "alphagenome", "spliceai_ds", "pangolin_score", "cadd", "alphamissense",
-    "evo2", "gpn_msa", "nucleotide_transformer", "phylop100way",
-    "phastcons100way", "gnomad_af_global", "gnomad_af_popmax",
-    # dbNSFP meta-predictors (missense-only; atlas.metapredictors)
-    "revel", "bayesdel_addaf", "clinpred", "metarnn", "primateai", "vest4", "esm1b",
-]
+MODELS = predictors.PREDICTORS
 
 # ordering claims made in the manuscript, as (model_a, model_b, stratum)
 HEAD_TO_HEAD = [
@@ -72,6 +76,17 @@ HEAD_TO_HEAD = [
     ("alphamissense", "primateai", "missense"),
     ("alphamissense", "cadd", "missense"),
 ]
+CLAIMED = list(HEAD_TO_HEAD)
+
+# every pair of the splice family and avi in three strata, beside the claims (a pair
+# already claimed in a stratum is not repeated); appended after them, so that the claimed
+# pairs draw the same bootstrap stream as in v5
+FAMILY_STRATA = ("splice_3_10", "splice_11_50", "splice_region")
+FAMILY_COLUMNS = predictors.SPLICE_FAMILY + ["avi"]
+_claimed = {(frozenset((a, b)), st) for a, b, st in CLAIMED}
+FAMILY_PAIRS = [(a, b, st) for st in FAMILY_STRATA for a, b in combinations(FAMILY_COLUMNS, 2)
+                if (frozenset((a, b)), st) not in _claimed]
+HEAD_TO_HEAD = CLAIMED + FAMILY_PAIRS
 
 MIN_N = 30
 
@@ -127,6 +142,7 @@ def tie_audit(mat: pd.DataFrame) -> pd.DataFrame:
         for stratum in STRATA:
             s = df[_mask(df["region"], stratum)].dropna(
                 subset=[model, "functional_pathogenicity"])
+            s = predictors.drop_overlap(s, model)
             if len(s) < MIN_N:
                 continue
             v = s[model].to_numpy()
@@ -163,6 +179,7 @@ def power_table(mat: pd.DataFrame) -> pd.DataFrame:
         for stratum in STRATA:
             s = df[_mask(df["region"], stratum)].dropna(
                 subset=[model, "functional_pathogenicity"])
+            s = predictors.drop_overlap(s, model)
             per_gene = s.groupby("gene").size()
             per_gene = per_gene[per_gene >= MIN_N]
             if per_gene.empty:
@@ -235,6 +252,7 @@ def head_to_head(mat: pd.DataFrame, n_boot: int = 4000, seed: int = 20260803) ->
             continue
         s = df[_mask(df["region"], stratum, df.get("consequence"))].dropna(
             subset=[a, b, "functional_pathogenicity"])
+        s = predictors.drop_overlap(s, a, b)
         per_gene = []
         for gene, g in s.groupby("gene"):
             n = len(g)
@@ -297,6 +315,7 @@ def logo(mat: pd.DataFrame) -> pd.DataFrame:
         for stratum in STRATA:
             s = df[_mask(df["region"], stratum)].dropna(
                 subset=[model, "functional_pathogenicity"])
+            s = predictors.drop_overlap(s, model)
             per_gene = []
             for gene, g in s.groupby("gene"):
                 if len(g) < MIN_N:
@@ -326,17 +345,15 @@ def logo(mat: pd.DataFrame) -> pd.DataFrame:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    # v2 carries the seven dbNSFP meta-predictors; v1 does not. The default was
-    # v1, so a default run silently dropped those models from every check and
-    # could not reproduce the delivered tables. v1 is kept only as the
-    # auditable pre-rescore matrix (see atlas.matrix_v2).
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
-    ap.add_argument("--consequence", default=str(RESULTS / "consequence_v1.parquet"))
+    # the current matrix (atlas.paths), which carries the consequence column; the
+    # SNVs only (atlas.population)
+    ap.add_argument("--matrix", default=str(paths.path("score_matrix")))
+    ap.add_argument("--consequence", default=str(paths.path("consequence")))
     ap.add_argument("--out", default="results")
     ap.add_argument("--n-boot", type=int, default=4000)
     args = ap.parse_args(argv)
 
-    mat = pd.read_parquet(args.matrix)
+    mat = population.load(population.SNV, Path(args.matrix))
     cons_path = Path(args.consequence)
     if "consequence" not in mat.columns and cons_path.exists():
         mat = mat.merge(pd.read_parquet(cons_path)[["variant_id", "consequence"]],
@@ -350,11 +367,11 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
 
     ties = tie_audit(mat)
-    ties.to_csv(out / "tie_audit_v1.tsv", sep="\t", index=False)
+    ties.to_csv(out / paths.name("tie_audit"), sep="\t", index=False)
     pw = power_table(mat)
-    pw.to_csv(out / "power_v1.tsv", sep="\t", index=False)
+    pw.to_csv(out / paths.name("power"), sep="\t", index=False)
     h2h = head_to_head(mat, n_boot=args.n_boot)
-    h2h.to_csv(out / "head_to_head_v1.tsv", sep="\t", index=False)
+    h2h.to_csv(out / paths.name("head_to_head"), sep="\t", index=False)
     # Steiger-vs-bootstrap P comparison for every claimed pair, so the two
     # tests' agreement (or not) is checkable pair by pair rather than in prose.
     pvals = h2h[["model_a", "model_b", "stratum", "k_genes", "n_paired",
@@ -362,9 +379,9 @@ def main(argv: list[str] | None = None) -> int:
     pvals["sig_steiger_0.05"] = pvals["steiger_p"] < 0.05
     pvals["sig_bootstrap_0.05"] = pvals["boot_p"] < 0.05
     pvals["agree_at_0.05"] = pvals["sig_steiger_0.05"] == pvals["sig_bootstrap_0.05"]
-    pvals.to_csv(out / "head_to_head_pvalues_v1.tsv", sep="\t", index=False)
+    pvals.to_csv(out / paths.name("head_to_head_pvalues"), sep="\t", index=False)
     lo = logo(mat)
-    lo.to_csv(out / "logo_v1.tsv", sep="\t", index=False)
+    lo.to_csv(out / paths.name("logo"), sep="\t", index=False)
 
     worst_ties = ties.sort_values("rho_ceiling_ties").head(12)
     print("Most tie-limited model × stratum cells (arithmetic ρ ceiling from ties alone):")
@@ -396,13 +413,17 @@ def main(argv: list[str] | None = None) -> int:
               "most_influential_gene", "delta_if_dropped"]]
             .to_string(index=False, float_format=lambda x: f"{x:.3f}"))
 
-    (out / "robustness_v1.json").write_text(json.dumps({
+    (out / paths.name("robustness_summary")).write_text(json.dumps({
         "n_boot": args.n_boot,
         "tie_limited_cells": int((ties["rho_ceiling_ties"] < 0.95).sum()),
         "head_to_head_significant": int((h2h["steiger_p"] < 0.05).sum()),
         "head_to_head_bootstrap_significant": int((h2h["boot_p"] < 0.05).sum()),
         "head_to_head_tests_agree_at_0.05": int(pvals["agree_at_0.05"].sum()),
         "head_to_head_tested": int(len(h2h)),
+        "head_to_head_claimed_pairs": len(CLAIMED),
+        "head_to_head_family_pairs": len(FAMILY_PAIRS),
+        "population": population.SNV,
+        "selection_overlap": predictors.SELECTION_OVERLAP,
     }, indent=2) + "\n")
     return 0
 

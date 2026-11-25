@@ -74,8 +74,14 @@ d. an explicit RMSE-crossover table: for every (stratum, estimator, noise)
    reliability targets across which the correction stops helping is reported
    in the JSON.
 
+The current generation (v3): the v2 grid, its trials and its seed unchanged, run on the
+real marginals of the SNVs (atlas.population) of score matrix v3, the calibration from
+assay_aux v2 (BRCA1's derived SEs are v1's to the bit). It writes
+``attenuation_simulation_v3.tsv/json`` and ``attenuation_simulation_v3_curves.tsv``; the
+v2 and v1 files stay as they are.
+
 Usage (PYTHONPATH=src):
-    python -m atlas.simulate_attenuation --out results/            # v2 only
+    python -m atlas.simulate_attenuation --out results/            # the current grid
     python -m atlas.simulate_attenuation --legacy-v1 --trials 150  # reproduce v1
 """
 
@@ -93,6 +99,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from atlas import paths, population
 from atlas.evaluate import classify_region
 from atlas.reliability import spearman_brown
 
@@ -188,7 +195,8 @@ def one_trial(marginal: np.ndarray, n: int, rho_true: float, target_rel: float,
 
 
 def run(matrix: Path, n_trials: int, seed: int) -> pd.DataFrame:
-    df = pd.read_parquet(matrix, columns=["gene", "hgvs_c", "functional_pathogenicity"])
+    # v1's grid ran on every variant: both populations
+    df = population.load(None, matrix, columns=["gene", "hgvs_c", "functional_pathogenicity"])
     df["region"] = df["hgvs_c"].map(classify_region)
     rng = np.random.default_rng(seed)
 
@@ -362,9 +370,9 @@ def batch_cell_v2(marginal: np.ndarray, n: int, rho_true: float,
 
 
 def sim_cells(matrix: Path) -> list[dict]:
-    """The gene x stratum cells whose real marginals the grid resamples."""
-    df = pd.read_parquet(matrix, columns=["gene", "hgvs_c", "functional_pathogenicity"])
-    df["region"] = df["hgvs_c"].map(classify_region)
+    """The gene x stratum cells whose real marginals the grid resamples (the SNVs)."""
+    df = population.load(population.SNV, matrix,
+                         columns=["gene", "hgvs_c", "functional_pathogenicity"])
     cells = []
     for stratum in STRATA:
         sub = df[df["region"] == stratum]
@@ -497,7 +505,8 @@ def crossover_brackets(curves: pd.DataFrame,
 def load_score_dependent_calibration(matrix: Path, aux_path: Path) -> dict:
     """Calibrate q from BRCA1's derived per-variant SEs (atlas.assay_aux)."""
     aux = pd.read_parquet(aux_path, columns=["variant_id", "gene", "se"])
-    mat = pd.read_parquet(matrix, columns=["variant_id", "functional_pathogenicity"])
+    mat = population.load(population.SNV, matrix,
+                          columns=["variant_id", "functional_pathogenicity"])
     j = (aux[aux["gene"] == "BRCA1"].dropna(subset=["se"])
          .merge(mat, on="variant_id").dropna(subset=["functional_pathogenicity"]))
     cal = calibrate_score_dependent(j["se"].to_numpy(),
@@ -521,8 +530,8 @@ def main_v2(args) -> int:
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    summary.to_csv(out / "attenuation_simulation_v2.tsv", sep="\t", index=False)
-    curves.to_csv(out / "attenuation_simulation_v2_curves.tsv", sep="\t", index=False)
+    summary.to_csv(out / paths.name("attenuation_simulation"), sep="\t", index=False)
+    curves.to_csv(out / paths.name("attenuation_simulation_curves"), sep="\t", index=False)
 
     overall = {}
     for (noise, est), g in long.groupby(["noise", "estimator"]):
@@ -553,7 +562,8 @@ def main_v2(args) -> int:
             curve_table(long.drop(columns=["stratum"]).assign(stratum="pooled")),
             by=["noise", "estimator", "stratum"]),
     }
-    (out / "attenuation_simulation_v2.json").write_text(json.dumps(doc, indent=2) + "\n")
+    (out / paths.name("attenuation_simulation_summary")).write_text(
+        json.dumps(doc, indent=2) + "\n")
 
     print(f"\n{len(sim):,} trials: {len(NOISE_SCENARIOS)} noise scenarios x "
           f"{len(ESTIMATORS)} estimators x {sim['stratum'].nunique()} strata x "
@@ -578,8 +588,8 @@ def main_v2(args) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--matrix", default=str(RESULTS / "score_matrix_atlas_v2.parquet"))
-    ap.add_argument("--aux", default=str(RESULTS / "assay_aux_v1.parquet"))
+    ap.add_argument("--matrix", default=str(paths.path("score_matrix")))
+    ap.add_argument("--aux", default=str(paths.path("assay_aux")))
     ap.add_argument("--out", default="results")
     ap.add_argument("--trials", type=int, default=150)
     ap.add_argument("--seed", type=int, default=SEED_V2)

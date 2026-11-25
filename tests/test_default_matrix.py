@@ -44,9 +44,10 @@ ENTRYPOINTS = [
     "simulate_attenuation",
 ]
 # The entry points rebuilt for the current generation take the matrix from atlas.paths
-# (score_matrix_atlas_v3 since A4). The others -- definition_sweep and metapredictors,
-# not rebuilt, and those still to be rebuilt -- keep v2.
-CURRENT_GENERATION = {"evaluate_ext", "reliability"}
+# (score_matrix_atlas_v3 since A4). The two not rebuilt -- definition_sweep, which is
+# bound to v5's design, and metapredictors, which builds an input -- keep v2.
+CURRENT_GENERATION = {"clinical_evidence", "ensemble", "evaluate_ext", "reliability",
+                      "rna_readout", "robustness", "simulate_attenuation"}
 
 
 @pytest.mark.parametrize("module", sorted(set(ENTRYPOINTS) - CURRENT_GENERATION))
@@ -94,18 +95,19 @@ def test_evaluate_ext_with_default_arguments_reproduces_the_delivered_grid(tmp_p
 
 
 def test_robustness_with_default_arguments_reproduces_the_delivered_files(tmp_path):
-    """Same guard for the robustness checks: ties, power, paired tests, LOGO
-    and the summary json, all five byte for byte. The bootstrap is seeded, so
-    a default run is deterministic."""
-    delivered = ["tie_audit_v1.tsv", "power_v1.tsv", "head_to_head_v1.tsv",
-                 "logo_v1.tsv", "robustness_v1.json"]
-    if not ((RESULTS / "score_matrix_atlas_v2.parquet").exists()
-            and all((RESULTS / f).exists() for f in delivered)):
+    """Same guard for the robustness checks of the current generation: ties, power,
+    paired tests (the eighteen claims and the splice family's pairs), LOGO and the
+    summary json, byte for byte. The bootstrap is seeded, so a default run is
+    deterministic."""
+    from atlas import paths
+    delivered = [paths.path(k) for k in ("tie_audit", "power", "head_to_head",
+                                         "head_to_head_pvalues", "logo", "robustness_summary")]
+    if not (paths.path("score_matrix").exists() and all(p.exists() for p in delivered)):
         pytest.skip("results/ not built in this checkout")
 
     from atlas import robustness
     robustness.main(["--out", str(tmp_path)])
 
-    for name in delivered:
-        assert (tmp_path / name).read_bytes() == (RESULTS / name).read_bytes(), (
-            f"a default robustness run no longer reproduces {name}")
+    for p in delivered:
+        assert (tmp_path / p.name).read_bytes() == p.read_bytes(), (
+            f"a default robustness run no longer reproduces {p.name}")

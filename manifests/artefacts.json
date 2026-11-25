@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 244,
+ "n_files": 263,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 80
+  "supp_table": 99
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
@@ -48,6 +48,21 @@
    "sha256": "d2d75e3b18e6cfa7ca54981e5fa94b5fc07eaf72023c8964c9a6cac88da88755",
    "bytes": 41507
   },
+  "results/attenuation_simulation_v3.json": {
+   "role": "supp_table",
+   "sha256": "12c121534cf72f5854fe388466df3d2b38ec6d88f43bb561110fab9851a2b87c",
+   "bytes": 12703
+  },
+  "results/attenuation_simulation_v3.tsv": {
+   "role": "supp_table",
+   "sha256": "f5255890e7229dc3d31d199a7f76db86a80d086dedad35b38d102a13a705fa65",
+   "bytes": 358155
+  },
+  "results/attenuation_simulation_v3_curves.tsv": {
+   "role": "supp_table",
+   "sha256": "5df36305fc5ffce201517e651a2ddc81ccbe14906aaf76089c20243f66ac3d1a",
+   "bytes": 41478
+  },
   "results/attenuation_v1.tsv": {
    "role": "supp_table",
    "sha256": "441519993c93f8168cf020aa31e7d9e705a6f4352fe12c30ba3083dac2bce349",
@@ -67,6 +82,16 @@
    "role": "supp_table",
    "sha256": "7ab90bb5b57642ad9bd1a4c8c50d4d9d128a18f3a06371731a66cc40dd6a5a19",
    "bytes": 13169
+  },
+  "results/clinical_evidence_v2.json": {
+   "role": "supp_table",
+   "sha256": "9dbd2c2ed075fd6725bdec64e37836ad4f9e81ef29670d0ac716b6a7f1ce4e87",
+   "bytes": 406
+  },
+  "results/clinical_evidence_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "9750b4fc123a168e386a69c2b1d48496113ccd6c9a62d841a9b5acf473050807",
+   "bytes": 17137
   },
   "results/clinvar_status_counts_v1.tsv": {
    "role": "supp_table",
@@ -148,15 +173,30 @@
    "sha256": "521db2bf11f53f4c0e5834332575df6860f0887d5c95c05b5c526d9c9457d796",
    "bytes": 5199
   },
+  "results/ensemble_logo_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "b67396b406d5bf37e3c481818bd1fc237a483ddb8094e3d4487363284fb5ff6a",
+   "bytes": 5316
+  },
   "results/ensemble_pooled_v1.tsv": {
    "role": "supp_table",
    "sha256": "0f7fc10bd4ebd1c455d494e9a92a913d43798389eb5d2c2416c433bfb9202448",
    "bytes": 3896
   },
+  "results/ensemble_pooled_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "7aadf9bb60f65db57181b8c189a052d38759ff4e847b2754cc5de4b9b80dda2d",
+   "bytes": 5113
+  },
   "results/ensemble_v1.json": {
    "role": "supp_table",
    "sha256": "5bca3430e2d048d2fdd4ae9e074b36d2e7c0009750c36e4bc0533c963aba5373",
    "bytes": 1803
+  },
+  "results/ensemble_v2.json": {
+   "role": "supp_table",
+   "sha256": "2388db81ffba3e96e2ec77927b285db90e6780f151c21f82953c65e81c4f386f",
+   "bytes": 2096
   },
   "results/estimator_consistency_v1.json": {
    "role": "supp_table",
@@ -838,15 +878,30 @@
    "sha256": "4675b0492cfc8382fc28cd915af823a195a89aebff7004d95f06638d96ab6202",
    "bytes": 2647
   },
+  "results/head_to_head_pvalues_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "fa7e2dde5c3159f200c5e454dd417ea288efdf0cf60ec052eb65f47a91cd4856",
+   "bytes": 11498
+  },
   "results/head_to_head_v1.tsv": {
    "role": "supp_table",
    "sha256": "ab9239fbdf4e222c798d61ad960f4c88cfd5bdedbd467ba5ba91965ceec511f7",
    "bytes": 4140
   },
+  "results/head_to_head_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "cb0286b8e3cc018c2281216c6e504a913bdfaf14dcdcffeb66a79496f83d1ac2",
+   "bytes": 17715
+  },
   "results/logo_v1.tsv": {
    "role": "supp_table",
    "sha256": "894ef2e197904e15a580a9c5b5a0970d9ef22a70f90bc8275362bc2bf0b97735",
    "bytes": 10784
+  },
+  "results/logo_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "a36b187c35ec7ce48a9864f7134112dbb5b2a5f71306bb7abdd4a03288238c6c",
+   "bytes": 14007
   },
   "results/lr_basis_check_genes_v1.tsv": {
    "role": "supp_table",
@@ -963,15 +1018,30 @@
    "sha256": "6094ed955491d66575e04fcaa4442547e9ed07e3c5b26d4bc81e610f4e095e1c",
    "bytes": 1653
   },
+  "results/model_correlation_all_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "0edf22749ae0a63c6233558c55bda35b9392abf955f66be94d2222f0c36eead1",
+   "bytes": 2947
+  },
   "results/model_correlation_coding_or_utr_v1.tsv": {
    "role": "supp_table",
    "sha256": "894560a09658d9f69888e90997e05058bb37e1d50b7c4e2eda308e619fd291a8",
    "bytes": 1657
   },
+  "results/model_correlation_coding_or_utr_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "4c1d16f126b63b0fed50b1314effd07d72dace866135800cef2cc2ecf860d239",
+   "bytes": 2951
+  },
   "results/model_correlation_splice_region_v1.tsv": {
    "role": "supp_table",
    "sha256": "140faea081098945b1121d965cd7bc3d84cf6da6ff1b5b4f64ebf28552263a13",
    "bytes": 1635
+  },
+  "results/model_correlation_splice_region_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "1cdc89ae3dc9ee7be0c04d831e7b072f7fddb4fac74c9bf06e80164e60a482de",
+   "bytes": 2913
   },
   "results/new_references_v1.json": {
    "role": "supp_table",
@@ -982,6 +1052,11 @@
    "role": "supp_table",
    "sha256": "79dbeb69bda5597e486d2273e63ce03d825ae1e0dace3877f099f8e1a5ecfa32",
    "bytes": 7554
+  },
+  "results/power_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "078af883a8768b62f9723def845bb8cfdc2b54e9cb9bb3814371e835a975e2ba",
+   "bytes": 9732
   },
   "results/predictor_resources_v1.tsv": {
    "role": "supp_table",
@@ -1048,10 +1123,25 @@
    "sha256": "9881aa776a4ca4c922376e0f1b3b58716c240dcfdc43a109b2eb702b08080023",
    "bytes": 15439
   },
+  "results/rna_readout_v2.json": {
+   "role": "supp_table",
+   "sha256": "6b4cdcf85126da43a15431d50071acba842b01d83a27ad425f2b4790d35e83b0",
+   "bytes": 11133
+  },
+  "results/rna_readout_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "802cad33aa70369426eaa831de38e184db7c79eabbf5e8cfaaee913bb9233d46",
+   "bytes": 19892
+  },
   "results/robustness_v1.json": {
    "role": "supp_table",
    "sha256": "a9b46bda63110155028b004fe5ccd1800d44fb106903ecf79fa94d9867afa7d6",
    "bytes": 196
+  },
+  "results/robustness_v2.json": {
+   "role": "supp_table",
+   "sha256": "b55e5e773b7736ee15afc8dca80b4bb6c3ccad87a8d49466e411a919555121bf",
+   "bytes": 369
   },
   "results/saturation_percentiles_v1.tsv": {
    "role": "supp_table",
@@ -1227,6 +1317,11 @@
    "role": "supp_table",
    "sha256": "b0996cbdb5159bbcde3a45c8c90a41f8c872efc1460629f9c16626ec1f183b5b",
    "bytes": 8825
+  },
+  "results/tie_audit_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "4f9d94c7b6ac822ad39547e8479d06bec4a30effa2f11ae5175a63763a3f5037",
+   "bytes": 11257
   }
  }
 }
