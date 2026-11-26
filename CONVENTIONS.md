@@ -25,8 +25,9 @@ actually produced the numbers.
 ## 4. A source column's meaning is verified, never assumed
 
 Before a deposited column is used it is checked against something independent —
-a published interval, a replicate mean, a documented scale. Columns that fail
-the check are recorded as unusable rather than used with a caveat.
+a published interval, a replicate mean, a documented scale, the deposit's own
+test statistic. Columns that fail the check are recorded as unusable rather than
+used with a caveat.
 
 ## 5. Numbers are read from pipeline outputs, never transcribed
 
