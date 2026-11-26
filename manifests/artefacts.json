@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 277,
+ "n_files": 283,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 113
+  "supp_table": 119
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
@@ -153,6 +153,11 @@
    "sha256": "2e194e2c034405751b94520a5fc9728e54c0d9a9c9f0004880dc2fa9b0b05fe8",
    "bytes": 33140
   },
+  "results/control_classes_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "ab3b3c09fdca719a9f0e6fd6e1f4297d5011be825126752a5b5278c7617711cc",
+   "bytes": 3854
+  },
   "results/definition_sweep_concordance_v1.tsv": {
    "role": "supp_table",
    "sha256": "dbe55fe2c8a5dd7ce9d8b19c23f41948e907b0ea18c68f62f9e4ecdd20dd020f",
@@ -207,6 +212,21 @@
    "role": "supp_table",
    "sha256": "e77175e72cbdda017c0842d647da3d0e8ee01ac047224de6dae3cdbcc72c6507",
    "bytes": 3862
+  },
+  "results/error_models_v2.json": {
+   "role": "supp_table",
+   "sha256": "4e5baeb8e6d7e6691952edc47212c368d997cd0eb5473c176d007081cefe1f4e",
+   "bytes": 2601
+  },
+  "results/error_models_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "bcfedf528ed60e1087438e4eb636281ce4e4a064bcf24956846a4d6abb5d946d",
+   "bytes": 4408
+  },
+  "results/error_scale_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "99d38726dc6daefa063b905942ae3f5a9661d96db7979f69532b6eac6389c712",
+   "bytes": 5724
   },
   "results/estimator_consistency_v1.json": {
    "role": "supp_table",
@@ -1142,6 +1162,16 @@
    "role": "supp_table",
    "sha256": "ee7264298d54358a66310fc359b75f149f00bb10e82b1d968659448d83349463",
    "bytes": 7468
+  },
+  "results/rank_ceiling_selftest_v3.json": {
+   "role": "supp_table",
+   "sha256": "0001cfa316567f2093739182bff5d3dde384101f8930cfb5dcbd98d89683f710",
+   "bytes": 109823
+  },
+  "results/rank_ceiling_selftest_v3.tsv": {
+   "role": "supp_table",
+   "sha256": "ab5f286cd90191997082ab98ab967058d4931917326cca0b2651f014931a8bd9",
+   "bytes": 7433
   },
   "results/references_v1.json": {
    "role": "supp_table",

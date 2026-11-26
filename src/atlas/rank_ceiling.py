@@ -31,11 +31,29 @@ Error models (the standardised error e):
                  replacement plus h N(0, 1). The density and the draws are the same
                  distribution; the residuals are not clipped.
 
+Error scales s. A deposited SE is not taken variant by variant: on neutral variants an
+SE overstates how much the precision differs between variants (an SE computed from two
+or three replicates is itself an estimate), and a per-variant SE taken as known
+overstates the agreement of a remeasurement. Two scales instead:
+  pooled      one value per cell, sqrt(mean(SE^2)) of its variants (``pooled_scale``;
+              ``estimate_cell(pooled=True)``: of the cell for the point and the floor, of
+              the resampled variants in each resample);
+  calibrated  sigma(SE) (``ErrorScale``), from a noise sample of residuals with their SEs:
+              the sample sorted by SE and cut into five equal-count bins as
+              numpy.array_split cuts; per bin x_b = the median log SE and sigma_b = 1.4826
+              x the median absolute deviation of the residuals from their median;
+              sigma_b made non-decreasing in bin order (pool adjacent violators, equal
+              weights); sigma(SE) linear in log SE between the points (x_b, sigma_b),
+              the first bin's value below x_1 and the last bin's above x_5.
+atlas.error_models puts them to use (own: pooled; neutral: calibrated on the gene's
+neutral variants).
+
 A cell (``estimate_cell``):
   point     as above;
   interval  bootstrap, B = 200 resamples of the variants with replacement, each
             estimated again (an error model built from the cell's own residuals, as
-            BRCA1's replicate half-differences, is rebuilt from the resampled ones);
+            BRCA1's replicate half-differences, is rebuilt from the resampled ones, and
+            so is a pooled scale);
             the 2.5% and 97.5% quantiles;
   floor     100 data sets without any effect, y0 = s e (e drawn from the same error
             model), each estimated as a resample is; their 95th percentile. Without
@@ -53,12 +71,13 @@ A cell (``estimate_cell``):
   realisation  rho / ceiling, its interval on the same 200 resamples (each resample
             gives rho and the ceiling).
 
-Self-test (``python -m atlas.rank_ceiling selftest``): known truths, five kinds x two
-error distributions x 8 data sets (the instruction's table), and data sets drawn from
-the true-value distribution estimated on real cells (nine genes, 3-10 and 11-50 bp,
-SNVs). Writes results/rank_ceiling_selftest_v1.tsv and .json, with the ``own`` error
-model of the real cells; the ``neutral`` model needs atlas.error_models, which writes the
-second version (rank_ceiling_selftest_v2, all 36 real rows).
+Self-test: known truths, five kinds x two error distributions x 8 data sets (the
+instruction's table), and data sets drawn from the true-value distribution estimated on
+real cells (nine genes, 3-10 and 11-50 bp, SNVs) under both error models. The real
+cells' error models live in atlas.error_models, which writes the self-test
+(results/rank_ceiling_selftest_v3.tsv and .json; the first version had the own model's
+cells with the SE taken variant by variant, the second added the neutral model's).
+``python -m atlas.rank_ceiling selftest`` runs that.
 
 Usage (PYTHONPATH=src):  python -m atlas.rank_ceiling selftest [--workers N]
 """
@@ -93,6 +112,8 @@ NULLS = 100
 FLOOR_QUANTILE = 0.95
 KDE_POINTS = 4001
 KDE_PAD = 5.0
+SCALE_BINS = 5
+MAD_FACTOR = 1.4826
 
 
 def spearman(a: np.ndarray, b: np.ndarray) -> float:
@@ -152,6 +173,85 @@ class ErrorModel:
                 "kurtosis": float(((z - z.mean()) ** 4).mean() / var ** 2) if var > 0 else np.nan,
                 "share_abs_gt_2": float((np.abs(z) > 2).mean()),
                 "share_abs_gt_3": float((np.abs(z) > 3).mean()), "bandwidth": float(self.h)}
+
+
+# ==========================================================================
+# error scales
+# ==========================================================================
+def pooled_scale(se) -> float:
+    """One error scale for a set of variants: sqrt(mean(SE^2))."""
+    se = np.asarray(se, float)
+    return float(np.sqrt(np.mean(se * se)))
+
+
+def robust_sd(x) -> float:
+    """1.4826 x the median absolute deviation from the median."""
+    x = np.asarray(x, float)
+    return float(MAD_FACTOR * np.median(np.abs(x - np.median(x))))
+
+
+def pava(v) -> tuple[np.ndarray, np.ndarray]:
+    """The non-decreasing least-squares fit to v with equal weights (pool adjacent
+    violators): (the fitted values, each value's block, numbered from 0)."""
+    means, counts = [], []
+    for x in map(float, v):
+        means.append(x)
+        counts.append(1)
+        while len(means) > 1 and means[-2] > means[-1]:
+            m, c = means.pop(), counts.pop()
+            means[-1] = (means[-1] * counts[-1] + m * c) / (counts[-1] + c)
+            counts[-1] += c
+    return np.repeat(means, counts), np.repeat(np.arange(len(counts)), counts)
+
+
+class ErrorScale:
+    """sigma(SE), calibrated on a noise sample: residuals r (each a draw of a variant's
+    error) with their SEs. The sample sorted by SE (a stable sort: the caller's order
+    settles ties) and cut into equal-count bins as numpy.array_split cuts; per bin
+    x_b = the median log SE and sigma_b = 1.4826 MAD of the residuals; sigma_b made
+    non-decreasing in bin order (pool adjacent violators, equal weights); sigma(SE)
+    linear in log SE between the points (x_b, sigma_b), constant beyond the first and
+    the last."""
+
+    def __init__(self, se, residuals, bins: int = SCALE_BINS):
+        se, r = np.asarray(se, float), np.asarray(residuals, float)
+        if len(se) != len(r) or len(se) < 2 * bins:
+            raise ValueError("an error scale needs two or more residuals per bin")
+        if not (np.all(np.isfinite(se)) and np.all(se > 0) and np.all(np.isfinite(r))):
+            raise ValueError("an error scale needs positive SEs and finite residuals")
+        order = np.argsort(se, kind="stable")
+        self.bins = np.array_split(order, bins)
+        self.n = np.array([len(b) for b in self.bins])
+        self.x = np.array([np.median(np.log(se[b])) for b in self.bins])
+        if not np.all(np.diff(self.x) > 0):
+            raise ValueError("the bins' median log SEs do not increase")
+        self.sigma_raw = np.array([robust_sd(r[b]) for b in self.bins])
+        self.sigma, self.block = pava(self.sigma_raw)
+        self.se_min = np.array([se[b].min() for b in self.bins])
+        self.se_median = np.array([np.median(se[b]) for b in self.bins])
+        self.se_max = np.array([se[b].max() for b in self.bins])
+        self.rms_se = np.array([pooled_scale(se[b]) for b in self.bins])
+
+    def __call__(self, se) -> np.ndarray:
+        return np.interp(np.log(np.asarray(se, float)), self.x, self.sigma)
+
+    def largest_block(self) -> int:
+        """The most bins pooled into one by the monotone fit."""
+        return int(np.bincount(self.block).max())
+
+    def outside(self, se) -> dict:
+        """The shares of SEs below the first bin's x_b and above the last's."""
+        ls = np.log(np.asarray(se, float))
+        return {"below_first": float((ls < self.x[0]).mean()),
+                "above_last": float((ls > self.x[-1]).mean())}
+
+    def table(self) -> pd.DataFrame:
+        return pd.DataFrame({"bin": np.arange(1, len(self.bins) + 1), "n": self.n,
+                             "se_min": self.se_min, "se_median": self.se_median,
+                             "se_max": self.se_max, "x_b": self.x,
+                             "sigma_b_raw": self.sigma_raw, "sigma_b": self.sigma,
+                             "block": self.block + 1, "rms_se": self.rms_se,
+                             "sigma_b_over_rms_se": self.sigma / self.rms_se})
 
 
 # ==========================================================================
@@ -232,14 +332,17 @@ def resample_indices(seed: int, n: int, b: int = B) -> np.ndarray:
 
 def estimate_cell(ids, y, s, key: tuple, em: ErrorModel | None = None,
                   residuals: np.ndarray | None = None, b: int = B, nulls: int = NULLS,
-                  predictors: dict[str, np.ndarray] | None = None) -> dict:
+                  predictors: dict[str, np.ndarray] | None = None,
+                  pooled: bool = False) -> dict:
     """Point, bootstrap interval and floor of one set of variants.
 
     em is a fixed error model; residuals, instead, are per-variant residuals of the
     cell itself (its empirical model is built from them and rebuilt in each resample).
-    ids, y, s (and the residuals and each predictor's scores) are aligned; they are put
-    in the order of the sorted ids first. predictors: name -> scores, for the
-    realisation's interval on the same resamples.
+    s is the variants' error scale; with pooled, it is their SE and the scale is one
+    value, pooled_scale of the cell's SEs for the point and the floor, of the resampled
+    variants' in each resample. ids, y, s (and the residuals and each predictor's
+    scores) are aligned; they are put in the order of the sorted ids first.
+    predictors: name -> scores, for the realisation's interval on the same resamples.
     """
     t0 = time.time()
     ids = np.asarray(list(map(str, ids)))
@@ -248,19 +351,23 @@ def estimate_cell(ids, y, s, key: tuple, em: ErrorModel | None = None,
         raise ValueError(f"{key}: an identifier comes twice")
     y = np.asarray(y, float)[order]
     s = np.asarray(s, float)[order]
+    n = len(y)
+    se = s
+    if pooled:
+        s = np.full(n, pooled_scale(se))
     res = None if residuals is None else np.asarray(residuals, float)[order]
     if (em is None) == (res is None):
         raise ValueError("give a fixed error model or the cell's residuals")
     model = em if em is not None else ErrorModel(res)
     seed, null_seed = seeds(key)
-    n = len(y)
     point, r = estimate(y, s, model, np.random.default_rng([seed, 0]))
     idx = resample_indices(seed, n, b)
     boot = np.empty(b)
     for i in range(b):
         j = idx[i]
         mb = model if res is None else ErrorModel(res[j])
-        boot[i], _ = estimate(y[j], s[j], mb, np.random.default_rng([seed, 1, i]),
+        sj = np.full(n, pooled_scale(se[j])) if pooled else s[j]
+        boot[i], _ = estimate(y[j], sj, mb, np.random.default_rng([seed, 1, i]),
                               ITER_RESAMPLE, REPEAT_RESAMPLE)
     null = np.empty(nulls)
     for i in range(nulls):
@@ -274,6 +381,8 @@ def estimate_cell(ids, y, s, key: tuple, em: ErrorModel | None = None,
            "ceiling_hi": float(hi), "floor": floor, "estimable": bool(lo > floor),
            "bootstrap_B": int(b), "nulls": int(nulls), "seconds": round(time.time() - t0, 1),
            "boot": boot}
+    if pooled:
+        out["pooled_scale"] = float(s[0])
     if predictors:
         from atlas.matched_ceilings import spearman_rows
         out["realisation"] = {}
@@ -402,9 +511,9 @@ def _map(fn, tasks, workers):
     return [fn(t) for t in tasks]
 
 
-def own_cells(strata=REAL_STRATA) -> list[tuple]:
-    """The nine genes' cells (SNVs) with their own error model: SE genes Gaussian with
-    their SE; BRCA1 the half-differences of its two replicates within the cell (s = 1)."""
+def real_cell_inputs(strata=REAL_STRATA) -> list[dict]:
+    """The nine genes' cells (SNVs) with error information: gene, stratum, ids, y, and
+    se (the SE genes' SEs) or d (BRCA1's replicate half-differences)."""
     from atlas.evaluate import classify_region
     from atlas.reliability import _stratum_mask
     m = population.load(population.SNV)
@@ -412,7 +521,7 @@ def own_cells(strata=REAL_STRATA) -> list[tuple]:
                           columns=["variant_id", "gene", "fit_rep1", "fit_rep2", "se",
                                    "se_status"])
     m = m.merge(aux, on=["variant_id", "gene"], how="left")
-    tasks = []
+    cells = []
     for gene in ("BRCA1", "BARD1", "PALB2", "BAP1"):
         g = m[(m["gene"] == gene) & m["functional_pathogenicity"].notna()]
         for stratum in strata:
@@ -420,14 +529,14 @@ def own_cells(strata=REAL_STRATA) -> list[tuple]:
             if gene == "BRCA1":
                 c = c.dropna(subset=["fit_rep1", "fit_rep2"])
                 d = ((-c["fit_rep1"]) - (-c["fit_rep2"])).to_numpy(float) / 2
-                tasks.append((gene, stratum, "own", c["variant_id"].tolist(),
-                              c["functional_pathogenicity"].to_numpy(float),
-                              np.ones(len(c)), d))
+                cells.append({"gene": gene, "stratum": stratum, "ids": c["variant_id"].tolist(),
+                              "y": c["functional_pathogenicity"].to_numpy(float), "se": None,
+                              "d": d})
             else:
                 c = c[c["se"].notna() & c["se_status"].eq("validated")]
-                tasks.append((gene, stratum, "own", c["variant_id"].tolist(),
-                              c["functional_pathogenicity"].to_numpy(float),
-                              c["se"].to_numpy(float), None))
+                cells.append({"gene": gene, "stratum": stratum, "ids": c["variant_id"].tolist(),
+                              "y": c["functional_pathogenicity"].to_numpy(float),
+                              "se": c["se"].to_numpy(float), "d": None})
     ext = pd.read_parquet(paths.path("external_scores"),
                           columns=["gene", "variant_urn", "hgvs_c", "functional_pathogenicity",
                                    "standard_error"])
@@ -437,9 +546,24 @@ def own_cells(strata=REAL_STRATA) -> list[tuple]:
                                                       "standard_error"])
         for stratum in strata:
             c = g[_stratum_mask(g["region"], stratum)]
-            tasks.append((gene, stratum, "own", c["variant_urn"].tolist(),
-                          c["functional_pathogenicity"].to_numpy(float),
-                          c["standard_error"].to_numpy(float), None))
+            cells.append({"gene": gene, "stratum": stratum, "ids": c["variant_urn"].tolist(),
+                          "y": c["functional_pathogenicity"].to_numpy(float),
+                          "se": c["standard_error"].to_numpy(float), "d": None})
+    return cells
+
+
+def own_cells(strata=REAL_STRATA) -> list[tuple]:
+    """The self-test's real cells with their own error model: the SE genes Gaussian, the
+    SE pooled within the cell (one value, pooled_scale); BRCA1 the half-differences of
+    its two replicates within the cell (s = 1)."""
+    tasks = []
+    for c in real_cell_inputs(strata):
+        if c["d"] is not None:
+            tasks.append((c["gene"], c["stratum"], "own", c["ids"], c["y"],
+                          np.ones(len(c["y"])), c["d"]))
+        else:
+            tasks.append((c["gene"], c["stratum"], "own", c["ids"], c["y"],
+                          np.full(len(c["y"]), pooled_scale(c["se"])), None))
     return tasks
 
 
@@ -519,6 +643,12 @@ def selftest_definition() -> dict:
             "real_cells": {
                 "cells": "BRCA1, BARD1, PALB2, BAP1, CTCF, SFPQ, RAD51D, XRCC2, SBDS at 3-10 "
                          "and 11-50 bp, SNVs, with each error model",
+                "error_models": "own: the SE genes Gaussian, the SE pooled within the cell "
+                                "(sqrt mean SE^2, one value); BRCA1 its replicate "
+                                "half-differences within the cell, s = 1. neutral: the "
+                                "gene's neutral residuals over the calibrated scale, "
+                                "z = r / sigma(SE), and s = sigma(SE) (BRCA1 z = r, s = 1). "
+                                "See atlas.error_models",
                 "procedure": "the true-value distribution estimated on the cell (1,000 EM "
                              f"iterations); {SELFTEST_N} data sets, true values drawn from it "
                              "and errors from the model with the cell's s; each estimated and "
@@ -564,27 +694,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 2))
     ap.add_argument("--out", default=str(paths.RESULTS))
     args = ap.parse_args(argv)
-    t0 = time.time()
-    known = known_truth(args.workers)
-    t1 = time.time()
-    real = real_cells(own_cells(), args.workers)
-    t2 = time.time()
-    rows = pd.concat([known, real], ignore_index=True)
-    acc = write_selftest(rows, Path(args.out), "rank_ceiling_selftest", {
-        "this_version": "known truths, and the real cells with their own error model; the "
-                        "neutral model's real cells follow in the second version, written "
-                        "by atlas.error_models"})
-    print(json.dumps(jsonable(acc), indent=1))
-    print(json.dumps({"workers": args.workers,
-                      "seconds_wall": {"known_truth": round(t1 - t0, 1),
-                                       "real_cells": round(t2 - t1, 1)},
-                      "seconds_per_estimate_mean": rows.groupby("part")["seconds"].mean()
-                      .round(3).to_dict(),
-                      "seconds_per_estimate_by_case": {
-                          f"{p} {e} {c}": v for (p, e, c), v in
-                          rows.groupby(["part", "error", "case"])["seconds"].mean().round(3)
-                          .items()}}, default=str))
-    return 0 if acc["known_truth_holds"] and acc["real_cells_hold"] else 1
+    from atlas import error_models          # the real cells' error models
+    return error_models.selftest(Path(args.out), args.workers)
 
 
 if __name__ == "__main__":
