@@ -60,6 +60,11 @@ NAMES: dict[str, str] = {
     "control_classes": "control_classes_v1.tsv",
     "rank_ceiling_validation": "rank_ceiling_validation_v1.tsv",
     "rank_ceiling_validation_summary": "rank_ceiling_validation_v1.json",
+    "deposit_classes": "deposit_classes_v1.tsv",
+    "within_class_rho": "within_class_rho_v1.tsv",
+    "lof_level_by_stratum": "lof_level_by_stratum_v1.tsv",
+    "rank_ceiling_lof_sensitivity": "rank_ceiling_lof_sensitivity_v1.tsv",
+    "mavedb_rank_ceiling_trial": "mavedb_rank_ceiling_trial_v1.tsv",
     # the other analyses that read the matrix
     "tie_audit": "tie_audit_v2.tsv",
     "power": "power_v2.tsv",
