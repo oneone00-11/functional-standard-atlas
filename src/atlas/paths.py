@@ -58,6 +58,8 @@ NAMES: dict[str, str] = {
     "error_models_summary": "error_models_v2.json",
     "error_scale": "error_scale_v1.tsv",
     "control_classes": "control_classes_v1.tsv",
+    "rank_ceiling_validation": "rank_ceiling_validation_v1.tsv",
+    "rank_ceiling_validation_summary": "rank_ceiling_validation_v1.json",
     # the other analyses that read the matrix
     "tie_audit": "tie_audit_v2.tsv",
     "power": "power_v2.tsv",
