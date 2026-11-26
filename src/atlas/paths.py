@@ -49,6 +49,9 @@ NAMES: dict[str, str] = {
     "matched_ceilings_summary": "matched_ceilings_v2.json",
     "alphagenome_definition_change": "alphagenome_definition_change_v1.tsv",
     "canonical_site_saturation": "canonical_site_saturation_v1.tsv",
+    # the rank-scale ceiling (A4b)
+    "rank_ceiling_selftest": "rank_ceiling_selftest_v1.tsv",
+    "rank_ceiling_selftest_summary": "rank_ceiling_selftest_v1.json",
     # the other analyses that read the matrix
     "tie_audit": "tie_audit_v2.tsv",
     "power": "power_v2.tsv",

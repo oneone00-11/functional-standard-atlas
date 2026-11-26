@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 271,
+ "n_files": 273,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 107
+  "supp_table": 109
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
@@ -1112,6 +1112,16 @@
    "role": "supp_table",
    "sha256": "76637e9b9957100f848dab462608dd4ff67a26beae4e7614c329e3f7e039b0a9",
    "bytes": 90000
+  },
+  "results/rank_ceiling_selftest_v1.json": {
+   "role": "supp_table",
+   "sha256": "562dc4e9837856ead169439796bb0db50986df7f1dc4b1dafc762508eff5450b",
+   "bytes": 66972
+  },
+  "results/rank_ceiling_selftest_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "dd4a080bd78a9c3575ba8cffff46417007bb570beb1c75f1881a64bdea32a76d",
+   "bytes": 4572
   },
   "results/references_v1.json": {
    "role": "supp_table",
