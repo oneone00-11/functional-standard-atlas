@@ -1,7 +1,36 @@
 """Attenuation ceilings matched to the variants each correlation uses, with bootstrap
 intervals, and the realisation: core and external genes, per population.
 
-The current generation (results/matched_ceilings_v2.tsv and .json):
+The current generation (results/matched_ceilings_v3.tsv and .json; A4b.4): the ceiling on
+the rank scale. The cells, their variants, n, rho and rho's interval are v2's (the second
+generation is computed again and checked against its file, every column bit for bit);
+the external genes' ``all`` rows are no longer written (G18: their predictors score
+intronic SNVs only, so ``all`` repeats ``splice_region`` and shares its name with the core
+genes' ``all``, coding included). v2's reliability, ceiling, realisation and estimable
+columns keep their values under the names with the suffix _v2 (with seed_v2 and
+bootstrap_B_v2, which also gave rho's interval); BRCA1 also carries ceiling_replicate_k1;
+ceiling_inflated and breakeven_inflation are gone; set_sha is the variant set's sha256
+(first 16 hex digits). The nine genes with an error model carry, under both models of
+atlas.error_models (neutral first, then own; atlas.rank_cells), the rank-scale ceiling of
+the cell's set with its interval, floor and estimable, the realisation rho / ceiling with
+its interval on the same 200 resamples, the share of resamples above 1 and the number
+where it is undefined, and lof_share and neutral_in_range. RAD51C, BRCA2 and VHL have rho
+alone. One set gets the same ceiling in every cell and in the layer tables
+(results/reliability_v3.tsv, results/external_reliability_v3.tsv), checked here.
+
+Its summary, per model (snv; a cell with selection_overlap enters no quantity across
+genes; a realisation enters only where the cell's ceiling is estimable and, for the
+neutral model, in range): (1) per stratum and group (core, external, all), the genes
+whose layer ceiling enters, its median and range, and per predictor rho and the
+realisation across genes; (2) per gene x stratum, n, both layer ceilings, the predictor
+with the highest rho and the splice family's, among the predictors that scored at least
+90% of the cell's variants (G17), with rho and both realisations; (3) at 3-10 and 11-50
+bp, that predictor's realisation and the cells whose interval's upper bound is below 1
+and below 0.5; (4) beyond 50 bp, the layer ceilings; (5) the cells whose realisation
+exceeds 1 or whose interval crosses 1; (6) v2 against v3, with the trial of the first
+supplement. Per stratum, the cells in and out of the neutral model's range.
+
+The second generation (results/matched_ceilings_v2.tsv and .json):
 
 Cells: group (core, external) x gene x stratum (atlas.reliability.STRATA, the seven) x
 predictor x population (atlas.population), with at least MIN_N (30) variants. A cell's
@@ -86,7 +115,7 @@ matched ceiling differs from the stratum ceiling by more than 0.05, and those wh
 realisation exceeds 1 or whose interval crosses 1; with the checkpoints and the functional
 score's distribution per gene x stratum.
 
-Usage (PYTHONPATH=src):  python -m atlas.matched_ceilings [--workers N]
+Usage (PYTHONPATH=src):  python -m atlas.matched_ceilings [--workers N] [--layer-dir DIR]
 """
 
 from __future__ import annotations
@@ -283,6 +312,9 @@ def cell_tasks(df: pd.DataFrame, models: list[str], strata: list[str],
                         continue
                     arrays = {"x": c[model].to_numpy(float),
                               "y": c["functional_pathogenicity"].to_numpy(float)}
+                    idcol = "variant_urn" if g["group"].iloc[0] == "external" else "variant_id"
+                    if idcol in c.columns:        # the variant set, for the rank-scale ceiling
+                        arrays["ids"] = c[idcol].astype(str).tolist()
                     if method == "replicates":
                         arrays |= {"r1": c["fit_rep1"].to_numpy(float),
                                    "r2": c["fit_rep2"].to_numpy(float)}
@@ -597,9 +629,9 @@ def finish(raw: pd.DataFrame, inflation: dict[str, float]) -> pd.DataFrame:
 
 def layer_ceilings() -> pd.DataFrame:
     """The layer ceilings of the main rows (results/reliability_v2.tsv and
-    results/external_reliability_v2.tsv), by group."""
-    core = pd.read_csv(paths.path("reliability"), sep="\t").assign(group="core")
-    ext = pd.read_csv(paths.path("external_reliability"), sep="\t").assign(group="external")
+    results/external_reliability_v2.tsv: the second generation's), by group."""
+    core = pd.read_csv(RESULTS / "reliability_v2.tsv", sep="\t").assign(group="core")
+    ext = pd.read_csv(RESULTS / "external_reliability_v2.tsv", sep="\t").assign(group="external")
     t = pd.concat([core, ext], ignore_index=True)
     t = t[t["role"] == "main"]
     return t[["group", "gene", "population", "stratum", "method", "n", "ceiling", "ceiling_lo",
@@ -760,56 +792,368 @@ def regression_v1(table: pd.DataFrame, v1_path: Path | None = None) -> dict:
     return rec
 
 
+# ==========================================================================
+# the third generation: the ceiling on the rank scale (A4b.4)
+# ==========================================================================
+V2_RENAMED = ["reliability", "reliability_unclipped", "ceiling", "realisation", "estimable",
+              "reliability_lo", "reliability_hi", "ceiling_lo", "ceiling_hi", "realisation_lo",
+              "realisation_hi", "share_realisation_gt_1", "bootstrap_realisation_undefined",
+              "seed", "bootstrap_B"]
+V2_DROPPED = ["ceiling_inflated", "breakeven_inflation"]
+COVERAGE_MIN = 0.9          # G17: "the highest rho" among predictors scoring 90% of the cell
+TABLE_V2 = RESULTS / "matched_ceilings_v2.tsv"
+
+
+def columns_v3() -> list[str]:
+    from atlas import rank_cells
+    return (["group", "gene", "stratum", "model", "population", "n", "method", "rho",
+             "rho_lo", "rho_hi", "rep_rho", "selection_overlap", "set_sha"]
+            + [f"{c}_v2" for c in V2_RENAMED] + ["ceiling_replicate_k1", "lof_share",
+                                                  "neutral_in_range"]
+            + [c for m in rank_cells.MODELS
+               for c in rank_cells.model_columns(m) + rank_cells.realisation_columns(m)]
+            + ["pooled_scale_own"])
+
+
+def g18(tasks: list[tuple]) -> tuple[list[tuple], int]:
+    """The cells less the external genes' all rows."""
+    keep = [t for t in tasks if not (t[0][0] == "external" and t[0][2] == "all")]
+    return keep, len(tasks) - len(keep)
+
+
+def check_v2(t2: pd.DataFrame, path: Path = TABLE_V2) -> dict:
+    """The second generation computed again against its file (less the external all rows):
+    every column, bit for bit (regressions 1 and 2)."""
+    from atlas.reliability import _same
+    f = pd.read_csv(path, sep="\t", float_precision="round_trip")
+    dropped = (f["group"] == "external") & (f["stratum"] == "all")
+    f = f[~dropped]
+    keys = ["group", "gene", "stratum", "model", "population"]
+    a = t2.sort_values(keys, kind="stable").reset_index(drop=True)
+    b = f.sort_values(keys, kind="stable").reset_index(drop=True)
+    differ = [c for c in COLUMNS_V2 if not _same(a[c], b[c])]
+    return {"file": path.name, "rows": int(len(b)), "rows_here": int(len(a)),
+            "external_all_rows_dropped": int(dropped.sum()), "columns_differing": differ,
+            "holds": bool(len(a) == len(b) and not differ)}
+
+
+def rank_tasks(tasks: list[tuple]) -> tuple[list[tuple], list[tuple]]:
+    """One task per distinct variant set of the genes with an error model, carrying the
+    predictors of every cell on that set; and per task its set's key."""
+    from atlas import rank_cells
+    sets: dict[tuple, dict] = {}
+    for key, method, arrays in tasks:
+        group, gene, stratum, model, pop = key
+        if gene not in rank_cells.GENES:
+            continue
+        sha = hashlib.sha256("\n".join(sorted(arrays["ids"])).encode()).hexdigest()
+        k = (group, gene, stratum, pop, sha)
+        rec = sets.setdefault(k, {"arrays": arrays, "method": method, "predictors": {}})
+        rec["predictors"][model] = arrays["x"]
+    out, keys = [], []
+    for k, rec in sets.items():
+        group, gene, stratum, pop, sha = k
+        a = rec["arrays"]
+        d = (((-a["r1"]) - (-a["r2"])) / 2) if rec["method"] == "replicates" else None
+        out.append(rank_cells.task(group, gene, stratum, pop, a["ids"], a["y"],
+                                   se=a.get("se"), d=d, predictors=rec["predictors"]))
+        keys.append(k)
+    return out, keys
+
+
+def table_v3(t2: pd.DataFrame, tasks: list[tuple], workers: int = 1) -> pd.DataFrame:
+    """v2's cells renamed, with the set's sha and both models' rank-scale columns."""
+    from atlas import rank_cells
+    t = t2.rename(columns={c: f"{c}_v2" for c in V2_RENAMED}).drop(columns=V2_DROPPED)
+    t["ceiling_replicate_k1"] = np.where(t["method"] == "replicates",
+                                         np.sqrt(np.clip(t["rep_rho"], 0.0, None)), np.nan)
+    sha = {key: hashlib.sha256("\n".join(sorted(a["ids"])).encode()).hexdigest()
+           for key, _, a in tasks}
+    keys = ["group", "gene", "stratum", "model", "population"]
+    t["set_sha"] = [sha[tuple(r)][:16] for r in t[keys].itertuples(index=False)]
+    rt, rkeys = rank_tasks(tasks)
+    res = dict(zip(rkeys, rank_cells.compute(rt, workers)))
+    extra = []
+    for r in t.itertuples(index=False):
+        k = (r.group, r.gene, r.stratum, r.population, sha[(r.group, r.gene, r.stratum, r.model,
+                                                           r.population)])
+        if k in res:
+            extra.append(rank_cells.columns(res[k]) | rank_cells.realisation(res[k], r.model,
+                                                                             r.rho))
+        else:
+            extra.append({})
+    e = pd.DataFrame(extra, index=t.index).drop(columns=["set_sha"], errors="ignore")
+    t = t.join(e)
+    return t.reindex(columns=columns_v3())
+
+
+def layer_ceilings_v3(layer_dir: Path = RESULTS) -> pd.DataFrame:
+    """The layer tables' main rows with a rank-scale ceiling (results/reliability_v3.tsv,
+    results/external_reliability_v3.tsv), by group."""
+    core = pd.read_csv(Path(layer_dir) / paths.name("reliability"), sep="\t",
+                       float_precision="round_trip").assign(group="core")
+    ext = pd.read_csv(Path(layer_dir) / paths.name("external_reliability"), sep="\t",
+                      float_precision="round_trip").assign(group="external")
+    t = pd.concat([core, ext], ignore_index=True)
+    return t[(t["role"] == "main") & t["ceiling_neutral"].notna()].reset_index(drop=True)
+
+
+def check_layer(table: pd.DataFrame, layer: pd.DataFrame) -> dict:
+    """Regression 3: one set and one model, the same ceiling, interval and floor in the
+    layer and the matched tables, bit for bit."""
+    from atlas import rank_cells
+    from atlas.reliability import _same
+    keys = ["group", "gene", "stratum", "population", "set_sha"]
+    m = table.dropna(subset=["ceiling_neutral"]).merge(layer, on=keys, suffixes=("", "_layer"))
+    cols = [c for mm in rank_cells.MODELS for c in rank_cells.model_columns(mm)]
+    differ = [c for c in cols if not _same(m[c], m[f"{c}_layer"])]
+    return {"matched_cells_on_a_layer_set": int(len(m)),
+            "layer_sets_matched": int(m[keys].drop_duplicates().shape[0]),
+            "columns": cols, "columns_differing": differ, "holds": not differ}
+
+
+def _usable(t: pd.DataFrame, model: str) -> pd.Series:
+    from atlas import rank_cells
+    return rank_cells.usable(t, model)
+
+
+def _cell_v3(r: pd.Series, model: str) -> dict:
+    from atlas import rank_cells
+    out = {k: r[k] for k in ("model", "n", "rho", "rho_lo", "rho_hi", f"ceiling_{model}",
+                             f"ceiling_{model}_lo", f"ceiling_{model}_hi", f"floor_{model}",
+                             f"estimable_{model}", "lof_share", "neutral_in_range",
+                             "realisation_v2", "estimable_v2")}
+    for m in rank_cells.MODELS:
+        out |= {c: r[c] for c in rank_cells.realisation_columns(m)}
+    return out
+
+
+def by_stratum_v3(table: pd.DataFrame, layer: pd.DataFrame, model: str) -> dict:
+    """1: per stratum and group, the layer ceilings that enter and the cross-gene medians."""
+    t = table[(table["population"] == population.SNV) & ~table["selection_overlap"]]
+    t = t[t["gene"].isin(set(layer["gene"]))]
+    lay = layer[layer["population"] == population.SNV]
+    out = {}
+    for stratum in STRATA:
+        rec = {}
+        for name, groups in GROUPS_V2.items():
+            L = lay[(lay["stratum"] == stratum) & lay["group"].isin(groups)]
+            E = L[_usable(L, model)]
+            d = t[(t["stratum"] == stratum) & t["group"].isin(groups)]
+            if not len(L) and not len(d):
+                continue
+            per = {}
+            for pred, m in d.groupby("model", sort=False):
+                per[pred] = {"rho": _range(m["rho"]),
+                             "realisation": _range(m.loc[_usable(m, model), f"realisation_{model}"])}
+            rec[name] = {"genes_with_layer_ceiling": sorted(L["gene"]),
+                         "genes_entering": sorted(E["gene"]), "n_genes_entering": int(len(E)),
+                         "genes_not_estimable": sorted(L.loc[~L[f"estimable_{model}"].astype(bool), "gene"]),
+                         "genes_out_of_neutral_range": sorted(L.loc[~L["neutral_in_range"].astype(bool), "gene"]),
+                         "ceiling": _range(E[f"ceiling_{model}"]), "per_predictor": per}
+        if rec:
+            out[stratum] = rec
+    return out
+
+
+def by_gene_stratum_v3(table: pd.DataFrame, layer: pd.DataFrame, counts: pd.DataFrame,
+                       model: str) -> list[dict]:
+    """2: per gene x stratum (snv): n, the layer ceilings, the best predictor by rho and
+    the splice family's best, among those scoring 90% of the cell's variants (G17)."""
+    from atlas import rank_cells
+    t = table[(table["population"] == population.SNV) & table["gene"].isin(set(layer["gene"]))]
+    lay = layer[layer["population"] == population.SNV].set_index(["gene", "stratum"])
+    cnt = counts[counts["population"] == population.SNV].set_index(["gene", "stratum"])
+    out = []
+    for (group, gene, stratum), d in t.groupby(["group", "gene", "stratum"], sort=False):
+        nv = int(cnt.loc[(gene, stratum), "n_variants"]) if (gene, stratum) in cnt.index else None
+        cover = d["n"] / nv if nv else pd.Series(np.nan, index=d.index)
+        elig = d[~d["selection_overlap"] & d["rho"].notna() & (cover >= COVERAGE_MIN)]
+        fam = elig[elig["model"].isin(predictors.SPLICE_FAMILY)]
+        L = lay.loc[(gene, stratum)] if (gene, stratum) in lay.index else None
+        layer_rec = None
+        if L is not None:
+            layer_rec = {"n": int(L["n"]), "ceiling_v2": L["ceiling_v2"],
+                         "lof_share": L["lof_share"], "neutral_in_range": bool(L["neutral_in_range"])}
+            for m in rank_cells.MODELS:
+                layer_rec |= {f"ceiling_{m}": L[f"ceiling_{m}"], f"ceiling_{m}_lo": L[f"ceiling_{m}_lo"],
+                              f"ceiling_{m}_hi": L[f"ceiling_{m}_hi"], f"floor_{m}": L[f"floor_{m}"],
+                              f"estimable_{m}": bool(L[f"estimable_{m}"])}
+        out.append({"group": group, "gene": gene, "stratum": stratum, "n_variants": nv,
+                    "predictors_scoring_90pct": sorted(elig["model"]),
+                    "layer_ceiling": layer_rec,
+                    "best": _cell_v3(elig.loc[elig["rho"].idxmax()], model) if len(elig) else None,
+                    "best_splice_family": (_cell_v3(fam.loc[fam["rho"].idxmax()], model)
+                                           if len(fam) else None)})
+    return out
+
+
+def best_realisation_v3(per_gene: list[dict], model: str) -> dict:
+    """3: at 3-10 and 11-50 bp, the best predictor's realisation per gene, where its cell's
+    ceiling enters; the genes where the interval's upper bound is below 1, and below 0.5."""
+    def enters(b):
+        return bool(b[f"estimable_{model}"]) and (model != "neutral" or bool(b["neutral_in_range"]))
+    out = {}
+    for stratum in BEST_STRATA:
+        rows = [r for r in per_gene if r["stratum"] == stratum and r["best"]]
+        ok = [r for r in rows if enters(r["best"])]
+        hi = f"realisation_{model}_hi"
+        out[stratum] = {
+            "cells": [{"gene": r["gene"], **r["best"]} for r in ok],
+            "upper_bound_below_1": [f"{r['gene']} {r['best']['model']}" for r in ok
+                                    if r["best"][hi] < 1],
+            "upper_bound_below_0.5": [f"{r['gene']} {r['best']['model']}" for r in ok
+                                      if r["best"][hi] < 0.5],
+            "not_entering": [r["gene"] for r in rows if not enters(r["best"])]}
+    return out
+
+
+def deep_v3(layer: pd.DataFrame, model: str) -> list[dict]:
+    """4: beyond 50 bp, the layer ceilings per gene (snv)."""
+    d = layer[(layer["population"] == population.SNV) & (layer["stratum"] == "splice_deep")]
+    cols = ["group", "gene", "n", "ceiling_v2", f"ceiling_{model}", f"ceiling_{model}_lo",
+            f"ceiling_{model}_hi", f"floor_{model}", f"estimable_{model}", "lof_share",
+            "neutral_in_range"]
+    return d[cols].to_dict("records")
+
+
+def above_one_v3(table: pd.DataFrame, model: str) -> dict:
+    """5: the snv cells whose ceiling enters and whose realisation exceeds 1 or whose
+    interval crosses 1."""
+    t = table[(table["population"] == population.SNV) & table[f"ceiling_{model}"].notna()]
+    hit = (t[f"realisation_{model}"] > 1) | (t[f"realisation_{model}_hi"] > 1)
+    ok = _usable(t, model)
+    keep = ["group", "gene", "stratum", "model", "n", "rho", f"ceiling_{model}",
+            f"ceiling_{model}_lo", f"floor_{model}", f"realisation_{model}",
+            f"realisation_{model}_lo", f"realisation_{model}_hi",
+            f"share_realisation_gt_1_{model}", "selection_overlap"]
+    return {"cells": t[hit & ok][keep].to_dict("records"),
+            "cells_left_out_not_entering": int((hit & ~ok).sum())}
+
+
+def v2_to_v3(per_gene: list[dict], model: str) -> list[dict]:
+    """6: per gene x stratum (snv), ceiling_v2 beside both rank-scale ceilings; the splice
+    family's best predictor's three realisations; the first supplement's trial."""
+    from atlas import rank_cells
+    out = []
+    for r in per_gene:
+        L, f = r["layer_ceiling"], r["best_splice_family"]
+        if L is None:
+            continue
+        rec = {"group": r["group"], "gene": r["gene"], "stratum": r["stratum"], "n": L["n"],
+               "ceiling_v2": L["ceiling_v2"], "ceiling_neutral": L["ceiling_neutral"],
+               "ceiling_own": L["ceiling_own"]}
+        trial = rank_cells.TRIAL.get((r["gene"], r["stratum"]))
+        if trial is not None:
+            want = trial[1] if model == "neutral" else trial[0]
+            near = (r["gene"], r["stratum"], model) in rank_cells.TRIAL_NEAR_FLOOR
+            rec |= {"trial": want, "difference": L[f"ceiling_{model}"] - want,
+                    "trial_near_the_floor": near,
+                    "within_tolerance": None if near else
+                    bool(abs(L[f"ceiling_{model}"] - want) <= rank_cells.TRIAL_TOL)}
+        if f is not None:
+            rec |= {"splice_family_best": f["model"], "realisation_v2": f["realisation_v2"],
+                    "realisation_neutral": f["realisation_neutral"],
+                    "realisation_own": f["realisation_own"]}
+        out.append(rec)
+    return out
+
+
+def range_by_stratum(table: pd.DataFrame, layer: pd.DataFrame) -> dict:
+    """Per population and stratum, the cells in and out of the neutral model's range."""
+    from atlas import rank_cells
+    return {pop: {"layer": rank_cells.range_counts(layer[layer["population"] == pop], STRATA),
+                  "matched": rank_cells.range_counts(table[table["population"] == pop], STRATA)}
+            for pop in POPULATIONS}
+
+
+def summary_v3(table: pd.DataFrame, layer: pd.DataFrame, counts: pd.DataFrame) -> dict:
+    from atlas import rank_cells
+    out = {}
+    for m in rank_cells.MODELS:
+        per_gene = by_gene_stratum_v3(table, layer, counts, m)
+        out[m] = {"1_by_stratum": by_stratum_v3(table, layer, m),
+                  "2_by_gene_stratum": per_gene,
+                  "3_best_realisation_3_10_and_11_50": best_realisation_v3(per_gene, m),
+                  "4_beyond_50bp": deep_v3(layer, m),
+                  "5_realisation_above_1_or_interval_crossing_1": above_one_v3(table, m),
+                  "6_v2_to_v3": v2_to_v3(per_gene, m)}
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 2))
     ap.add_argument("--out", default=str(RESULTS))
+    ap.add_argument("--layer-dir", default=str(RESULTS),
+                    help="where the layer tables of this generation are read from")
     args = ap.parse_args(argv)
+    import time
+    from atlas import rank_cells
     from atlas.reliability import inflation_factors, neutral_check
+    t0 = time.time()
     core, ext = load_core(), load_external()
     inflation = inflation_factors(neutral_check(population.load(None),
                                                 pd.read_parquet(paths.path("assay_aux"))))
     tasks = (cell_tasks(core, MODELS, STRATA, scopes=POPULATIONS)
              + cell_tasks(ext, EXTERNAL_MODELS, STRATA, scopes=POPULATIONS))
-    print(f"[matched] {len(tasks)} cells, {B} resamples each, {args.workers} workers",
-          flush=True)
-    table = finish(compute(tasks, args.workers), inflation)
-    layer = layer_ceilings()
-    per_gene = by_gene_stratum(table, layer, variant_counts(pd.concat([core, ext],
-                                                                        ignore_index=True)))
-    reg = regression_v1(table)
-    summary = {"definition": {"seed": SEED, "bootstrap_B": B, "min_n": MIN_N,
+    tasks, n_g18 = g18(tasks)
+    print(f"[matched] {len(tasks)} cells ({n_g18} external all rows dropped), {B} resamples "
+          f"each, {args.workers} workers", flush=True)
+    t2 = finish(compute(tasks, args.workers), inflation)
+    t1 = time.time()
+    reg_v2 = check_v2(t2)
+    reg_v1 = regression_v1(t2)
+    out = Path(args.out)
+    if not reg_v2["holds"]:
+        print("the second generation is not computed again:",
+              json.dumps(jsonable(reg_v2), indent=1), file=sys.stderr)
+        return 1
+    print(f"[matched] the second generation computed again in {t1 - t0:.0f} s: holds", flush=True)
+    table = table_v3(t2, tasks, args.workers)
+    t3 = time.time()
+    layer = layer_ceilings_v3(Path(args.layer_dir))
+    reg_layer = check_layer(table, layer)
+    counts = variant_counts(pd.concat([core, ext], ignore_index=True))
+    summary = {"definition": {"seed": SEED, "bootstrap_B_v2": B, "min_n": MIN_N,
                               "populations": list(POPULATIONS), "core": CORE,
                               "external_genes": list(EXTERNAL_GENES),
                               "predictors_core": MODELS, "predictors_external": EXTERNAL_MODELS,
                               "cross_gene_population": population.SNV,
                               "selection_overlap": predictors.SELECTION_OVERLAP,
-                              "estimable": "the cell's ceiling interval's lower bound above 0; "
-                                           "a realisation of a cell that is not estimable "
-                                           "enters no summary",
-                              "inflation_factor": inflation,
+                              "g18": "the external genes' all rows are not written",
+                              "g17": f"the highest rho among the predictors scoring at least "
+                                     f"{COVERAGE_MIN:.0%} of the cell's variants (gene x stratum "
+                                     "x population with a functional score and the error "
+                                     "information)",
+                              "v2_columns": {f"{c}_v2": c for c in V2_RENAMED},
+                              "dropped": V2_DROPPED,
+                              "models": list(rank_cells.MODELS),
+                              "enters_a_summary": "a cell's ceiling or realisation under a model "
+                                                  "enters when the ceiling is estimable and, "
+                                                  "for neutral, in range",
+                              "neutral_range": f"lof_share <= {rank_cells.LOF_SHARE_MAX}",
                               "layer_ceilings": [paths.name("reliability"),
                                                  paths.name("external_reliability")]},
-               "checks": {"regression_matched_ceilings_v1": reg},
-               "1_by_stratum": by_stratum_v2(table, layer),
-               "2_by_gene_stratum": per_gene,
-               "3_best_realisation_3_10_and_11_50": best_realisation(per_gene),
-               "4_beyond_50bp": deep(layer),
-               "5_realisation_above_1_or_interval_crossing_1": above_one(table)}
-    out = Path(args.out)
-    if not reg["holds"]:
+               "checks": {"v2_computed_again": reg_v2,
+                          "same_set_same_ceiling_in_the_layer_tables": reg_layer,
+                          "regression_matched_ceilings_v1": reg_v1},
+               "neutral_range_by_stratum": range_by_stratum(table, layer),
+               "by_model": summary_v3(table, layer, counts),
+               "seconds": {"v2_computed_again": round(t1 - t0, 1),
+                           "rank_scale": round(t3 - t1, 1), "workers": args.workers}}
+    if not reg_layer["holds"]:
+        print("a set's ceiling differs between the tables:",
+              json.dumps(jsonable(reg_layer), indent=1), file=sys.stderr)
         (out / "_scratch").mkdir(parents=True, exist_ok=True)
-        table.to_csv(out / "_scratch" / "matched_ceilings_v2_failed.tsv", sep="\t", index=False)
-        print("the regression against matched_ceilings_v1 fails:",
-              json.dumps(jsonable(reg), indent=1)[:3000], file=sys.stderr)
+        table.to_csv(out / "_scratch" / "matched_ceilings_v3_failed.tsv", sep="\t", index=False)
         return 1
     table.to_csv(out / paths.name("matched_ceilings"), sep="\t", index=False)
     (out / paths.name("matched_ceilings_summary")).write_text(
         json.dumps(jsonable(summary), indent=1) + "\n")
-    print(f"[matched] wrote {len(table)} cells; regression against v1 holds "
-          f"({reg['rows_compared']} rows, point identical {reg['point_identical']}, "
-          f"intervals identical {reg['interval_identical']})")
+    print(f"[matched] wrote {len(table)} cells; v2 computed again holds, the layer sets agree "
+          f"({reg_layer['matched_cells_on_a_layer_set']} cells); rank scale {t3 - t1:.0f} s")
     return 0
 
 

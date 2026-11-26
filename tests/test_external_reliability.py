@@ -273,12 +273,13 @@ def _need_inputs():
 
 
 def test_the_delivered_table_regenerates_from_the_deposits():
-    """The current generation's table (by population, with intervals) and its summary
-    regenerate from the deposits and the core table."""
+    """The second generation's table (by population, with intervals) and its summary
+    regenerate from the deposits and the core table (the second generation's files; the
+    third carries the same estimate in its _v2 columns)."""
     _need_inputs()
-    from atlas import paths
-    cur_tsv, cur_json = paths.path("external_reliability"), paths.path("external_reliability_summary")
-    core = paths.path("reliability")
+    results = er.RESULTS
+    cur_tsv, cur_json = results / "external_reliability_v2.tsv", results / "external_reliability_v2.json"
+    core = results / "reliability_v2.tsv"
     if not (cur_tsv.exists() and cur_json.exists() and core.exists()):
         pytest.skip("results of the current generation not present")
     ext, checks = er.external_table_v2()

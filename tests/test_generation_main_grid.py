@@ -120,9 +120,11 @@ def test_regression_one_and_three_per_gene_values_equal_v5():
 
 
 def test_regression_two_pooled_values_equal_v5():
-    _built("eval_ext", "eval_ext_v1.tsv")
+    """v5 against the second generation's grid (its own file): the third generation differs
+    from it in the one cell G17 changes (tests/test_rank_cells.py)."""
+    _built("eval_ext_v2.tsv", "eval_ext_v1.tsv")
     v1 = pd.read_csv(RESULTS / "eval_ext_v1.tsv", sep="\t", float_precision="round_trip")
-    v2 = pd.read_csv(paths.path("eval_ext"), sep="\t", float_precision="round_trip")
+    v2 = pd.read_csv(RESULTS / "eval_ext_v2.tsv", sep="\t", float_precision="round_trip")
     v1 = v1.set_index(["model", "stratum"])
     v2 = v2[v2["population"] == "snv"].set_index(["model", "stratum"])
     for m in predictors.SNV_ONLY_IN_V5:
@@ -184,19 +186,24 @@ def test_the_neutral_check_reads_synonymous_snvs_with_an_se():
 
 
 def test_the_delivered_layer_ceilings():
-    _built("reliability", "reliability_summary", "reliability_neutral_check")
+    """The second generation's estimate, read from the third generation's _v2 columns;
+    what the third generation no longer writes (the inflated ceiling, the summary's
+    inflation factor and trial) from the second generation's own files."""
+    _built("reliability", "reliability_v2.tsv", "reliability_v2.json",
+           "reliability_neutral_check")
     t = pd.read_csv(paths.path("reliability"), sep="\t")
     main = t[t["role"] == "main"]
     assert set(main["gene"]) == {"BRCA1", "BARD1", "PALB2", "BAP1"}
     assert not ({"RAD51C", "BRCA2", "VHL"} & set(t["gene"]))
     assert set(main.loc[main["gene"] == "BRCA1", "method"]) == {"replicates"}
-    assert (t["estimable"] == (t["ceiling_lo"] > 0)).all()
+    assert (t["estimable_v2"] == (t["ceiling_lo_v2"] > 0)).all()
     se = t[t["method"] == "se"]
-    assert (se["reliability"] == se["reliability_unclipped"].clip(0, 1)).all()
-    s = json.loads(paths.path("reliability_summary").read_text())
+    assert (se["reliability_v2"] == se["reliability_unclipped_v2"].clip(0, 1)).all()
+    s = json.loads((RESULTS / "reliability_v2.json").read_text())
     assert s["instruction_trial"]["differ_by_more_than_tolerance"] == []
     assert s["inflation_factor"]["BAP1"] == pytest.approx(3.409, abs=1e-3)
-    infl = t[t["ceiling_inflated"].notna()]
+    v2 = pd.read_csv(RESULTS / "reliability_v2.tsv", sep="\t")
+    infl = v2[v2["ceiling_inflated"].notna()]
     assert set(infl["gene"]) == {"BARD1", "PALB2", "BAP1"}
 
 
@@ -270,8 +277,8 @@ def test_regression_four_matched_ceilings_equal_a2s():
     the external five x their nine columns: n, rho, reliability, ceiling and realisation
     to the bit; intervals too, except where the seed's key changed (the external
     alphagenome_official cells, now named alphagenome)."""
-    _built("matched_ceilings", "matched_ceilings_v1.tsv")
-    t = pd.read_csv(paths.path("matched_ceilings"), sep="\t", float_precision="round_trip")
+    _built("matched_ceilings_v2.tsv", "matched_ceilings_v1.tsv")      # A2 against v2
+    t = pd.read_csv(RESULTS / "matched_ceilings_v2.tsv", sep="\t", float_precision="round_trip")
     reg = mc.regression_v1(t)
     assert reg["holds"] and reg["point_bitwise"] and reg["rows_compared"] == 422
     assert {(d["cell"][0], d["cell"][3]) for d in reg["interval_differ"]} <= \
@@ -279,9 +286,10 @@ def test_regression_four_matched_ceilings_equal_a2s():
 
 
 def test_the_matched_summary_leaves_flagged_and_unestimable_cells_out():
-    _built("matched_ceilings", "matched_ceilings_summary")
-    t = pd.read_csv(paths.path("matched_ceilings"), sep="\t")
-    s = json.loads(paths.path("matched_ceilings_summary").read_text())
+    """The second generation's summary (its own files)."""
+    _built("matched_ceilings_v2.tsv", "matched_ceilings_v2.json")
+    t = pd.read_csv(RESULTS / "matched_ceilings_v2.tsv", sep="\t")
+    s = json.loads((RESULTS / "matched_ceilings_v2.json").read_text())
     assert set(t["population"]) <= {"snv", "non_snv"}
     assert set(t.loc[t["selection_overlap"], "gene"]) == {"BRCA1", "RAD51C"}
     assert set(t.loc[t["selection_overlap"], "model"]) == {"avi"}

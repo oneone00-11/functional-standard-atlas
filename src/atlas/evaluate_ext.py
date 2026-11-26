@@ -27,10 +27,17 @@ The selection overlap (``atlas.predictors.SELECTION_OVERLAP``): avi's BRCA1 and 
 cells are computed and listed in the per-gene table with ``selection_overlap`` set, and
 are left out of avi's pooled values; the grid's ``excluded_genes`` names them.
 
-Outputs: results/eval_ext_v2.tsv (one row per population x predictor x stratum) and
-results/eval_ext_per_gene_v2.tsv (one row per population x predictor x stratum x gene
-with at least MIN_N variants: n and rho; the pooled values are computed from these rows,
-less the flagged ones).
+Constant scores (G17, A4b.4): where a predictor gives every variant of a gene's cell the
+same score, rho is not defined. The per-gene row keeps rho empty, the gene does not enter
+the pooled value (and its variants are not counted in n), and the grid's
+``constant_scores`` names it; the other genes are pooled as usual (two genes with MIN_N
+variants each, still). One cell has it: bayesdel_addaf at +-1-2 bp, BAP1's 192 SNVs,
+whose empty rho had made the pooled value empty.
+
+Outputs: results/eval_ext_v3.tsv (one row per population x predictor x stratum; v2's with
+the constant_scores column) and results/eval_ext_per_gene_v2.tsv (one row per population
+x predictor x stratum x gene with at least MIN_N variants: n and rho; the pooled values
+are computed from these rows, less the flagged ones; unchanged by G17).
 
 Usage (PYTHONPATH=src):  python -m atlas.evaluate_ext [--out results/]
 """
@@ -62,7 +69,7 @@ CLINVAR = ["clinvar_classified", "clinvar_recorded_unclassified", "clinvar_unrec
 CLASSES = ["deletion", "complex"]
 
 GRID_COLUMNS = ["population", "model", "stratum", "k_genes", "n", "pooled_rho", "ci_lo",
-                "ci_hi", "i2_pct", "excluded_genes"]
+                "ci_hi", "i2_pct", "excluded_genes", "constant_scores"]
 PER_GENE_COLUMNS = ["population", "model", "stratum", "gene", "n", "rho", "selection_overlap"]
 
 
@@ -101,20 +108,25 @@ def per_gene(sub: pd.DataFrame, model: str) -> list[dict]:
     for gene, g in sub.groupby("gene"):
         if len(g) < MIN_N:
             continue
-        r = float(g[model].corr(g["functional_pathogenicity"], method="spearman"))
-        z, v = fisher_z(r, len(g))
+        constant = bool(g[model].nunique() <= 1)
+        r = (np.nan if constant
+             else float(g[model].corr(g["functional_pathogenicity"], method="spearman")))
+        z, v = fisher_z(r, len(g)) if not constant else (np.nan, np.nan)
         out.append({"gene": gene, "n": len(g), "rho": r, "z": z, "var": v,
-                    "selection_overlap": predictors.is_overlap(model, gene)})
+                    "selection_overlap": predictors.is_overlap(model, gene),
+                    "constant_scores": constant})
     return out
 
 
 def pooled_row(pop: str, model: str, stratum: str, sub: pd.DataFrame, pg: list[dict]) -> dict:
     excluded = sorted(predictors.overlap_genes(model))
-    use = [p for p in pg if not p["selection_overlap"]]
-    n = int((~sub["gene"].isin(excluded)).sum())
+    constant = sorted(p["gene"] for p in pg if p.get("constant_scores"))
+    use = [p for p in pg if not p["selection_overlap"] and not p.get("constant_scores")]
+    n = int((~sub["gene"].isin(excluded + constant)).sum())
     row = {"population": pop, "model": model, "stratum": stratum, "k_genes": len(use),
            "n": n, "pooled_rho": np.nan, "ci_lo": np.nan, "ci_hi": np.nan,
-           "i2_pct": np.nan, "excluded_genes": ";".join(excluded)}
+           "i2_pct": np.nan, "excluded_genes": ";".join(excluded),
+           "constant_scores": ";".join(constant)}
     if len(use) >= 2:
         p = dl_pool([u["z"] for u in use], [u["var"] for u in use])
         row |= {"pooled_rho": math.tanh(p["pooled"]), "ci_lo": math.tanh(p["ci_lo"]),

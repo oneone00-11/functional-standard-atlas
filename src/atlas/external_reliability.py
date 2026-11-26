@@ -51,18 +51,29 @@ atlas.reliability.bootstrap_layer, the seed from the cell's key (external, gene,
 stratum, method, population); ``estimable`` when the ceiling's lower bound is above 0.
 TP53's two bounding rows share their resamples.
 
+The third generation (A4b.4): the ceiling on the rank scale, as atlas.reliability's third
+generation. The rows are v2's; v2's estimate keeps its values under the names with the
+suffix _v2; the five SE deposits' main rows carry the rank-scale ceiling of their variant
+set under both error models (neutral first; atlas.rank_cells), its interval, floor and
+estimable, with lof_share and neutral_in_range. A cell's set is computed from the
+deposit, coding variants included, with y = -score (functional_pathogenicity, the scale
+of the error models) and the deposit's accession as the identifier (external_scores'
+variant_urn). TP53's bounding rows are Spearman already and are carried with the _v2
+names. inflation_factor and ceiling_inflated are no longer written.
+
 Outputs
 -------
-results/external_reliability_v2.tsv   one row per deposit x population x stratum x
-    estimator, with the columns of the core table (results/reliability_v2.tsv)
-results/external_reliability_v2.json  per stratum, on the SNVs: the main estimate, which
-    combines the core genes' main rows (results/reliability_v2.tsv, not recomputed) with
-    the external rows marked ``main``; the core and the external genes alone; the main
-    estimate with TP53 added at each bound; the checks and the inputs.
-The v1 files (the v5 genes from reliability_v1.tsv) are not rewritten; `summarise` still
-builds v1's summary.
+results/external_reliability_v3.tsv   one row per deposit x population x stratum x
+    estimator, with the columns of the core table (results/reliability_v3.tsv)
+results/external_reliability_v3.json  per model and population, per stratum: the main
+    estimate, which combines the core genes' main rows (results/reliability_v3.tsv, not
+    recomputed) with the external rows marked ``main``; the core and the external genes
+    alone; the main estimate with TP53 added at each bound; the cells in and out of the
+    neutral model's range; the checks (v2 computed again) and the inputs.
+The v1 and v2 files are not rewritten; `summarise` still builds v1's summary and
+`summarise_v2` v2's.
 
-Usage (PYTHONPATH=src):  python -m atlas.external_reliability [--out results/]
+Usage (PYTHONPATH=src):  python -m atlas.external_reliability [--out results/] [--workers N]
 """
 
 from __future__ import annotations
@@ -70,6 +81,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from itertools import combinations
 from pathlib import Path
 
@@ -440,6 +452,102 @@ def summarise_v2(ext: pd.DataFrame, core: pd.DataFrame, pop: str = population.SN
 
 
 # --------------------------------------------------------------------------
+# the third generation: the ceiling on the rank scale (A4b.4)
+# --------------------------------------------------------------------------
+TABLE_V2 = RESULTS / "external_reliability_v2.tsv"
+
+
+def deposit_sets(raw: Path = RAW) -> dict[tuple, dict]:
+    """Per (gene, population, stratum) of an SE deposit: the main row's variants (a score
+    and an SE), with the accession, y = -score and the SE."""
+    out = {}
+    for urn, spec in EXTERNAL.items():
+        if spec["method"] != "se":
+            continue
+        df = load_deposit(urn, raw)
+        df["population"] = deposit_population(df["hgvs_c"])
+        x = pd.DataFrame({"id": df["accession"], "score": pd.to_numeric(df["score"], errors="coerce"),
+                          "se": pd.to_numeric(df[spec["se"]], errors="coerce"),
+                          "region": df["region"], "population": df["population"]}
+                         ).dropna(subset=["score", "se"])
+        for pop in population.POPULATIONS:
+            d = x[x["population"] == pop]
+            for stratum in STRATA:
+                c = d[_stratum_mask(d["region"], stratum)]
+                if len(c) >= MIN_N:
+                    out[(spec["gene"], pop, stratum)] = {
+                        "ids": c["id"].tolist(), "y": -c["score"].to_numpy(float),
+                        "se": c["se"].to_numpy(float)}
+    return out
+
+
+def external_table_v3(raw: Path = RAW, workers: int = 1
+                      ) -> tuple[pd.DataFrame, dict, pd.DataFrame]:
+    """(the third generation's table, the per-deposit checks, v2's table computed again)."""
+    from atlas import rank_cells
+    from atlas.reliability import TABLE_COLUMNS_V3, V2_ESTIMATE
+    v2, checks = external_table_v2(raw)
+    t = v2.rename(columns={c: f"{c}_v2" for c in V2_ESTIMATE}).copy()
+    t["ceiling_replicate_k1"] = np.nan                  # BRCA1's column; TP53 has k = 1 rows
+    sets = deposit_sets(raw)
+    rows = t[(t["method"] == "se") & (t["role"] == "main")]
+    tasks, where = [], []
+    for i, r in rows.iterrows():
+        x = sets[(r["gene"], r["population"], r["stratum"])]
+        if len(x["ids"]) != r["n"]:
+            raise SystemExit(f"{r['gene']} {r['population']} {r['stratum']}: the set is not "
+                             "the row's")
+        tasks.append(rank_cells.task("external", r["gene"], r["stratum"], r["population"],
+                                     x["ids"], x["y"], se=x["se"]))
+        where.append(i)
+    res = rank_cells.compute(tasks, workers)
+    t = t.join(pd.DataFrame([rank_cells.columns(r) for r in res], index=where))
+    return t[TABLE_COLUMNS_V3 + rank_cells.COLUMNS].reset_index(drop=True), checks, v2
+
+
+def _as_model_rows(t: pd.DataFrame, model: str) -> pd.DataFrame:
+    """TP53's bounding rows in the frame a model's summary reads: their Spearman ceiling
+    (ceiling_v2) and estimable_v2; the neutral range does not apply."""
+    t = t.copy()
+    t[f"ceiling_{model}"] = t["ceiling_v2"]
+    t[f"estimable_{model}"] = t["estimable_v2"]
+    t["neutral_in_range"] = True
+    return t
+
+
+def summarise_v3(ext: pd.DataFrame, core: pd.DataFrame, model: str,
+                 pop: str = population.SNV) -> dict:
+    """Per stratum, on one population and under one model: the main estimate (the core
+    genes' main rows and the external main rows), each part alone, the main estimate with
+    the bounded deposit, and the cells in and out of the neutral model's range."""
+    from atlas import rank_cells
+    ext, core = ext[ext["population"] == pop], core[core["population"] == pop]
+    base = core[(core["role"] == "main") & core[f"ceiling_{model}"].notna()]
+    main_ext = ext[(ext["role"] == "main") & ext[f"ceiling_{model}"].notna()]
+    main = pd.concat([base, main_ext], ignore_index=True)
+    with_bounds = {}
+    for role in ("lower_bound", "upper_bound"):
+        extra = ext[ext["role"] == role]
+        if len(extra):
+            with_bounds[role] = rank_cells.stratum_summary(
+                pd.concat([main, _as_model_rows(extra, model)], ignore_index=True), model, STRATA)
+    return {
+        "population": pop, "model": model,
+        "main": rank_cells.stratum_summary(main, model, STRATA),
+        "core_genes": rank_cells.stratum_summary(base, model, STRATA),
+        "external_main_only": rank_cells.stratum_summary(main_ext, model, STRATA),
+        "main_plus_bounded_deposit": with_bounds,
+        "neutral_range": rank_cells.range_counts(main, STRATA),
+        "bounded_rows": ext[ext["role"].isin(["lower_bound", "upper_bound"])][
+            ["gene", "stratum", "n", "rep_rho", "k", "reliability_v2", "ceiling_v2",
+             "ceiling_lo_v2", "ceiling_hi_v2", "estimable_v2", "role"]].to_dict("records"),
+        "excluded_rows": ext[ext["role"] == "excluded"][
+            ["gene", "stratum", "status"]].to_dict("records"),
+        "not_estimated": NOT_ESTIMATED,
+    }
+
+
+# --------------------------------------------------------------------------
 # provenance
 # --------------------------------------------------------------------------
 def licences(raw: Path = RAW) -> dict[str, dict]:
@@ -492,6 +600,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--raw", default=str(RAW))
     ap.add_argument("--core", default=str(CORE_TABLE))
     ap.add_argument("--out", default="results")
+    ap.add_argument("--workers", type=int, default=1)
     ap.add_argument("--register-licences", action="store_true",
                     help="only add the deposits' licences to raw/MANIFEST.json")
     args = ap.parse_args(argv)
@@ -502,16 +611,28 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[external] licence added to {n} manifest entries in {raw / 'MANIFEST.json'}")
         return 0
 
-    ext, checks = external_table_v2(raw)
-    core = pd.read_csv(args.core, sep="\t")
-    from atlas.reliability import jsonable
-    summary = {"note": ("Ceilings are sqrt(reliability). 'main' combines the core genes' main "
-                        "rows (results/reliability_v2.tsv, not recomputed) with the external "
-                        "rows whose role is 'main'. Rows with role lower_bound / upper_bound "
-                        "do not enter 'main'. By population; the SNVs are the main analysis."),
-               "by_population": {pop: summarise_v2(ext, core, pop)
-                                 for pop in population.POPULATIONS},
-               "checks": checks, "inputs": inputs(raw, Path(args.core))}
+    from atlas import rank_cells
+    from atlas.reliability import check_v2, jsonable
+    ext, checks, v2 = external_table_v3(raw, args.workers)
+    again = check_v2(v2, TABLE_V2, keys=("gene", "population", "stratum", "method", "role"))
+    if not again["holds"]:
+        print("the second generation is not computed again:", again, file=sys.stderr)
+        return 1
+    core = pd.read_csv(args.core, sep="\t", float_precision="round_trip")
+    summary = {"note": ("Ceilings on the rank scale, per error model (neutral first, then own). "
+                        "'main' combines the core genes' main rows (results/reliability_v3.tsv, "
+                        "not recomputed) with the external rows whose role is 'main'. Rows with "
+                        "role lower_bound / upper_bound (TP53, Spearman) do not enter 'main'. A "
+                        "gene enters a summary when its ceiling is estimable and, for the "
+                        "neutral model, in range. By population; the SNVs are the main "
+                        "analysis."),
+               "by_model": {m: {pop: summarise_v3(ext, core, m, pop)
+                                for pop in population.POPULATIONS} for m in rank_cells.MODELS},
+               "trial_comparison": {m: [r for r in rank_cells.trial_comparison(
+                                        ext[ext["role"] == "main"], m)]
+                                    for m in rank_cells.MODELS},
+               "checks": checks | {"v2_computed_again": again},
+               "inputs": inputs(raw, Path(args.core))}
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -519,10 +640,12 @@ def main(argv: list[str] | None = None) -> int:
     (out / paths.name("external_reliability_summary")).write_text(
         json.dumps(jsonable(summary), indent=2, default=str) + "\n")
 
-    show = pd.DataFrame(summary["by_population"][population.SNV]["main"])
-    print("Attenuation ceiling by stratum, SNVs, main estimate (core + external 'main' rows)")
-    print(show.drop(columns=["genes", "genes_estimable"]).to_string(
-        index=False, float_format=lambda v: f"{v:.3f}"))
+    for m in rank_cells.MODELS:
+        show = pd.DataFrame(summary["by_model"][m][population.SNV]["main"])
+        print(f"Ceiling by stratum on the rank scale, SNVs, {m}, main estimate")
+        print(show[["stratum", "n_genes_entering", "cells_out_of_neutral_range"]].assign(
+            median=[c["median"] for c in show["ceiling"]]).to_string(index=False))
+    print("the second generation computed again:", again["holds"])
     return 0
 
 
