@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 273,
+ "n_files": 277,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 109
+  "supp_table": 113
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
@@ -197,6 +197,16 @@
    "role": "supp_table",
    "sha256": "2388db81ffba3e96e2ec77927b285db90e6780f151c21f82953c65e81c4f386f",
    "bytes": 2096
+  },
+  "results/error_models_v1.json": {
+   "role": "supp_table",
+   "sha256": "bfc75d978889cac012aee1d17aec142e76c514eb3dee24dfffead6f6d0488593",
+   "bytes": 1525
+  },
+  "results/error_models_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "e77175e72cbdda017c0842d647da3d0e8ee01ac047224de6dae3cdbcc72c6507",
+   "bytes": 3862
   },
   "results/estimator_consistency_v1.json": {
    "role": "supp_table",
@@ -1122,6 +1132,16 @@
    "role": "supp_table",
    "sha256": "dd4a080bd78a9c3575ba8cffff46417007bb570beb1c75f1881a64bdea32a76d",
    "bytes": 4572
+  },
+  "results/rank_ceiling_selftest_v2.json": {
+   "role": "supp_table",
+   "sha256": "b9c86bdf0d34a3243fec7c900865699ed1973cf0683b860314b48cdabaeca316",
+   "bytes": 109440
+  },
+  "results/rank_ceiling_selftest_v2.tsv": {
+   "role": "supp_table",
+   "sha256": "ee7264298d54358a66310fc359b75f149f00bb10e82b1d968659448d83349463",
+   "bytes": 7468
   },
   "results/references_v1.json": {
    "role": "supp_table",

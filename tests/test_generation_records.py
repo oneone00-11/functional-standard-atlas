@@ -25,7 +25,8 @@ CURRENT_JSON = ["score_matrix_provenance", "assay_aux_provenance",
                 "rna_readout_summary", "clinical_evidence_summary", "ensemble_summary",
                 "mavedb_survey_reaudit_summary",
                 # A4b
-                "rank_ceiling_selftest_summary"]
+                "rank_ceiling_selftest_summary", "external_coding_consequence_provenance",
+                "error_models_summary"]
 HOME_PATH = re.compile(r"(/Users/|/home/|[A-Za-z]:\\\\Users\\\\)[^/\\\\\"\s]+")
 
 

@@ -11,8 +11,9 @@ import pytest
 from atlas import paths
 from atlas import rank_ceiling as rc
 
-SELFTEST = paths.path("rank_ceiling_selftest")
-SUMMARY = paths.path("rank_ceiling_selftest_summary")
+# the first version (atlas.rank_ceiling); atlas.error_models writes the second
+SELFTEST = paths.RESULTS / "rank_ceiling_selftest_v1.tsv"
+SUMMARY = paths.RESULTS / "rank_ceiling_selftest_v1.json"
 needs_selftest = pytest.mark.skipif(not SUMMARY.exists(),
                                     reason="run `python -m atlas.rank_ceiling selftest` first")
 

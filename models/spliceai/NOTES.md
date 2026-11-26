@@ -49,3 +49,22 @@
 - Run 2026-11-22T15:29:57Z to 2026-11-23T09:34:43Z (the machine slept from 2026-11-22T18:14Z to 2026-11-23T09:15Z and the run went on from its cache): 5,095 scored, 0 NaN,
   0 exceptions. On the 4,522 rows the release scored (3-50 bp) every value equals the
   release's (largest absolute difference 0).
+
+## External genes' synonymous SNVs (2026-11-26)
+
+- `score_external.py` unchanged (its sha256 501e9daf..., as on 2026-11-22), running
+  `score_fullprec.py` unchanged (`--expect-sha256 a5056203...`), the same environment (pip
+  freeze identical to the 2026-11-22 run's), reference (`data/refs/grch38_external.fa`) and
+  configuration; one process. Input: the 3,311 synonymous coding SNVs of the five external
+  deposits (`data/raw/external_coding_v1/score_input.parquet`, written by
+  `python -m atlas.external_coding prepare`; coordinates by atlas.mapping's TranscriptMap on
+  each deposit transcript's Mutalyzer model, anchored by its MANE Select Ensembl transcript
+  in release 112, the 5,095 intronic SNVs landing on the delivered coordinates).
+- First, 100 of the 5,095 intronic SNVs, drawn with seed 20261126, scored again
+  (`cache/external_coding_v1/rescore_check.*`, 2026-11-26T04:39:43Z to 04:41:21Z): every
+  value equals the delivered one bit for bit.
+- Run 2026-11-26T04:41:24Z to 05:29:22Z (2,877 s): 3,311 scored, 0 NaN, 0 exceptions.
+  Output `cache/external_coding_v1/spliceai.parquet` and its `.environment.json` (the home
+  directory written as ~); the delivered column is `spliceai_ds` of
+  `results/external_coding_consequence_v1.parquet`, whose provenance record carries the
+  dates and the checks.

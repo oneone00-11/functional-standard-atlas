@@ -50,8 +50,12 @@ NAMES: dict[str, str] = {
     "alphagenome_definition_change": "alphagenome_definition_change_v1.tsv",
     "canonical_site_saturation": "canonical_site_saturation_v1.tsv",
     # the rank-scale ceiling (A4b)
-    "rank_ceiling_selftest": "rank_ceiling_selftest_v1.tsv",
-    "rank_ceiling_selftest_summary": "rank_ceiling_selftest_v1.json",
+    "rank_ceiling_selftest": "rank_ceiling_selftest_v2.tsv",
+    "rank_ceiling_selftest_summary": "rank_ceiling_selftest_v2.json",
+    "external_coding_consequence": "external_coding_consequence_v1.parquet",
+    "external_coding_consequence_provenance": "external_coding_consequence_v1.provenance.json",
+    "error_models": "error_models_v1.tsv",
+    "error_models_summary": "error_models_v1.json",
     # the other analyses that read the matrix
     "tie_audit": "tie_audit_v2.tsv",
     "power": "power_v2.tsv",

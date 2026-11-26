@@ -56,9 +56,9 @@ A cell (``estimate_cell``):
 Self-test (``python -m atlas.rank_ceiling selftest``): known truths, five kinds x two
 error distributions x 8 data sets (the instruction's table), and data sets drawn from
 the true-value distribution estimated on real cells (nine genes, 3-10 and 11-50 bp,
-SNVs). Writes results/rank_ceiling_selftest_v1.tsv and .json; this first version holds
-the ``own`` error model of the real cells (the ``neutral`` model needs
-atlas.error_models, which writes the second version).
+SNVs). Writes results/rank_ceiling_selftest_v1.tsv and .json, with the ``own`` error
+model of the real cells; the ``neutral`` model needs atlas.error_models, which writes the
+second version (rank_ceiling_selftest_v2, all 36 real rows).
 
 Usage (PYTHONPATH=src):  python -m atlas.rank_ceiling selftest [--workers N]
 """
@@ -365,15 +365,19 @@ def known_truth(workers: int = 1) -> pd.DataFrame:
 
 
 def _real_task(task: tuple) -> list[dict]:
-    """Data sets drawn from the true-value distribution estimated on one real cell."""
-    gene, stratum, model_name, ids, y, s, res = task
+    """Data sets drawn from the true-value distribution estimated on one real cell. The
+    task carries the cell's own residuals (res, aligned with ids), or a fixed set of
+    residuals (an eighth element: the gene's neutral residuals), or neither (Gaussian)."""
+    gene, stratum, model_name, ids, y, s, res = task[:7]
+    fixed = task[7] if len(task) > 7 else None
     from atlas.matched_ceilings import cell_seed
     sha = set_sha(ids)
     rng = np.random.default_rng(cell_seed(("rank_selftest_real", gene, stratum, model_name,
                                            sha)))
     order = np.argsort(np.asarray(ids, str), kind="stable")
     y, s = np.asarray(y, float)[order], np.asarray(s, float)[order]
-    em = ErrorModel() if res is None else ErrorModel(np.asarray(res, float)[order])
+    em = (ErrorModel(np.asarray(fixed, float)) if fixed is not None else
+          ErrorModel() if res is None else ErrorModel(np.asarray(res, float)[order]))
     g, L, w = fit(y, s, em, ITER_POINT)
     p = w / w.sum()
     rows = []
