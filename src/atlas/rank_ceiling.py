@@ -50,14 +50,15 @@ neutral variants).
 
 A cell (``estimate_cell``):
   point     as above;
-  interval  bootstrap, B = 200 resamples of the variants with replacement, each
-            estimated again (an error model built from the cell's own residuals, as
-            BRCA1's replicate half-differences, is rebuilt from the resampled ones, and
-            so is a pooled scale);
+  interval  bootstrap, B = 1,000 resamples of the variants with replacement (200 in
+            the third generation's tables), each estimated again (an error model built
+            from the cell's own residuals, as BRCA1's replicate half-differences, is
+            rebuilt from the resampled ones, and so is a pooled scale);
             the 2.5% and 97.5% quantiles;
-  floor     100 data sets without any effect, y0 = s e (e drawn from the same error
-            model), each estimated as a resample is; their 95th percentile. Without
-            signal the estimate is not 0, hence the floor;
+  floor     500 data sets without any effect (100 in the third generation's tables),
+            y0 = s e (e drawn from the same error model), each estimated as a resample
+            is; their 95th percentile. Without signal the estimate is not 0, hence the
+            floor;
   estimable the bootstrap lower bound above the floor;
   seeds     atlas.matched_ceilings.cell_seed(("rank", group, gene, stratum,
             population, error model, the variant set's sha256)), the set being its
@@ -65,11 +66,13 @@ A cell (``estimate_cell``):
             "null". The variants are put in that sorted order before anything is
             drawn, so one set of variants gets the same resamples and the same
             ceiling in every table, for every predictor, whatever the number of
-            processes. The resamples' indices come first from the seed's own stream;
-            each estimate draws from a stream of its own ([seed, 0] for the point,
-            [seed, 1, b] for resample b, [null seed, j] for null data set j);
-  realisation  rho / ceiling, its interval on the same 200 resamples (each resample
-            gives rho and the ceiling).
+            processes. The resamples' indices come first from the seed's own stream,
+            row by row; each estimate draws from a stream of its own ([seed, 0] for the
+            point, [seed, 1, b] for resample b, [null seed, j] for null data set j). The
+            first 200 resamples and 100 null data sets are therefore the third
+            generation's, whatever B and the number of nulls;
+  realisation  rho / ceiling, its interval on the same resamples (each resample gives
+            rho and the ceiling).
 
 Self-test: known truths, five kinds x two error distributions x 8 data sets (the
 instruction's table), and data sets drawn from the true-value distribution estimated on
@@ -107,8 +110,10 @@ ITER_POINT = 1000
 ITER_RESAMPLE = 300
 REPEAT_POINT = 20
 REPEAT_RESAMPLE = 10
-B = 200
-NULLS = 100
+B = 1000
+NULLS = 500
+B_V3 = 200             # the third generation's tables (reliability_v3.tsv and the rest)
+NULLS_V3 = 100
 FLOOR_QUANTILE = 0.95
 KDE_POINTS = 4001
 KDE_PAD = 5.0
@@ -374,29 +379,50 @@ def estimate_cell(ids, y, s, key: tuple, em: ErrorModel | None = None,
         rng = np.random.default_rng([null_seed, i])
         y0 = s * model.draw(n, rng)
         null[i], _ = estimate(y0, s, model, rng, ITER_RESAMPLE, REPEAT_RESAMPLE)
-    lo, hi = np.quantile(boot, [0.025, 0.975])
-    floor = float(np.quantile(null, FLOOR_QUANTILE))
     out = {"n": int(n), "set_sha": key[-1][:16], "seed": int(seed), "null_seed": int(null_seed),
-           "rank_reliability": r, "ceiling": point, "ceiling_lo": float(lo),
-           "ceiling_hi": float(hi), "floor": floor, "estimable": bool(lo > floor),
+           "rank_reliability": r, "ceiling": point, **interval(boot, null),
            "bootstrap_B": int(b), "nulls": int(nulls), "seconds": round(time.time() - t0, 1),
-           "boot": boot}
+           "boot": boot, "null": null}
     if pooled:
         out["pooled_scale"] = float(s[0])
     if predictors:
         from atlas.matched_ceilings import spearman_rows
-        out["realisation"] = {}
+        out["realisation"], out["rho_boot"] = {}, {}
         for name, x in predictors.items():
             x = np.asarray(x, float)[order]
             rho = spearman_rows(x[idx], y[idx])
-            with np.errstate(invalid="ignore", divide="ignore"):
-                real = np.where(boot > 0, rho / boot, np.nan)
-            ok = real[np.isfinite(real)]
-            out["realisation"][name] = {
-                "realisation_lo": float(np.quantile(ok, 0.025)) if len(ok) else np.nan,
-                "realisation_hi": float(np.quantile(ok, 0.975)) if len(ok) else np.nan,
-                "share_realisation_gt_1": float((ok > 1).mean()) if len(ok) else np.nan,
-                "bootstrap_realisation_undefined": int(len(real) - len(ok))}
+            out["rho_boot"][name] = rho
+            out["realisation"][name] = realisation_interval(rho, boot)
+    return out
+
+
+def interval(boot: np.ndarray, null: np.ndarray) -> dict:
+    """The bootstrap interval (2.5% and 97.5% quantiles of the resamples' ceilings), the
+    floor (the 95th percentile of the null data sets' estimates) and estimable."""
+    lo, hi = np.quantile(boot, [0.025, 0.975])
+    floor = float(np.quantile(null, FLOOR_QUANTILE))
+    return {"ceiling_lo": float(lo), "ceiling_hi": float(hi), "floor": floor,
+            "estimable": bool(lo > floor)}
+
+
+def realisation_interval(rho: np.ndarray, boot: np.ndarray) -> dict:
+    """rho / ceiling over the resamples (each its own rho and ceiling) where the ceiling
+    is above 0: the 2.5% and 97.5% quantiles, the share above 1, the number undefined."""
+    with np.errstate(invalid="ignore", divide="ignore"):
+        real = np.where(boot > 0, rho / boot, np.nan)
+    ok = real[np.isfinite(real)]
+    return {"realisation_lo": float(np.quantile(ok, 0.025)) if len(ok) else np.nan,
+            "realisation_hi": float(np.quantile(ok, 0.975)) if len(ok) else np.nan,
+            "share_realisation_gt_1": float((ok > 1).mean()) if len(ok) else np.nan,
+            "bootstrap_realisation_undefined": int(len(real) - len(ok))}
+
+
+def first_resamples(boot: np.ndarray, null: np.ndarray, rho: dict | None = None,
+                    b: int = B_V3, nulls: int = NULLS_V3) -> dict:
+    """interval() and realisation_interval() on the first b resamples and the first nulls
+    null data sets: the third generation's numbers, the resamples being nested."""
+    out = interval(boot[:b], null[:nulls])
+    out["realisation"] = {k: realisation_interval(v[:b], boot[:b]) for k, v in (rho or {}).items()}
     return out
 
 
@@ -613,6 +639,11 @@ def definition() -> dict:
             "em_iterations": {"point": ITER_POINT, "resample": ITER_RESAMPLE},
             "remeasure_repeats": {"point": REPEAT_POINT, "resample": REPEAT_RESAMPLE},
             "bootstrap_B": B, "nulls": NULLS, "floor_quantile": FLOOR_QUANTILE,
+            "third_generation": {"bootstrap_B": B_V3, "nulls": NULLS_V3,
+                                 "nested": "the resamples' indices drawn row by row from the "
+                                           "seed's stream and one stream per resample and per "
+                                           "null data set: the third generation's are the "
+                                           f"first {B_V3} and the first {NULLS_V3}"},
             "kde": {"bandwidth": "Silverman: 0.9 min(sd, IQR/1.34) n^(-1/5)",
                     "density_points": KDE_POINTS, "density_range": "min z - 5h to max z + 5h",
                     "outside": FLOOR_L, "draw": "a residual with replacement plus h N(0, 1)"},

@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 297,
+ "n_files": 303,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 133
+  "supp_table": 139
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
@@ -297,6 +297,16 @@
    "role": "supp_table",
    "sha256": "5d4c1ab045f00e01220de69e0d3301c305d340847b175a0c7949f0f85bf01314",
    "bytes": 42767
+  },
+  "results/external_reliability_v4.json": {
+   "role": "supp_table",
+   "sha256": "62279bc58cac8cd7cc04ecfcc498225fddda023cafed2289058a1fe689a36540",
+   "bytes": 177285
+  },
+  "results/external_reliability_v4.tsv": {
+   "role": "supp_table",
+   "sha256": "1536f4d767f5c2a32bdc3e7dbb721af5cadc4eada654839baa8b342e9768cd34",
+   "bytes": 42761
   },
   "results/fdr_grid_v1.tsv": {
    "role": "supp_table",
@@ -1008,6 +1018,16 @@
    "sha256": "b975a1a7e6559433a74884c6951bbd6bd4b5f0465dfb1cd2442a46e1f9da122d",
    "bytes": 707099
   },
+  "results/matched_ceilings_v4.json": {
+   "role": "supp_table",
+   "sha256": "08b5dced8d09150493f77fe43c5be458f8919248a212b383341fb2aca4f93187",
+   "bytes": 650632
+  },
+  "results/matched_ceilings_v4.tsv": {
+   "role": "supp_table",
+   "sha256": "99079ccdfe90d4a5f90de136a1f119ef7db9d714e4c953d61b37aa0ee590a388",
+   "bytes": 708323
+  },
   "results/matched_realisation_loo_v1.tsv": {
    "role": "supp_table",
    "sha256": "991cc5d13314c3e9708e0b9a41bb50c19f2d77030a9ffe873630f98c9c84c63a",
@@ -1277,6 +1297,16 @@
    "role": "supp_table",
    "sha256": "5c444f94befb04e07db2e0d58022bad80d965895c154acdb9776019b6862a345",
    "bytes": 26906
+  },
+  "results/reliability_v4.json": {
+   "role": "supp_table",
+   "sha256": "c983b0c34c457892cd1942277d1b33d071917d8ed21b49e08e5093a3b7c34096",
+   "bytes": 34327
+  },
+  "results/reliability_v4.tsv": {
+   "role": "supp_table",
+   "sha256": "dc1b5a93c5a95856d8f5982977f8b8cf1428b0ca381ce72fe42e16a2d1a415aa",
+   "bytes": 26914
   },
   "results/rna_readout_v1.json": {
    "role": "supp_table",

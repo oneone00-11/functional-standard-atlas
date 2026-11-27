@@ -61,19 +61,28 @@ of the error models) and the deposit's accession as the identifier (external_sco
 variant_urn). TP53's bounding rows are Spearman already and are carried with the _v2
 names. inflation_factor and ceiling_inflated are no longer written.
 
+The fourth generation (A4c.1): the third's table, the bootstrap taken to B = 1,000
+resamples and the floor to 500 null data sets (atlas.rank_ceiling; 200 and 100 in the
+third); checked against results/external_reliability_v3.tsv as atlas.reliability checks
+the core table (the point estimates and every other column the same bits; the first 200
+resamples and 100 nulls give the third generation's interval, floor and estimable).
+
 Outputs
 -------
-results/external_reliability_v3.tsv   one row per deposit x population x stratum x
-    estimator, with the columns of the core table (results/reliability_v3.tsv)
-results/external_reliability_v3.json  per model and population, per stratum: the main
-    estimate, which combines the core genes' main rows (results/reliability_v3.tsv, not
-    recomputed) with the external rows marked ``main``; the core and the external genes
-    alone; the main estimate with TP53 added at each bound; the cells in and out of the
-    neutral model's range; the checks (v2 computed again) and the inputs.
-The v1 and v2 files are not rewritten; `summarise` still builds v1's summary and
+results/external_reliability_v4.tsv   one row per deposit x population x stratum x
+    estimator, with the columns of the core table (results/reliability_v4.tsv)
+results/external_reliability_v4.json  the rank-scale ceiling's definition; per model and
+    population, per stratum: the main estimate, which combines the core genes' main rows
+    (results/reliability_v4.tsv, not recomputed) with the external rows marked ``main``;
+    the core and the external genes alone; the main estimate with TP53 added at each
+    bound; the cells in and out of the neutral model's range; v3 against v4 (the cells
+    whose estimable changed, the genes entering the main estimate per stratum, how far the
+    bounds and the floor moved); the checks (v2 computed again, v3) and the inputs.
+The v1, v2 and v3 files are not rewritten; `summarise` still builds v1's summary and
 `summarise_v2` v2's.
 
 Usage (PYTHONPATH=src):  python -m atlas.external_reliability [--out results/] [--workers N]
+                                                             [--store DIR]
 """
 
 from __future__ import annotations
@@ -455,6 +464,9 @@ def summarise_v2(ext: pd.DataFrame, core: pd.DataFrame, pop: str = population.SN
 # the third generation: the ceiling on the rank scale (A4b.4)
 # --------------------------------------------------------------------------
 TABLE_V2 = RESULTS / "external_reliability_v2.tsv"
+TABLE_V3 = RESULTS / "external_reliability_v3.tsv"
+CORE_V3 = RESULTS / "reliability_v3.tsv"
+KEYS = ["gene", "population", "stratum", "method", "role"]
 
 
 def deposit_sets(raw: Path = RAW) -> dict[tuple, dict]:
@@ -481,9 +493,12 @@ def deposit_sets(raw: Path = RAW) -> dict[tuple, dict]:
     return out
 
 
-def external_table_v3(raw: Path = RAW, workers: int = 1
-                      ) -> tuple[pd.DataFrame, dict, pd.DataFrame]:
-    """(the third generation's table, the per-deposit checks, v2's table computed again)."""
+def external_table_v3(raw: Path = RAW, workers: int = 1, store: Path | None = None
+                      ) -> tuple[pd.DataFrame, dict, pd.DataFrame, pd.DataFrame]:
+    """(the table in the third generation's layout, with the bootstrap and the nulls of
+    atlas.rank_ceiling: the fourth generation's; the per-deposit checks; v2's table
+    computed again; the keys with the interval, floor and estimable from the first 200
+    resamples and 100 null data sets)."""
     from atlas import rank_cells
     from atlas.reliability import TABLE_COLUMNS_V3, V2_ESTIMATE
     v2, checks = external_table_v2(raw)
@@ -500,9 +515,12 @@ def external_table_v3(raw: Path = RAW, workers: int = 1
         tasks.append(rank_cells.task("external", r["gene"], r["stratum"], r["population"],
                                      x["ids"], x["y"], se=x["se"]))
         where.append(i)
-    res = rank_cells.compute(tasks, workers)
+    res = rank_cells.compute(tasks, workers, store)
+    first = pd.DataFrame([rank_cells.first_columns(r) for r in res], index=where)
+    first = t[KEYS].join(first).reindex(columns=KEYS + rank_cells.FIRST).reset_index(drop=True)
     t = t.join(pd.DataFrame([rank_cells.columns(r) for r in res], index=where))
-    return t[TABLE_COLUMNS_V3 + rank_cells.COLUMNS].reset_index(drop=True), checks, v2
+    return (t[TABLE_COLUMNS_V3 + rank_cells.COLUMNS].reset_index(drop=True), checks, v2,
+            first)
 
 
 def _as_model_rows(t: pd.DataFrame, model: str) -> pd.DataFrame:
@@ -545,6 +563,24 @@ def summarise_v3(ext: pd.DataFrame, core: pd.DataFrame, model: str,
             ["gene", "stratum", "status"]].to_dict("records"),
         "not_estimated": NOT_ESTIMATED,
     }
+
+
+def v3_to_v4(ext3: pd.DataFrame, ext4: pd.DataFrame, core3: pd.DataFrame,
+             core4: pd.DataFrame) -> dict:
+    """Per model (neutral first): the external main rows whose estimable changed, the
+    genes entering the main estimate (core and external) per population and stratum in
+    each generation, and the change of the external rows' bounds and floor."""
+    from atlas import rank_cells
+    e3, e4 = ext3[ext3["role"] == "main"], ext4[ext4["role"] == "main"]
+    out = {}
+    for m in rank_cells.MODELS:
+        out[m] = {"estimable_changed": rank_cells.estimable_changes(e3, e4, KEYS, m),
+                  "genes_entering_main": {pop: rank_cells.entering_side_by_side(
+                      summarise_v3(ext3, core3, m, pop)["main"],
+                      summarise_v3(ext4, core4, m, pop)["main"])
+                      for pop in population.POPULATIONS},
+                  "bounds_and_floor_moved": rank_cells.bound_changes(e3, e4, KEYS, m)}
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -601,6 +637,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--core", default=str(CORE_TABLE))
     ap.add_argument("--out", default="results")
     ap.add_argument("--workers", type=int, default=1)
+    ap.add_argument("--store", default=None,
+                    help="where each variant set's result is kept (atlas.rank_cells)")
     ap.add_argument("--register-licences", action="store_true",
                     help="only add the deposits' licences to raw/MANIFEST.json")
     args = ap.parse_args(argv)
@@ -612,30 +650,48 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     from atlas import rank_cells
+    from atlas import rank_ceiling as rc
     from atlas.reliability import check_v2, jsonable
-    ext, checks, v2 = external_table_v3(raw, args.workers)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    ext, checks, v2, first = external_table_v3(raw, args.workers,
+                                               Path(args.store) if args.store else None)
     again = check_v2(v2, TABLE_V2, keys=("gene", "population", "stratum", "method", "role"))
     if not again["holds"]:
         print("the second generation is not computed again:", again, file=sys.stderr)
         return 1
+    v3 = rank_cells.check_v3(ext, TABLE_V3, KEYS, first)
+    if not (v3["point_estimates_and_the_rest"]["holds"]
+            and v3["first_200_resamples_and_100_nulls"]["holds"]):
+        print("the third generation is not reproduced:", json.dumps(jsonable(v3), indent=1),
+              file=sys.stderr)
+        (out / "_failed").mkdir(parents=True, exist_ok=True)
+        ext.to_csv(out / "_failed" / paths.name("external_reliability"), sep="\t", index=False)
+        first.to_csv(out / "_failed" / "external_reliability_first.tsv", sep="\t", index=False)
+        return 1
     core = pd.read_csv(args.core, sep="\t", float_precision="round_trip")
+    read = dict(sep="\t", float_precision="round_trip")
     summary = {"note": ("Ceilings on the rank scale, per error model (neutral first, then own). "
-                        "'main' combines the core genes' main rows (results/reliability_v3.tsv, "
+                        f"'main' combines the core genes' main rows (results/{Path(args.core).name}, "
                         "not recomputed) with the external rows whose role is 'main'. Rows with "
                         "role lower_bound / upper_bound (TP53, Spearman) do not enter 'main'. A "
                         "gene enters a summary when its ceiling is estimable and, for the "
                         "neutral model, in range. By population; the SNVs are the main "
                         "analysis."),
+               "definition": {"rank_ceiling": rc.definition(),
+                              "generation": f"the fourth: B = {rc.B} resamples, {rc.NULLS} null "
+                                            f"data sets (the third: {rc.B_V3} and "
+                                            f"{rc.NULLS_V3}, the first of these)"},
                "by_model": {m: {pop: summarise_v3(ext, core, m, pop)
                                 for pop in population.POPULATIONS} for m in rank_cells.MODELS},
                "trial_comparison": {m: [r for r in rank_cells.trial_comparison(
                                         ext[ext["role"] == "main"], m)]
                                     for m in rank_cells.MODELS},
-               "checks": checks | {"v2_computed_again": again},
+               "v3_to_v4": v3_to_v4(pd.read_csv(TABLE_V3, **read), ext,
+                                    pd.read_csv(CORE_V3, **read), core),
+               "checks": checks | {"v2_computed_again": again, "v3": v3},
                "inputs": inputs(raw, Path(args.core))}
 
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
     ext.to_csv(out / paths.name("external_reliability"), sep="\t", index=False)
     (out / paths.name("external_reliability_summary")).write_text(
         json.dumps(jsonable(summary), indent=2, default=str) + "\n")

@@ -30,6 +30,17 @@ and below 0.5; (4) beyond 50 bp, the layer ceilings; (5) the cells whose realisa
 exceeds 1 or whose interval crosses 1; (6) v2 against v3, with the trial of the first
 supplement. Per stratum, the cells in and out of the neutral model's range.
 
+The fourth generation (results/matched_ceilings_v4.tsv and .json; A4c.1): the third's
+table, the bootstrap taken to B = 1,000 resamples and the floor to 500 null data sets
+(atlas.rank_ceiling; 200 and 100 in the third), the layer ceilings those of
+results/reliability_v4.tsv and results/external_reliability_v4.tsv. Checked against
+results/matched_ceilings_v3.tsv: the point estimates and every other column the same bits
+but the interval, floor and estimable and the realisation's interval, share above 1 and
+undefined count, which from the first 200 resamples and 100 null data sets are the third
+generation's, bit for bit. The summary's six items as in v3, and (7) v3 against v4: the
+cells whose estimable changed (layer and matched), the genes whose layer ceiling enters
+per stratum and group in each generation, and how far the bounds and the floor moved.
+
 The second generation (results/matched_ceilings_v2.tsv and .json):
 
 Cells: group (core, external) x gene x stratum (atlas.reliability.STRATA, the seven) x
@@ -116,6 +127,7 @@ realisation exceeds 1 or whose interval crosses 1; with the checkpoints and the 
 score's distribution per gene x stratum.
 
 Usage (PYTHONPATH=src):  python -m atlas.matched_ceilings [--workers N] [--layer-dir DIR]
+                                                         [--store DIR]
 """
 
 from __future__ import annotations
@@ -802,6 +814,11 @@ V2_RENAMED = ["reliability", "reliability_unclipped", "ceiling", "realisation", 
 V2_DROPPED = ["ceiling_inflated", "breakeven_inflation"]
 COVERAGE_MIN = 0.9          # G17: "the highest rho" among predictors scoring 90% of the cell
 TABLE_V2 = RESULTS / "matched_ceilings_v2.tsv"
+TABLE_V3 = RESULTS / "matched_ceilings_v3.tsv"
+STATS: dict = {}            # the rank-scale sets of the last table_v3: computed or read from a store
+LAYER_V3 = (RESULTS / "reliability_v3.tsv", RESULTS / "external_reliability_v3.tsv")
+CELL_KEYS = ["group", "gene", "stratum", "model", "population"]
+LAYER_KEYS = ["group", "gene", "population", "stratum"]
 
 
 def columns_v3() -> list[str]:
@@ -861,8 +878,12 @@ def rank_tasks(tasks: list[tuple]) -> tuple[list[tuple], list[tuple]]:
     return out, keys
 
 
-def table_v3(t2: pd.DataFrame, tasks: list[tuple], workers: int = 1) -> pd.DataFrame:
-    """v2's cells renamed, with the set's sha and both models' rank-scale columns."""
+def table_v3(t2: pd.DataFrame, tasks: list[tuple], workers: int = 1,
+             store: Path | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """v2's cells renamed, with the set's sha and both models' rank-scale columns (the
+    third generation's layout, with the bootstrap and the nulls of atlas.rank_ceiling: the
+    fourth generation's); and the cells' keys with the interval, floor, estimable and the
+    realisation's interval from the first 200 resamples and 100 null data sets."""
     from atlas import rank_cells
     t = t2.rename(columns={c: f"{c}_v2" for c in V2_RENAMED}).drop(columns=V2_DROPPED)
     t["ceiling_replicate_k1"] = np.where(t["method"] == "replicates",
@@ -872,28 +893,36 @@ def table_v3(t2: pd.DataFrame, tasks: list[tuple], workers: int = 1) -> pd.DataF
     keys = ["group", "gene", "stratum", "model", "population"]
     t["set_sha"] = [sha[tuple(r)][:16] for r in t[keys].itertuples(index=False)]
     rt, rkeys = rank_tasks(tasks)
-    res = dict(zip(rkeys, rank_cells.compute(rt, workers)))
-    extra = []
+    res = dict(zip(rkeys, rank_cells.compute(rt, workers, store, STATS)))
+    extra, first = [], []
     for r in t.itertuples(index=False):
         k = (r.group, r.gene, r.stratum, r.population, sha[(r.group, r.gene, r.stratum, r.model,
                                                            r.population)])
         if k in res:
             extra.append(rank_cells.columns(res[k]) | rank_cells.realisation(res[k], r.model,
                                                                              r.rho))
+            first.append(rank_cells.first_columns(res[k])
+                         | rank_cells.first_realisation(res[k], r.model))
         else:
             extra.append({})
+            first.append({})
     e = pd.DataFrame(extra, index=t.index).drop(columns=["set_sha"], errors="ignore")
+    f = t[CELL_KEYS].join(pd.DataFrame(first, index=t.index))
+    f = f.reindex(columns=CELL_KEYS + rank_cells.FIRST + rank_cells.FIRST_REALISATION)
     t = t.join(e)
-    return t.reindex(columns=columns_v3())
+    return t.reindex(columns=columns_v3()), f
 
 
 def layer_ceilings_v3(layer_dir: Path = RESULTS) -> pd.DataFrame:
-    """The layer tables' main rows with a rank-scale ceiling (results/reliability_v3.tsv,
-    results/external_reliability_v3.tsv), by group."""
-    core = pd.read_csv(Path(layer_dir) / paths.name("reliability"), sep="\t",
-                       float_precision="round_trip").assign(group="core")
-    ext = pd.read_csv(Path(layer_dir) / paths.name("external_reliability"), sep="\t",
-                      float_precision="round_trip").assign(group="external")
+    """The layer tables' main rows with a rank-scale ceiling (the current generation's,
+    results/reliability_v4.tsv and results/external_reliability_v4.tsv), by group."""
+    return layer_frame(Path(layer_dir) / paths.name("reliability"),
+                       Path(layer_dir) / paths.name("external_reliability"))
+
+
+def layer_frame(core_path: Path, ext_path: Path) -> pd.DataFrame:
+    core = pd.read_csv(core_path, sep="\t", float_precision="round_trip").assign(group="core")
+    ext = pd.read_csv(ext_path, sep="\t", float_precision="round_trip").assign(group="external")
     t = pd.concat([core, ext], ignore_index=True)
     return t[(t["role"] == "main") & t["ceiling_neutral"].notna()].reset_index(drop=True)
 
@@ -1067,7 +1096,9 @@ def range_by_stratum(table: pd.DataFrame, layer: pd.DataFrame) -> dict:
             for pop in POPULATIONS}
 
 
-def summary_v3(table: pd.DataFrame, layer: pd.DataFrame, counts: pd.DataFrame) -> dict:
+def summary_v3(table: pd.DataFrame, layer: pd.DataFrame, counts: pd.DataFrame,
+               previous: tuple[pd.DataFrame, pd.DataFrame] | None = None) -> dict:
+    """The six items per model; with the third generation's (table, layer), the seventh."""
     from atlas import rank_cells
     out = {}
     for m in rank_cells.MODELS:
@@ -1078,7 +1109,37 @@ def summary_v3(table: pd.DataFrame, layer: pd.DataFrame, counts: pd.DataFrame) -
                   "4_beyond_50bp": deep_v3(layer, m),
                   "5_realisation_above_1_or_interval_crossing_1": above_one_v3(table, m),
                   "6_v2_to_v3": v2_to_v3(per_gene, m)}
+        if previous is not None:
+            out[m]["7_v3_to_v4"] = v3_to_v4(previous[0], table, previous[1], layer, m)
     return out
+
+
+def v3_to_v4(t3: pd.DataFrame, t4: pd.DataFrame, layer3: pd.DataFrame, layer4: pd.DataFrame,
+             model: str) -> dict:
+    """7: the layer and the matched cells whose estimable changed (with both generations'
+    bounds and floor), per stratum and group the genes whose layer ceiling enters in each
+    generation, and the change of the bounds and the floor."""
+    from atlas import rank_cells
+    r3, r4 = t3[t3["ceiling_neutral"].notna()], t4[t4["ceiling_neutral"].notna()]
+    s3, s4 = by_stratum_v3(t3, layer3, model), by_stratum_v3(t4, layer4, model)
+    entering = []
+    for stratum, groups in s4.items():
+        for name, rec in groups.items():
+            old = s3.get(stratum, {}).get(name, {})
+            entering.append({"stratum": stratum, "group": name,
+                             "n_genes_entering_v3": old.get("n_genes_entering"),
+                             "n_genes_entering_v4": rec["n_genes_entering"],
+                             "genes_entering_v3": old.get("genes_entering"),
+                             "genes_entering_v4": rec["genes_entering"]})
+    extra = ("n", "lof_share", "neutral_in_range")
+    return {"estimable_changed": {
+                "layer": rank_cells.estimable_changes(layer3, layer4, LAYER_KEYS, model, extra),
+                "matched": rank_cells.estimable_changes(r3, r4, CELL_KEYS, model,
+                                                        extra + ("rho", "selection_overlap"))},
+            "genes_entering_by_stratum_and_group": entering,
+            "bounds_and_floor_moved": {
+                "layer": rank_cells.bound_changes(layer3, layer4, LAYER_KEYS, model),
+                "matched": rank_cells.bound_changes(r3, r4, CELL_KEYS, model)}}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1088,9 +1149,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", default=str(RESULTS))
     ap.add_argument("--layer-dir", default=str(RESULTS),
                     help="where the layer tables of this generation are read from")
+    ap.add_argument("--store", default=None,
+                    help="where each variant set's result is kept (atlas.rank_cells)")
     args = ap.parse_args(argv)
     import time
     from atlas import rank_cells
+    from atlas import rank_ceiling as rc
     from atlas.reliability import inflation_factors, neutral_check
     t0 = time.time()
     core, ext = load_core(), load_external()
@@ -1111,12 +1175,27 @@ def main(argv: list[str] | None = None) -> int:
               json.dumps(jsonable(reg_v2), indent=1), file=sys.stderr)
         return 1
     print(f"[matched] the second generation computed again in {t1 - t0:.0f} s: holds", flush=True)
-    table = table_v3(t2, tasks, args.workers)
+    table, first = table_v3(t2, tasks, args.workers, Path(args.store) if args.store else None)
     t3 = time.time()
+    reg_v3 = rank_cells.check_v3(table, TABLE_V3, CELL_KEYS, first, realisation=True)
+    if not (reg_v3["point_estimates_and_the_rest"]["holds"]
+            and reg_v3["first_200_resamples_and_100_nulls"]["holds"]):
+        print("the third generation is not reproduced:", json.dumps(jsonable(reg_v3), indent=1),
+              file=sys.stderr)
+        (out / "_failed").mkdir(parents=True, exist_ok=True)
+        table.to_csv(out / "_failed" / paths.name("matched_ceilings"), sep="\t", index=False)
+        first.to_csv(out / "_failed" / "matched_ceilings_first.tsv", sep="\t", index=False)
+        return 1
     layer = layer_ceilings_v3(Path(args.layer_dir))
     reg_layer = check_layer(table, layer)
     counts = variant_counts(pd.concat([core, ext], ignore_index=True))
+    previous = (pd.read_csv(TABLE_V3, sep="\t", float_precision="round_trip"),
+                layer_frame(*LAYER_V3))
     summary = {"definition": {"seed": SEED, "bootstrap_B_v2": B, "min_n": MIN_N,
+                              "rank_ceiling": rc.definition(),
+                              "generation": f"the fourth: B = {rc.B} resamples, {rc.NULLS} null "
+                                            f"data sets (the third: {rc.B_V3} and "
+                                            f"{rc.NULLS_V3}, the first of these)",
                               "populations": list(POPULATIONS), "core": CORE,
                               "external_genes": list(EXTERNAL_GENES),
                               "predictors_core": MODELS, "predictors_external": EXTERNAL_MODELS,
@@ -1138,16 +1217,19 @@ def main(argv: list[str] | None = None) -> int:
                                                  paths.name("external_reliability")]},
                "checks": {"v2_computed_again": reg_v2,
                           "same_set_same_ceiling_in_the_layer_tables": reg_layer,
-                          "regression_matched_ceilings_v1": reg_v1},
+                          "regression_matched_ceilings_v1": reg_v1,
+                          "v3": reg_v3},
                "neutral_range_by_stratum": range_by_stratum(table, layer),
-               "by_model": summary_v3(table, layer, counts),
+               "by_model": summary_v3(table, layer, counts, previous),
                "seconds": {"v2_computed_again": round(t1 - t0, 1),
-                           "rank_scale": round(t3 - t1, 1), "workers": args.workers}}
+                           "rank_scale": round(t3 - t1, 1), "workers": args.workers,
+                           "rank_scale_sets": STATS.get("sets"),
+                           "sets_read_from_the_store": STATS.get("sets_read_from_the_store")}}
     if not reg_layer["holds"]:
         print("a set's ceiling differs between the tables:",
               json.dumps(jsonable(reg_layer), indent=1), file=sys.stderr)
-        (out / "_scratch").mkdir(parents=True, exist_ok=True)
-        table.to_csv(out / "_scratch" / "matched_ceilings_v3_failed.tsv", sep="\t", index=False)
+        (out / "_failed").mkdir(parents=True, exist_ok=True)
+        table.to_csv(out / "_failed" / paths.name("matched_ceilings"), sep="\t", index=False)
         return 1
     table.to_csv(out / paths.name("matched_ceilings"), sep="\t", index=False)
     (out / paths.name("matched_ceilings_summary")).write_text(

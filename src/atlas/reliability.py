@@ -47,13 +47,24 @@ neutral_in_range. inflation_factor and ceiling_inflated, quantities of the varia
 are no longer written. The neutral check (reliability_neutral_check_v1.tsv) and the
 corroboration (reliability_corroboration_v2.tsv) are unchanged.
 
-Outputs: results/reliability_v3.tsv (one row per gene x stratum x population),
-results/reliability_v3.json (the summary per model), results/reliability_corroboration_v2.tsv
+The fourth generation (A4c.1): the third's table, the bootstrap taken to B = 1,000
+resamples and the floor to 500 null data sets (atlas.rank_ceiling; 200 and 100 in the
+third). The same columns; the point estimates and every other column are the third
+generation's, bit for bit, and the interval, floor and estimable from the first 200
+resamples and 100 null data sets give the third generation's, bit for bit: both checked
+against results/reliability_v3.tsv. The summary adds, per model, v3 against v4: the cells
+whose estimable changed, the genes entering per stratum in each, and how far the bounds
+and the floor moved.
+
+Outputs: results/reliability_v4.tsv (one row per gene x stratum x population),
+results/reliability_v4.json (the summary per model), results/reliability_corroboration_v2.tsv
 (VHL's second condition, BAP1's nested time points: bounds, as in v5) and
 results/reliability_neutral_check_v1.tsv. The second generation's table
 (reliability_v2.tsv) is computed again by reliability_table and checked against the file.
 
-Usage (PYTHONPATH=src):  python -m atlas.reliability [--workers N] [--out DIR]
+Usage (PYTHONPATH=src):  python -m atlas.reliability [--workers N] [--out DIR] [--store DIR]
+  --store  where each variant set's result is kept as it is finished (atlas.rank_cells);
+           a run resumed reads the sets already there
 """
 
 from __future__ import annotations
@@ -470,6 +481,7 @@ TABLE_COLUMNS_V3 = (["gene", "urn", "population", "stratum", "method", "k", "n",
                      "score_var", "mean_se2", "status", "role"]
                     + [f"{c}_v2" for c in V2_ESTIMATE] + ["ceiling_replicate_k1"])
 TABLE_V2 = RESULTS / "reliability_v2.tsv"
+TABLE_V3 = RESULTS / "reliability_v3.tsv"
 RANK_METHODS = {"BRCA1": "replicates", "BARD1": "se", "PALB2": "se", "BAP1": "se"}
 
 
@@ -505,10 +517,21 @@ def _same(a: pd.Series, b: pd.Series) -> bool:
     a, b = a.reset_index(drop=True), b.reset_index(drop=True)
     if len(a) != len(b):
         return False
+    return bool(same_rows(a, b).all())
+
+
+def same_rows(a: pd.Series, b: pd.Series) -> np.ndarray:
+    """Row by row, as _same: floats bit for bit; other types as text; a missing value
+    matching a missing value. (A text column read by pandas 3 keeps its missing values
+    through astype(str), and NaN is not equal to NaN, so they are matched here first.)"""
+    a, b = a.reset_index(drop=True), b.reset_index(drop=True)
     if pd.api.types.is_float_dtype(a) or pd.api.types.is_float_dtype(b):
         x, y = a.to_numpy(float), b.to_numpy(float)
-        return bool(((x.view(np.uint64) == y.view(np.uint64)) | (np.isnan(x) & np.isnan(y))).all())
-    return bool((a.astype(str) == b.astype(str)).all())
+        return (x.view(np.uint64) == y.view(np.uint64)) | (np.isnan(x) & np.isnan(y))
+    na, nb = a.isna().to_numpy(), b.isna().to_numpy()
+    text = np.array([str(x) == str(y) for x, y in zip(a.astype(object), b.astype(object))],
+                    dtype=bool)
+    return (na & nb) | (~na & ~nb & text)
 
 
 def check_v2(v2_here: pd.DataFrame, path: Path = TABLE_V2,
@@ -523,8 +546,12 @@ def check_v2(v2_here: pd.DataFrame, path: Path = TABLE_V2,
 
 
 def reliability_table_v3(mat: pd.DataFrame, aux: pd.DataFrame, inflation: dict,
-                         workers: int = 1) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """(the third generation's table, the second generation's computed again)."""
+                         workers: int = 1, store: Path | None = None
+                         ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """(the table in the third generation's layout, with the bootstrap and the nulls of
+    atlas.rank_ceiling: the fourth generation's; the second generation's computed again;
+    the keys with the interval, floor and estimable from the first 200 resamples and 100
+    null data sets)."""
     from atlas import rank_cells
     v2 = reliability_table(mat, aux, inflation)
     t = v2[v2["role"] != "cross_check"].copy()
@@ -542,10 +569,13 @@ def reliability_table_v3(mat: pd.DataFrame, aux: pd.DataFrame, inflation: dict,
         tasks.append(rank_cells.task("core", r["gene"], r["stratum"], r["population"],
                                      x["ids"], x["y"], se=x["se"], d=x["d"]))
         where.append(i)
-    res = rank_cells.compute(tasks, workers)
+    res = rank_cells.compute(tasks, workers, store)
     rank = pd.DataFrame([rank_cells.columns(r) for r in res], index=where)
+    first = pd.DataFrame([rank_cells.first_columns(r) for r in res], index=where)
+    keys = ["gene", "population", "stratum", "method"]
+    first = t[keys].join(first).reindex(columns=keys + rank_cells.FIRST).reset_index(drop=True)
     t = t.join(rank)
-    return t[TABLE_COLUMNS_V3 + rank_cells.COLUMNS].reset_index(drop=True), v2
+    return t[TABLE_COLUMNS_V3 + rank_cells.COLUMNS].reset_index(drop=True), v2, first
 
 
 def summary_v3(rel: pd.DataFrame, neutral: pd.DataFrame, check: dict) -> dict:
@@ -566,7 +596,9 @@ def summary_v3(rel: pd.DataFrame, neutral: pd.DataFrame, check: dict) -> dict:
                              f"({paths.name('control_classes')}); in range when <= "
                              f"{rank_cells.LOF_SHARE_MAX}; out of range: written, in no summary",
             "summaries": "per model, per population, over the main rows: a gene enters when "
-                         "its ceiling is estimable (and, for neutral, in range)"},
+                         "its ceiling is estimable (and, for neutral, in range)",
+            "generation": f"the fourth: B = {rc.B} resamples, {rc.NULLS} null data sets (the "
+                          f"third: {rc.B_V3} and {rc.NULLS_V3}, the first of these)"},
         "ceiling_by_stratum": {m: {pop: rank_cells.stratum_summary(
                                    main[main["population"] == pop], m, STRATA)
                                    for pop in population.POPULATIONS}
@@ -581,6 +613,24 @@ def summary_v3(rel: pd.DataFrame, neutral: pd.DataFrame, check: dict) -> dict:
     })
 
 
+def v3_to_v4(t3: pd.DataFrame, t4: pd.DataFrame) -> dict:
+    """Per model (neutral first): the main rows whose estimable changed, the genes
+    entering per population and stratum in each generation, and the change of the
+    interval's bounds and the floor."""
+    from atlas import rank_cells
+    keys = ["gene", "population", "stratum", "method"]
+    m3, m4 = t3[t3["role"] == "main"], t4[t4["role"] == "main"]
+    out = {}
+    for m in rank_cells.MODELS:
+        out[m] = {"estimable_changed": rank_cells.estimable_changes(m3, m4, keys, m),
+                  "genes_entering": {pop: rank_cells.entering_side_by_side(
+                      rank_cells.stratum_summary(m3[m3["population"] == pop], m, STRATA),
+                      rank_cells.stratum_summary(m4[m4["population"] == pop], m, STRATA))
+                      for pop in population.POPULATIONS},
+                  "bounds_and_floor_moved": rank_cells.bound_changes(m3, m4, keys, m)}
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -588,8 +638,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--aux", default=str(paths.path("assay_aux")))
     ap.add_argument("--out", default="results")
     ap.add_argument("--workers", type=int, default=1)
+    ap.add_argument("--store", default=None,
+                    help="where each variant set's result is kept (atlas.rank_cells)")
     args = ap.parse_args(argv)
 
+    from atlas import rank_cells
     mat = population.load(None, Path(args.matrix))
     aux = pd.read_parquet(args.aux)
     out = Path(args.out)
@@ -597,16 +650,30 @@ def main(argv: list[str] | None = None) -> int:
 
     neutral = neutral_check(mat, aux)
     inflation = inflation_factors(neutral)
-    rel, v2 = reliability_table_v3(mat, aux, inflation, args.workers)
+    rel, v2, first = reliability_table_v3(mat, aux, inflation, args.workers,
+                                          Path(args.store) if args.store else None)
     check = check_v2(v2)
     if not check["holds"]:
         print("the second generation is not computed again:", check, file=sys.stderr)
+        return 1
+    keys = ["gene", "population", "stratum", "method"]
+    v3 = rank_cells.check_v3(rel, TABLE_V3, keys, first)
+    if not (v3["point_estimates_and_the_rest"]["holds"]
+            and v3["first_200_resamples_and_100_nulls"]["holds"]):
+        print("the third generation is not reproduced:", json.dumps(jsonable(v3), indent=1),
+              file=sys.stderr)
+        (out / "_failed").mkdir(parents=True, exist_ok=True)
+        rel.to_csv(out / "_failed" / paths.name("reliability"), sep="\t", index=False)
+        first.to_csv(out / "_failed" / "reliability_first.tsv", sep="\t", index=False)
         return 1
     corr = corroboration_table(mat[["variant_id", "hgvs_c", "ref", "alt"]])
     rel.to_csv(out / paths.name("reliability"), sep="\t", index=False)
     corr.to_csv(out / paths.name("reliability_corroboration"), sep="\t", index=False)
     neutral.to_csv(out / paths.name("reliability_neutral_check"), sep="\t", index=False)
     summ = summary_v3(rel, neutral, check)
+    summ["checks"]["v3"] = jsonable(v3)
+    summ["v3_to_v4"] = jsonable(v3_to_v4(pd.read_csv(TABLE_V3, sep="\t",
+                                                     float_precision="round_trip"), rel))
     (out / paths.name("reliability_summary")).write_text(json.dumps(summ, indent=1) + "\n")
 
     snv = rel[(rel["population"] == population.SNV) & (rel["role"] == "main")]
