@@ -1,5 +1,6 @@
 """The deposits' own classes (A4b.5): which variants each deposit calls abnormal, the rho a
-predictor could reach that knew the class and nothing within it, and rho within each class.
+predictor could reach that knew the class and nothing within it, and rho within each class;
+how well each predictor separates the two classes, as an AUROC (A4c, K19).
 
 Rules ("abnormal"; every other variant of the deposit is normal):
   BARD1, PALB2   atlas.assay_aux's posterior label_abnormal above 0.5;
@@ -24,17 +25,35 @@ rho over all of them, over the normal class and over the abnormal class; empty w
 below 30. The external genes' predictors score intronic SNVs only, so their all rows,
 which would repeat splice_region, are not written (as G18 does for the matched ceilings).
 
-Usage (PYTHONPATH=src):  python -m atlas.deposit_classes
+results/deposit_call_auroc_v1.tsv (A4c, K19): the rows of within_class_rho_v1: n, the
+abnormal and normal variants' numbers, the AUROC of the predictor's score for the deposit's
+call (abnormal the positive class; the score as rho takes it, higher more damaging; the
+Mann-Whitney identity with mid-ranks for ties, atlas.clinical_evidence.roc_auc), empty
+unless each class holds at least 10 variants; its 95% interval on the logit scale with the
+Hanley-McNeil variance (the delta method, as atlas.clinical_evidence pools AUROC; empty when
+the AUROC is 0 or 1); rho, which is within_class_rho's rho_all; selection_overlap
+(atlas.predictors). results/deposit_call_auroc_v1.json: per stratum x predictor and group
+(core, external, all), the AUROC's and rho's median, minimum and maximum across genes and
+the number of genes, a cell with selection_overlap entering none; rho also over the genes
+with an AUROC. Checks: the AUROC table's n, n_abnormal, n_normal and rho are
+within_class_rho's bit for bit, and the two tables above, computed again, have the
+delivered files' bytes. A table already at the output with the same bytes is not
+written again; if a check fails, everything goes to <out>/_failed/ and the exit status is 1.
+
+Usage (PYTHONPATH=src):  python -m atlas.deposit_classes [--out DIR]
 """
 
 from __future__ import annotations
 
 import argparse
+import json
+import math
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from atlas import clinical_evidence as ce
 from atlas import paths, population, predictors
 from atlas.reliability import STRATA, _stratum_mask
 
@@ -54,6 +73,10 @@ CLASS_COLUMNS = ["gene", "group", "stratum", "n", "n_abnormal", "share_abnormal"
                  "class_bound", "rule"]
 RHO_COLUMNS = ["gene", "group", "stratum", "model", "n_all", "rho_all", "n_normal",
                "rho_normal", "n_abnormal", "rho_abnormal"]
+MIN_CLASS = 10              # each class, as atlas.clinical_evidence's MIN_POS and MIN_NEG
+CI_Z = 1.96                 # as atlas.evaluate.dl_pool, which clinical_evidence's AUROC uses
+AUROC_COLUMNS = ["gene", "group", "stratum", "model", "n", "n_abnormal", "n_normal", "auroc",
+                 "auroc_lo", "auroc_hi", "rho", "selection_overlap"]
 
 
 def spearman(a, b) -> float:
@@ -148,8 +171,9 @@ def _rho(c: pd.DataFrame, model: str) -> tuple[int, float]:
     return int(len(c)), float(c[model].corr(c["y"], method="spearman"))
 
 
-def within_class_table(core: pd.DataFrame, sc: pd.DataFrame) -> pd.DataFrame:
-    rows = []
+def cells(core: pd.DataFrame, sc: pd.DataFrame):
+    """The within-class table's rows: (gene, group, stratum, predictor, the SNVs it scored
+    that carry a functional score), n >= MIN_N, the external genes without their all rows."""
     for gene in GENES:
         ext = gene in EXTERNAL
         g = sc[sc["gene"] == gene] if ext else core[core["gene"] == gene]
@@ -164,14 +188,124 @@ def within_class_table(core: pd.DataFrame, sc: pd.DataFrame) -> pd.DataFrame:
                 c = s[s[model].notna()]
                 if len(c) < MIN_N:
                     continue
-                n_all, r_all = _rho(c, model)
-                n_n, r_n = _rho(c[~c["abnormal"]], model)
-                n_a, r_a = _rho(c[c["abnormal"]], model)
-                rows.append({"gene": gene, "group": "external" if ext else "core",
-                             "stratum": stratum, "model": model, "n_all": n_all,
-                             "rho_all": r_all, "n_normal": n_n, "rho_normal": r_n,
-                             "n_abnormal": n_a, "rho_abnormal": r_a})
+                yield gene, "external" if ext else "core", stratum, model, c
+
+
+def within_class_table(core: pd.DataFrame, sc: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for gene, group, stratum, model, c in cells(core, sc):
+        n_all, r_all = _rho(c, model)
+        n_n, r_n = _rho(c[~c["abnormal"]], model)
+        n_a, r_a = _rho(c[c["abnormal"]], model)
+        rows.append({"gene": gene, "group": group, "stratum": stratum, "model": model,
+                     "n_all": n_all, "rho_all": r_all, "n_normal": n_n, "rho_normal": r_n,
+                     "n_abnormal": n_a, "rho_abnormal": r_a})
     return pd.DataFrame(rows, columns=RHO_COLUMNS)
+
+
+# ==========================================================================
+# the predictors against the deposits' calls (A4c, K19)
+# ==========================================================================
+def auroc(abnormal, score) -> float:
+    """AUROC with the abnormal variants the positive class (atlas.clinical_evidence.roc_auc:
+    the Mann-Whitney identity, mid-ranks for ties); empty unless each class holds at least
+    MIN_CLASS variants."""
+    ab = np.asarray(abnormal, bool)
+    if ab.sum() < MIN_CLASS or (~ab).sum() < MIN_CLASS:
+        return float("nan")
+    return ce.roc_auc(ab.astype(int), np.asarray(score, float))
+
+
+def auroc_interval(auc: float, n_pos: int, n_neg: int) -> tuple[float, float]:
+    """The 95% interval on the logit scale with the Hanley-McNeil variance, by the delta
+    method, as atlas.clinical_evidence pools AUROC; empty when the AUROC is empty, 0 or 1."""
+    if not (0 < auc < 1):
+        return float("nan"), float("nan")
+    z = ce._logit(auc)
+    se = math.sqrt(ce.hanley_mcneil_var(auc, n_pos, n_neg)) / (auc * (1 - auc))
+    inv = lambda x: 1 / (1 + math.exp(-x))  # noqa: E731
+    return inv(z - CI_Z * se), inv(z + CI_Z * se)
+
+
+def call_auroc_table(core: pd.DataFrame, sc: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for gene, group, stratum, model, c in cells(core, sc):
+        n, rho = _rho(c, model)
+        ab = c["abnormal"].to_numpy(bool)
+        n_ab, n_no = int(ab.sum()), int((~ab).sum())
+        auc = auroc(ab, c[model])
+        lo, hi = auroc_interval(auc, n_ab, n_no)
+        rows.append({"gene": gene, "group": group, "stratum": stratum, "model": model,
+                     "n": n, "n_abnormal": n_ab, "n_normal": n_no, "auroc": auc,
+                     "auroc_lo": lo, "auroc_hi": hi, "rho": rho,
+                     "selection_overlap": predictors.is_overlap(model, gene)})
+    return pd.DataFrame(rows, columns=AUROC_COLUMNS)
+
+
+def _span(v: pd.Series, genes: pd.Series) -> dict:
+    keep = v.notna()
+    v, genes = v[keep], genes[keep]
+    if not len(v):
+        return {"n_genes": 0, "median": None, "min": None, "max": None, "genes": []}
+    return {"n_genes": int(len(v)), "median": float(v.median()), "min": float(v.min()),
+            "max": float(v.max()), "genes": genes.tolist()}
+
+
+def auroc_summary(t: pd.DataFrame) -> list[dict]:
+    """Per stratum x predictor and group (core, external, all): the AUROC's and rho's median,
+    minimum and maximum across genes, a cell with selection_overlap entering none; rho also
+    over the genes with an AUROC."""
+    flag = t["selection_overlap"].astype(bool)
+    out = []
+    for stratum in STRATA:
+        for model in predictors.PREDICTORS:
+            here = t[(t["stratum"] == stratum) & (t["model"] == model)]
+            for group in ("core", "external", "all"):
+                g = here if group == "all" else here[here["group"] == group]
+                if not len(g):
+                    continue
+                left_out = g[flag[g.index]]
+                g = g[~flag[g.index]]
+                a = g[g["auroc"].notna()]
+                out.append({"stratum": stratum, "model": model, "group": group,
+                            "auroc": _span(g["auroc"], g["gene"]),
+                            "rho": _span(g["rho"], g["gene"]),
+                            "rho_genes_with_auroc": _span(a["rho"], a["gene"]),
+                            "left_out_selection_overlap": left_out["gene"].tolist()})
+    return out
+
+
+def _bits_equal(a: pd.Series, b: pd.Series) -> bool:
+    x, y = a.to_numpy(float), b.to_numpy(float)
+    return bool(((x.view(np.uint64) == y.view(np.uint64)) | (np.isnan(x) & np.isnan(y))).all())
+
+
+def auroc_checks(t: pd.DataFrame, rho: pd.DataFrame, texts: dict[str, str]) -> dict:
+    """(1) n, n_abnormal, n_normal and rho are within_class_rho's bit for bit: the table just
+    computed, and the delivered file where it is there; (2) the two tables computed again have
+    the delivered files' bytes."""
+    keys = ["gene", "group", "stratum", "model"]
+    pairs = {"n": "n_all", "n_abnormal": "n_abnormal", "n_normal": "n_normal", "rho": "rho_all"}
+    one = {}
+    sources = {"computed_here": rho}
+    delivered = paths.path("within_class_rho")
+    if delivered.exists():
+        sources[delivered.name] = pd.read_csv(delivered, sep="\t", float_precision="round_trip")
+    for label, w in sources.items():
+        same_rows = (len(w) == len(t) and (w[keys].astype(str).to_numpy()
+                                           == t[keys].astype(str).to_numpy()).all())
+        one[label] = {"rows": int(len(w)), "rows_here": int(len(t)), "same_rows": bool(same_rows),
+                      "columns_differing": [] if not same_rows else
+                      [c for c, wc in pairs.items() if not _bits_equal(t[c], w[wc])]}
+        one[label]["holds"] = bool(same_rows and not one[label]["columns_differing"])
+    two = {}
+    for key, text in texts.items():
+        p = paths.path(key)
+        two[p.name] = (None if not p.exists()
+                       else p.read_bytes() == text.encode("utf-8"))
+    return {"same_as_within_class_rho": one | {"holds": all(v["holds"] for v in one.values())},
+            "tables_computed_again_same_bytes": two | {
+                "holds": all(v is not False for v in two.values())}}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -179,17 +313,53 @@ def main(argv: list[str] | None = None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=str(paths.RESULTS))
     args = ap.parse_args(argv)
-    out = Path(args.out)
     core = core_variants()
     dep, sc = external_variants()
     classes = class_table(core, dep)
-    classes.to_csv(out / paths.name("deposit_classes"), sep="\t", index=False)
     rho = within_class_table(core, sc)
-    rho.to_csv(out / paths.name("within_class_rho"), sep="\t", index=False)
+    calls = call_auroc_table(core, sc)
+    texts = {"deposit_classes": classes.to_csv(sep="\t", index=False),
+             "within_class_rho": rho.to_csv(sep="\t", index=False)}
+    checks = auroc_checks(calls, rho, texts)
+    holds = all(c["holds"] for c in checks.values())
+    out = Path(args.out) if holds else Path(args.out) / "_failed"
+    out.mkdir(parents=True, exist_ok=True)
+    for key, text in texts.items():          # a table already there with these bytes is
+        p = out / paths.name(key)            # not written again
+        if not (p.exists() and p.read_bytes() == text.encode("utf-8")):
+            p.write_text(text, encoding="utf-8")
+    calls.to_csv(out / paths.name("deposit_call_auroc"), sep="\t", index=False)
+    rec = {"definition": {
+               "rows": paths.name("within_class_rho") + "'s: gene x stratum x predictor, SNVs "
+                       f"the predictor scored that carry a functional score, n >= {MIN_N}; the "
+                       "external genes without their all rows",
+               "calls": RULES,
+               "auroc": "abnormal the positive class; the score as rho takes it (higher more "
+                        "damaging); the Mann-Whitney identity, mid-ranks for ties "
+                        f"(atlas.clinical_evidence.roc_auc); empty unless each class holds at "
+                        f"least {MIN_CLASS} variants",
+               "interval": f"logit(AUROC) +/- {CI_Z} x sqrt(Hanley-McNeil variance) / "
+                           "(AUROC (1 - AUROC)), back-transformed (the delta method, as "
+                           "atlas.clinical_evidence pools AUROC); empty when the AUROC is 0 or 1",
+               "rho": paths.name("within_class_rho") + "'s rho_all",
+               "across_genes": "a cell with selection_overlap (atlas.predictors."
+                               "SELECTION_OVERLAP) enters no quantity across genes",
+               "selection_overlap": predictors.SELECTION_OVERLAP},
+           "checks": checks,
+           "by_stratum_and_predictor": auroc_summary(calls)}
+    (out / paths.name("deposit_call_auroc_summary")).write_text(
+        json.dumps(_jsonable(rec), indent=1) + "\n")
     show = classes[classes["stratum"].isin(["splice_3_10", "splice_11_50"])]
     print(show.drop(columns=["rule"]).to_string(index=False, float_format=lambda v: f"{v:.3f}"))
-    print(f"{len(rho)} within-class rows")
-    return 0
+    print(f"{len(rho)} within-class rows; {len(calls)} AUROC rows, "
+          f"{int(calls['auroc'].notna().sum())} with an AUROC")
+    print(json.dumps(_jsonable(checks), indent=1))
+    return 0 if holds else 1
+
+
+def _jsonable(obj):
+    from atlas.rank_ceiling import jsonable
+    return jsonable(obj)
 
 
 if __name__ == "__main__":

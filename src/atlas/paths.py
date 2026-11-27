@@ -65,11 +65,13 @@ NAMES: dict[str, str] = {
     "lof_level_by_stratum": "lof_level_by_stratum_v1.tsv",
     "rank_ceiling_lof_sensitivity": "rank_ceiling_lof_sensitivity_v1.tsv",
     "mavedb_rank_ceiling_trial": "mavedb_rank_ceiling_trial_v1.tsv",
-    # the neutral model's sensitivity and the MaveDB rank-scale ceilings (A4c)
+    # the neutral model's sensitivity, the MaveDB rank-scale ceilings, the deposits' calls (A4c)
     "rank_ceiling_sensitivity": "rank_ceiling_sensitivity_v1.tsv",
     "rank_ceiling_sensitivity_summary": "rank_ceiling_sensitivity_v1.json",
     "mavedb_rank_ceilings": "mavedb_rank_ceilings_v1.tsv",
     "mavedb_rank_ceilings_summary": "mavedb_rank_ceilings_v1.json",
+    "deposit_call_auroc": "deposit_call_auroc_v1.tsv",
+    "deposit_call_auroc_summary": "deposit_call_auroc_v1.json",
     # the other analyses that read the matrix
     "tie_audit": "tie_audit_v2.tsv",
     "power": "power_v2.tsv",

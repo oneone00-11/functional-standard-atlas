@@ -1,11 +1,11 @@
 {
  "note": "SHA-256 of every delivered figure and table. Regenerate with `python -m atlas.artefact_manifest --write` after a rebuild; tests/test_artefact_manifest.py fails if a delivered artefact drifts from this record.",
- "n_files": 307,
+ "n_files": 309,
  "by_role": {
   "main_figure": 26,
   "supp_figure": 134,
   "main_table": 4,
-  "supp_table": 143
+  "supp_table": 145
  },
  "files": {
   "results/alphagenome_atlas_concordance_v1.tsv": {
@@ -172,6 +172,16 @@
    "role": "supp_table",
    "sha256": "cf1498c58ece1a69dfe14d2757cfc48092fb4167076c74d8dff08b285cd3137a",
    "bytes": 1731
+  },
+  "results/deposit_call_auroc_v1.json": {
+   "role": "supp_table",
+   "sha256": "612fd6b124121e0c61e1376292b4f028dd7ee760f759a2e20f96c37d3668ea3e",
+   "bytes": 239794
+  },
+  "results/deposit_call_auroc_v1.tsv": {
+   "role": "supp_table",
+   "sha256": "197237299e9fd5fa74ab6242207a91c3f4f6331088bb9472d440f6f8aec82f56",
+   "bytes": 85407
   },
   "results/deposit_classes_v1.tsv": {
    "role": "supp_table",
